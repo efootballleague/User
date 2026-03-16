@@ -7,10 +7,7 @@
 <link rel="icon" type="image/jpeg" href="https://i.ibb.co/MDGqDxPS/grok-1773616908832-2.jpg">
 <link rel="apple-touch-icon" href="https://i.ibb.co/MDGqDxPS/grok-1773616908832-2.jpg">
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<script src="https://js.paystack.co/v2/inline.js"></script>
+
 <style>
 :root{
   --red:#E8002D;--red2:#ff1a45;--dark:#0D0D0D;--card:#141414;--card2:#1a1a1a;
@@ -187,41 +184,50 @@ nav{position:sticky;top:0;z-index:200;background:rgba(13,13,13,0.97);backdrop-fi
 /* LANDING SCREEN */
 #landing{
   position:fixed;inset:0;z-index:10000;
-  display:flex;align-items:center;justify-content:center;
+  overflow-y:auto;
   background:var(--dark);
   transition:opacity .35s ease;
 }
 #landing.hidden{opacity:0;pointer-events:none;}
 #landing-inner{
-  display:flex;flex-direction:column;align-items:center;gap:1.2rem;
-  padding:2.5rem 2rem 3.5rem;width:100%;max-width:340px;
+  display:flex;flex-direction:column;align-items:center;gap:.8rem;
+  padding:1.5rem 1.5rem 2rem;width:100%;max-width:360px;
+  margin:0 auto;min-height:100%;justify-content:center;
+  box-sizing:border-box;
 }
 #landing-logo{
-  width:100px;height:100px;border-radius:22px;object-fit:cover;
-  border:2.5px solid rgba(232,0,45,0.55);
-  box-shadow:0 0 40px rgba(232,0,45,0.4),0 0 80px rgba(232,0,45,0.12);
+  width:78px;height:78px;border-radius:18px;object-fit:cover;
+  border:2px solid rgba(232,0,45,0.55);
+  box-shadow:0 0 30px rgba(232,0,45,0.4);
   animation:logoPulse 2.5s ease-in-out infinite;
-  margin-bottom:.2rem;
+  flex-shrink:0;
 }
 #landing-brand{
-  font-family:'Orbitron',monospace;font-weight:900;font-size:1.6rem;
-  text-align:center;line-height:1.2;letter-spacing:3px;
+  font-family:'Orbitron',monospace;font-weight:900;font-size:1.35rem;
+  text-align:center;line-height:1.2;letter-spacing:2px;
   background:linear-gradient(135deg,#E8002D,#ff6b00);
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  margin-bottom:0;
 }
 #landing-brand-sub{
-  font-size:1.05rem;letter-spacing:7px;
+  font-size:.9rem;letter-spacing:5px;
   background:linear-gradient(90deg,#ffffff,#aaaaaa);
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;
 }
 #landing-tagline{
-  font-size:.68rem;color:var(--dim);letter-spacing:2px;
-  text-transform:uppercase;margin-top:-.4rem;margin-bottom:.3rem;
+  font-size:.62rem;color:var(--dim);letter-spacing:2px;
+  text-transform:uppercase;margin-top:-.3rem;
 }
-#landing-btns{display:flex;flex-direction:column;gap:.75rem;width:100%;}
+#landing-tabs{display:flex;width:100%;background:rgba(255,255,255,0.05);border-radius:10px;padding:3px;gap:3px;}
+.landing-tab{flex:1;background:none;border:none;color:var(--dim);font-family:'Exo 2',sans-serif;font-weight:700;font-size:.78rem;padding:8px 4px;border-radius:8px;cursor:pointer;transition:all .18s;text-transform:uppercase;letter-spacing:.5px;}
+.landing-tab.active{background:rgba(232,0,45,0.85);color:#fff;}
+#landing-signin,#landing-register{width:100%;}
+.landing-field{margin-bottom:.6rem;}
+.landing-field .lbl{margin-bottom:3px;}
 #landing-skip{
-  font-size:.72rem;color:var(--dim);margin-top:.4rem;
-  cursor:pointer;text-align:center;padding:.5rem;
+  font-size:.72rem;color:var(--dim);
+  cursor:pointer;text-align:center;padding:.4rem;
+  width:100%;
 }
 
 /* MISC */
@@ -320,11 +326,82 @@ nav{position:sticky;top:0;z-index:200;background:rgba(13,13,13,0.97);backdrop-fi
     <img src="https://i.ibb.co/MDGqDxPS/grok-1773616908832-2.jpg" alt="eFootball Universe" id="landing-logo">
     <div id="landing-brand">eFOOTBALL<br><span id="landing-brand-sub">UNIVERSE</span></div>
     <div id="landing-tagline">Register · Compete · Dominate</div>
-    <div id="landing-btns">
-      <button class="bp" style="width:100%;padding:12px;font-size:.95rem;border-radius:11px" onclick="openM('login-mo')">⚡ Sign In</button>
-      <button class="bs" style="width:100%;padding:12px;font-size:.95rem;border-radius:11px" onclick="openM('reg-mo')">🎮 Create Account</button>
+
+    <!-- TAB SWITCHER -->
+    <div id="landing-tabs">
+      <button id="tab-signin" class="landing-tab active" onclick="showLandingTab('signin')">⚡ Sign In</button>
+      <button id="tab-register" class="landing-tab" onclick="showLandingTab('register')">🎮 Create Account</button>
     </div>
-    <div id="landing-skip" onclick="enterApp()" >Already browsing? <span style="color:#ff4466;font-weight:700;text-decoration:underline">View as guest →</span></div>
+
+    <!-- SIGN IN FORM -->
+    <div id="landing-signin">
+      <div class="landing-field">
+        <label class="lbl">Email</label>
+        <input class="inp" id="l-email" type="email" placeholder="your@email.com" autocomplete="email">
+      </div>
+      <div class="landing-field">
+        <label class="lbl">Password</label>
+        <input class="inp" id="l-pass" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')landingLogin()">
+      </div>
+      <div class="err" id="l-err" style="min-height:18px;margin-bottom:4px"></div>
+      <button class="bp" id="l-btn" style="width:100%;padding:13px;font-size:.95rem;border-radius:11px;margin-top:4px" onclick="landingLogin()">⚡ Sign In</button>
+    </div>
+
+    <!-- REGISTER FORM (step 1) -->
+    <div id="landing-register" style="display:none">
+      <div id="landing-reg-s1">
+        <div class="landing-field">
+          <label class="lbl">Username</label>
+          <input class="inp" id="r-user" placeholder="YourGamertag" autocomplete="username">
+        </div>
+        <div class="landing-field">
+          <label class="lbl">Email</label>
+          <input class="inp" id="r-email" type="email" placeholder="your@email.com" autocomplete="email">
+        </div>
+        <div class="landing-field">
+          <label class="lbl">Password (min 8 chars)</label>
+          <input class="inp" id="r-pass" type="password" placeholder="••••••••" autocomplete="new-password">
+        </div>
+        <div class="landing-field">
+          <label class="lbl">Country</label>
+          <select class="inp" id="r-country">
+            <option value="">— Select Country —</option>
+            <option>Nigeria</option><option>Ghana</option><option>Kenya</option>
+            <option>South Africa</option><option>United Kingdom</option>
+            <option>United States</option><option>Germany</option><option>France</option>
+            <option>Spain</option><option>Italy</option><option>Brazil</option>
+            <option>Portugal</option><option>Other</option>
+          </select>
+        </div>
+        <div class="landing-field">
+          <label class="lbl">League</label>
+          <select class="inp" id="r-league">
+            <option value="">— Select League —</option>
+            <option value="epl">🏴󠁧󠁢󠁥󠁮󠁧󠁿 eVitality Premier</option>
+            <option value="esl">🇪🇸 eSol La Liga</option>
+            <option value="ebl">🇩🇪 eKraft Bundesliga</option>
+            <option value="esc">🇮🇹 eScudetto Serie A</option>
+          </select>
+        </div>
+        <div class="err" id="r-err-l" style="min-height:18px;margin-bottom:4px"></div>
+        <button class="bp" id="r-draw-btn" style="width:100%;padding:13px;font-size:.95rem;border-radius:11px;margin-top:4px" onclick="landingRegStep1()">🎰 Draw My Club!</button>
+      </div>
+      <div id="landing-reg-s2" style="display:none;text-align:center">
+        <div style="color:var(--dim);font-size:.82rem;margin-bottom:.8rem">Your club has been drawn...</div>
+        <div style="background:rgba(232,0,45,0.07);border:1px solid rgba(232,0,45,0.2);border-radius:12px;padding:1.4rem;margin-bottom:.9rem">
+          <div id="r-drawn-badge" style="margin:0 auto .7rem"></div>
+          <div id="r-drawn-name" style="font-family:'Orbitron',monospace;font-weight:900;font-size:1.1rem;color:#fff"></div>
+          <div id="r-drawn-lg" style="font-size:.75rem;margin-top:3px"></div>
+        </div>
+        <div class="err" id="r-err2-l" style="min-height:18px;margin-bottom:4px"></div>
+        <div style="display:flex;gap:.6rem;justify-content:center">
+          <button class="bs" style="padding:10px 18px;border-radius:10px" onclick="document.getElementById('landing-reg-s1').style.display='';document.getElementById('landing-reg-s2').style.display='none'">↩ Redraw</button>
+          <button class="bp" id="r-confirm-btn" style="padding:10px 20px;border-radius:10px" onclick="landingRegConfirm()">✅ Confirm</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="landing-skip" onclick="enterApp()">Already browsing? <span style="color:#ff4466;font-weight:700;text-decoration:underline">View as guest →</span></div>
   </div>
 </div>
 <div id="toast"></div>
@@ -827,18 +904,176 @@ nav{position:sticky;top:0;z-index:200;background:rgba(13,13,13,0.97);backdrop-fi
 </div>
 
 <script>
+// ── CORE UI HELPERS (defined first so buttons always work) ──────────────
+function $(i){return document.getElementById(i);}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function openM(id){
+  var l=$('landing');
+  if(l&&!l.classList.contains('hidden')){
+    l.classList.add('hidden');
+    document.body.style.overflow='';
+    setTimeout(function(){l.style.display='none';},380);
+  }
+  var el=$(id); if(el) el.classList.add('open');
+}
+function closeM(id){var el=$(id);if(el)el.classList.remove('open');}
+function toast(msg,type){
+  var e=$('toast');if(!e)return;
+  e.textContent=msg;
+  e.style.background=type==='error'?'rgba(255,0,110,0.18)':'rgba(0,255,136,0.13)';
+  e.style.border='1px solid '+(type==='error'?'#ff006e':'#00ff88');
+  e.style.color=type==='error'?'#ff006e':'#00ff88';
+  e.style.display='block';
+  clearTimeout(e._t);
+  e._t=setTimeout(function(){e.style.display='none';},2800);
+}
+function enterApp(){
+  var l=$('landing');
+  if(l&&!l.classList.contains('hidden')){
+    l.classList.add('hidden');
+    document.body.style.overflow='';
+    setTimeout(function(){l.style.display='none';},380);
+  }
+  updateNav();
+  refreshAll();
+}
+function hideLoader(){enterApp();}
+
+function showLandingTab(tab){
+  var signin=$('landing-signin'), reg=$('landing-register');
+  var ts=$('tab-signin'), tr=$('tab-register');
+  if(tab==='signin'){
+    signin.style.display=''; reg.style.display='none';
+    ts.classList.add('active'); tr.classList.remove('active');
+  } else {
+    signin.style.display='none'; reg.style.display='';
+    ts.classList.remove('active'); tr.classList.add('active');
+  }
+}
+
+function landingLogin(){
+  var em=$('l-email').value.trim();
+  var pw=$('l-pass').value;
+  var err=$('l-err');
+  err.textContent='';
+  if(!em||!pw){err.textContent='Please fill in both fields.';return;}
+  if(!auth){err.textContent='Connection error — please refresh.';return;}
+  var btn=$('l-btn');btn.textContent='Signing in...';btn.disabled=true;
+  auth.signInWithEmailAndPassword(em,pw)
+    .then(function(){
+      btn.textContent='⚡ Sign In';btn.disabled=false;
+      $('l-email').value='';$('l-pass').value='';
+      // onAuthStateChanged will call enterApp()
+    })
+    .catch(function(e){
+      err.textContent=e.code==='auth/user-not-found'||e.code==='auth/wrong-password'?'Wrong email or password.':'Error: '+e.message;
+      btn.textContent='⚡ Sign In';btn.disabled=false;
+    });
+}
+
+var _landingDrawnClub=null;
+function landingRegStep1(){
+  var u=$('r-user').value.trim(),em=$('re-email')||$('r-email');
+  var email=em?em.value.trim():'';
+  var pw=$('r-pass').value;
+  var country=$('r-country').value;
+  var league=$('r-league').value;
+  var err=$('r-err-l');err.textContent='';
+  if(!u||!email||!pw||!country||!league){err.textContent='Please fill in all fields.';return;}
+  if(pw.length<8){err.textContent='Password must be at least 8 characters.';return;}
+  if(Object.values(allPlayers).some(function(x){return x.username.toLowerCase()===u.toLowerCase();})){err.textContent='Username already taken.';return;}
+  var taken=Object.values(allPlayers).filter(function(x){return x.league===league;}).map(function(x){return x.club;});
+  var avail=(ALL_CLUBS[league]||[]).filter(function(x){return !taken.includes(x);});
+  if(!avail.length){err.textContent='This league is full. Choose another.';return;}
+  _landingDrawnClub=avail[Math.floor(Math.random()*avail.length)];
+  $('r-drawn-badge').innerHTML=clubAv(_landingDrawnClub,52);
+  $('r-drawn-name').textContent=_landingDrawnClub;
+  var lg=LGS[league];
+  $('r-drawn-lg').textContent=lg.f+' '+lg.n;
+  $('r-drawn-lg').style.color=lg.c;
+  $('landing-reg-s1').style.display='none';
+  $('landing-reg-s2').style.display='';
+}
+
+function landingRegConfirm(){
+  var u=$('r-user').value.trim();
+  var email=$('r-email').value.trim();
+  var pw=$('r-pass').value;
+  var country=$('r-country').value;
+  var league=$('r-league').value;
+  var err=$('r-err2-l');err.textContent='';
+  if(!_landingDrawnClub){err.textContent='No club drawn. Please go back.';return;}
+  if(!auth){err.textContent='Connection error — please refresh.';return;}
+  var btn=$('r-confirm-btn');btn.textContent='Registering...';btn.disabled=true;
+  auth.createUserWithEmailAndPassword(email,pw)
+    .then(function(cr){
+      return db.ref('ef_players/'+cr.user.uid).set({
+        uid:cr.user.uid,username:u,email:email,country:country,
+        league:league,club:_landingDrawnClub,joinedAt:Date.now(),lastSeen:Date.now()
+      });
+    })
+    .then(function(){
+      btn.textContent='✅ Confirm';btn.disabled=false;
+      _landingDrawnClub=null;
+      toast('🎉 Welcome to eFootball Universe!');
+      // onAuthStateChanged will call enterApp()
+    })
+    .catch(function(e){
+      var msg='Registration failed.';
+      if(e.code==='auth/email-already-in-use')msg='Email already registered. Try signing in.';
+      err.textContent=msg;
+      btn.textContent='✅ Confirm';btn.disabled=false;
+    });
+}
+
 // ── FIREBASE ─────────────────────────────────────────────────────────────
-firebase.initializeApp({
-  apiKey:"AIzaSyDLPAktzLmpfNX9XUmw9i_B2P2I3XPwOLs",
-  authDomain:"viccybank.firebaseapp.com",
-  databaseURL:"https://viccybank-default-rtdb.firebaseio.com",
-  projectId:"viccybank",
-  storageBucket:"viccybank.firebasestorage.app",
-  messagingSenderId:"328465601734",
-  appId:"1:328465601734:web:10e00c00286f1b932273c7"
-});
-var auth=firebase.auth(), db=firebase.database();
+var auth=null, db=null;
 var PAYSTACK_DEFAULT_PK='pk_live_46d79b8be095322027cec63e4b69a5e48e32a3a4';
+
+function initFirebase(){
+  try {
+    if(typeof firebase==='undefined') return;
+    firebase.initializeApp({
+      apiKey:"AIzaSyDLPAktzLmpfNX9XUmw9i_B2P2I3XPwOLs",
+      authDomain:"viccybank.firebaseapp.com",
+      databaseURL:"https://viccybank-default-rtdb.firebaseio.com",
+      projectId:"viccybank",
+      storageBucket:"viccybank.firebasestorage.app",
+      messagingSenderId:"328465601734",
+      appId:"1:328465601734:web:10e00c00286f1b932273c7"
+    });
+    auth=firebase.auth();
+    db=firebase.database();
+    startApp();
+  } catch(e){
+    console.error('Firebase init failed:',e);
+  }
+}
+
+function loadScripts(urls, callback){
+  var remaining = urls.length;
+  if(!remaining){ callback(); return; }
+  urls.forEach(function(url){
+    var s=document.createElement('script');
+    s.src=url;
+    s.onload=function(){ if(--remaining===0) callback(); };
+    s.onerror=function(){ if(--remaining===0) callback(); }; // fail gracefully
+    document.head.appendChild(s);
+  });
+}
+
+// Load Firebase + Paystack async - page HTML and CSS already rendered by now
+document.addEventListener('DOMContentLoaded', function(){
+  loadScripts([
+    'https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js',
+    'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js',
+    'https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js'
+  ], function(){
+    initFirebase();
+    // Load Paystack separately - not critical for core app
+    loadScripts(['https://js.paystack.co/v2/inline.js'], function(){});
+  });
+});
 
 
 // ── ADMIN EMAIL ──────────────────────────────────────────────────────────
@@ -859,8 +1094,7 @@ var drawnClub=null;
 var unreadChat=0, unreadPM=0;
 
 // ── HELPERS ──────────────────────────────────────────────────────────────
-function $(i){return document.getElementById(i);}
-function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+// $ and esc already defined above
 function shuffle(a){var b=a.slice();for(var i=b.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=b[i];b[i]=b[j];b[j]=t;}return b;}
 function fmtDate(ts){if(!ts)return '';var d=new Date(ts);return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'});}
 function fmtTime(ts){if(!ts)return '';return new Date(ts).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});}
@@ -879,19 +1113,7 @@ function lsColor(ts){
 }
 function clubColor(n){var m={"Neon City FC":"#00d4ff","Storm United":"#ff6b00","Volt Rangers":"#ffe600","Iron Wolves":"#bf00ff","Sol Madrid":"#ffd600","Bayern Digital":"#dc241f","Inter Digital":"#0044bb"};if(m[n])return m[n];var h=0;for(var i=0;i<n.length;i++)h=(h*31+n.charCodeAt(i))&0xFFFFFF;return '#'+h.toString(16).padStart(6,'0');}
 function clubAv(n,sz){var c=clubColor(n||'?');return '<div class="cbadge" style="width:'+sz+'px;height:'+sz+'px;background:'+c+'22;border:1.5px solid '+c+'55;font-size:'+(sz*.28)+'px;color:'+c+'">'+(n||'?').split(' ').map(function(w){return w[0]||'';}).join('').slice(0,2).toUpperCase()+'</div>';}
-function openM(id){
-  // If landing is still visible, hide it before opening modal
-  var l=$('landing');
-  if(l&&!l.classList.contains('hidden')){
-    l.classList.add('hidden');
-    document.body.style.overflow='';
-    setTimeout(function(){l.style.display='none';},380);
-  }
-  $(id).classList.add('open');
-}
-function closeM(id){$(id).classList.remove('open');}
 function togglePanel(id){var e=$(id);e.style.display=e.style.display==='none'||!e.style.display?'block':'none';}
-function toast(msg,type){var e=$('toast');e.textContent=msg;e.style.background=type==='error'?'rgba(255,0,110,0.18)':'rgba(0,255,136,0.13)';e.style.border='1px solid '+(type==='error'?'#ff006e':'#00ff88');e.style.color=type==='error'?'#ff006e':'#00ff88';e.style.display='block';clearTimeout(e._t);e._t=setTimeout(function(){e.style.display='none';},2800);}
 function dmKey(a,b){return [a,b].sort().join('_');}
 
 // ── NAVIGATION ───────────────────────────────────────────────────────────
@@ -913,46 +1135,40 @@ function go(name, btn){
 function updateBadge(id,n){var e=$(id);if(!e)return;if(n>0){e.style.display='inline';e.textContent=n>9?'9+':n;}else{e.style.display='none';}}
 
 // ── AUTH STATE ────────────────────────────────────────────────────────────
-auth.onAuthStateChanged(function(user){
-  me=user;
-  if(user){
-    // Already logged in — skip landing, go straight to app
-    enterApp();
-    db.ref('ef_players/'+user.uid).on('value',function(s){
-      myProfile=s.val();
-      updateNav();
-      refreshAll();
-      if(myProfile){setOnline();listenUnread();}
-    });
-  } else {
-    // Not logged in — show landing screen with Sign In / Create Account
-    // Do NOT call enterApp() here
-    myProfile=null;
-    refreshAll(); // populate home stats in background
-  }
-},function(err){
-  // Auth error — just stay on landing, user can still tap Sign In
-  console.error('Auth error:',err);
-});
+// startApp() is called after Firebase SDKs load successfully
+function startApp(){
+  if(!auth||!db) return;
 
-// Realtime data listeners
+  auth.onAuthStateChanged(function(user){
+    me=user;
+    if(user){
+      enterApp();
+      db.ref('ef_players/'+user.uid).on('value',function(s){
+        myProfile=s.val();
+        updateNav();
+        refreshAll();
+        if(myProfile){setOnline();listenUnread();}
+      });
+    } else {
+      myProfile=null;
+      // Stay on landing - user must sign in
+    }
+  },function(err){
+    console.error('Auth error:',err);
+  });
 
-function enterApp(){
-  var l=$('landing');
-  if(l&&!l.classList.contains('hidden')){
-    l.classList.add('hidden');
-    document.body.style.overflow='';
-    setTimeout(function(){l.style.display='none';},380);
-  }
-  updateNav();
-  refreshAll();
+  db.ref('ef_players').on('value',function(s){allPlayers=s.val()||{};refreshAll();});
+  db.ref('ef_matches').on('value',function(s){allMatches=s.val()||{};refreshAll();loadScoreSel();renderMatchPrep();});
+  db.ref('ef_online').on('value',function(s){var n=Object.keys(s.val()||{}).length;var e=$('online-count');if(e)e.textContent=n;});
+  if(db) db.ref('ef_ucl_settings').on('value', function(s){
+    uclSettings = s.val() || {};
+    if(document.getElementById('page-ucl').classList.contains('active')) renderUCL();
+  });
+  if(db) db.ref('ef_ucl_payments').on('value', function(s){
+    uclPayments = s.val() || {};
+    if(document.getElementById('page-ucl').classList.contains('active')) renderUCL();
+  });
 }
-function hideLoader(){enterApp();}
-
-// ── REALTIME ─────────────────────────────────────────────────────────────
-db.ref('ef_players').on('value',function(s){allPlayers=s.val()||{};refreshAll();});
-db.ref('ef_matches').on('value',function(s){allMatches=s.val()||{};refreshAll();loadScoreSel();renderMatchPrep();});
-db.ref('ef_online').on('value',function(s){var n=Object.keys(s.val()||{}).length;var e=$('online-count');if(e)e.textContent=n;});
 
 function refreshAll(){
   renderHomeStats();renderRecentRes();renderTopPlayers();
@@ -1485,14 +1701,6 @@ var uclPayments = {};
 var uclSeeds    = [];
 
 // Listen to UCL settings & payments in real time
-db.ref('ef_ucl_settings').on('value', function(s){
-  uclSettings = s.val() || {};
-  if(document.getElementById('page-ucl').classList.contains('active')) renderUCL();
-});
-db.ref('ef_ucl_payments').on('value', function(s){
-  uclPayments = s.val() || {};
-  if(document.getElementById('page-ucl').classList.contains('active')) renderUCL();
-});
 
 function renderUCL(){
   var seeds=[];
@@ -2110,6 +2318,7 @@ function doLogin(){
   var em=$('li-em').value.trim(),pw=$('li-pw').value,err=$('li-err');err.textContent='';
   if(!em||!pw){err.textContent='Fill all fields.';return;}
   var btn=$('li-btn');btn.textContent='Logging in...';btn.disabled=true;
+  if(!auth){err.textContent='Connection error. Please refresh the page.';btn.textContent='⚡ Login';btn.disabled=false;return;}
   auth.signInWithEmailAndPassword(em,pw)
     .then(function(){btn.textContent='⚡ Login';btn.disabled=false;closeM('login-mo');$('li-em').value='';$('li-pw').value='';toast('Welcome back! ⚡');})
     .catch(function(e){err.textContent='Invalid email or password';btn.textContent='⚡ Login';btn.disabled=false;});
@@ -2132,6 +2341,7 @@ function regConfirm(){
   var u=$('ru').value.trim(),e=$('re').value.trim(),p=$('rp').value,c=$('rc').value,l=$('rl').value;
   var err=$('r-err2');err.textContent='';if(!drawnClub){err.textContent='No club drawn.';return;}
   var btn=$('r-cfm');btn.textContent='Registering...';btn.disabled=true;
+  if(!auth){err.textContent='Connection error. Please refresh the page.';btn.textContent='✅ Accept & Register';btn.disabled=false;return;}
   auth.createUserWithEmailAndPassword(e,p)
     .then(function(cr){
       return db.ref('ef_players/'+cr.user.uid).set({uid:cr.user.uid,username:u,email:e,country:c,league:l,club:drawnClub,joinedAt:Date.now(),lastSeen:Date.now()});
@@ -2139,7 +2349,17 @@ function regConfirm(){
     .then(function(){btn.textContent='✅ Accept & Register';btn.disabled=false;closeM('reg-mo');enterApp();$('rs1').style.display='block';$('rs2').style.display='none';drawnClub=null;toast('🎉 Welcome to eFootball Universe!');})
     .catch(function(e){var m='Failed.';if(e.code==='auth/email-already-in-use')m='Email already registered.';err.textContent=m;btn.textContent='✅ Accept & Register';btn.disabled=false;});
 }
-function doLogout(){auth.signOut().then(function(){toast('See you on the pitch! 👋');go('home');});}
+function doLogout(){
+  if(!auth) return;
+  auth.signOut().then(function(){
+    myProfile=null; me=null;
+    updateNav();
+    go('home');
+    var l=$('landing');
+    if(l){l.style.display='flex';l.style.opacity='1';l.classList.remove('hidden');}
+    toast('See you on the pitch! 👋');
+  });
+}
 </script>
 
 <!-- POINT DEDUCTION MODAL -->
@@ -2182,11 +2402,18 @@ function doLogout(){auth.signOut().then(function(){toast('See you on the pitch! 
 
 // ── POINT DEDUCTION SYSTEM ────────────────────────────────────────────────
 var allPenalties = {};
-db.ref('ef_penalties').on('value', function(s){
-  allPenalties = s.val() || {};
-  renderStdWithPenalties(curLg);
-  renderPenaltyLog();
-});
+// Penalties listener - waits for db to be ready
+(function waitForDb(){
+  if(db){
+    db.ref('ef_penalties').on('value', function(s){
+      allPenalties = s.val() || {};
+      renderStdWithPenalties(curLg);
+      renderPenaltyLog();
+    });
+  } else {
+    setTimeout(waitForDb, 200);
+  }
+})();
 
 // Compute standings with penalty deductions applied
 function computeStdWithPenalties(lid){

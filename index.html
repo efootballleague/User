@@ -41,26 +41,37 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 #l-club-name{font-family:'Orbitron',sans-serif;font-weight:900;font-size:1rem;color:#fff;margin:.5rem 0 .2rem}
 #l-club-lg{font-size:.75rem}
 
-/* NAV */
-nav{position:sticky;top:0;z-index:500;background:rgba(13,13,13,0.97);backdrop-filter:blur(18px);border-bottom:1px solid var(--border);padding:0 .8rem;display:flex;align-items:center;justify-content:space-between;height:54px;gap:.3rem}
-.nav-logo{display:flex;align-items:center;gap:6px;cursor:pointer}
-.nav-logo img{height:32px;width:32px;border-radius:7px;object-fit:cover;border:1.5px solid rgba(232,0,45,0.4)}
-.nav-logo span{font-family:'Orbitron',sans-serif;font-weight:900;font-size:.8rem;background:linear-gradient(90deg,#E8002D,#ff6b00);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:1.5px}
-.nav-links{display:flex;gap:.1rem;flex-wrap:wrap}
-.nb{background:none;border:none;cursor:pointer;font-family:'Exo 2',sans-serif;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--dim);padding:5px 8px;border-radius:7px;transition:all .2s;position:relative}
-.nb:hover,.nb.on{color:#fff;background:rgba(232,0,45,0.16)}
-.nbadge{position:absolute;top:1px;right:1px;background:#E8002D;color:#fff;font-size:.48rem;border-radius:8px;padding:1px 3px;min-width:13px;text-align:center;display:none}
-.nav-right{display:flex;gap:.35rem;align-items:center;flex-shrink:0}
-.uchip{font-size:.68rem;font-weight:700;color:#ff4466;background:rgba(232,0,45,0.1);border:1px solid rgba(232,0,45,0.28);border-radius:20px;padding:3px 8px;white-space:nowrap;cursor:pointer}
-.bsm{padding:4px 10px;font-size:.68rem;border-radius:8px;font-weight:700;cursor:pointer;font-family:'Exo 2',sans-serif}
+/* TOP BAR */
+#topbar{position:fixed;top:0;left:0;right:0;z-index:500;height:52px;background:rgba(13,13,13,0.97);backdrop-filter:blur(18px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 1rem;gap:.5rem}
+.nav-logo{display:flex;align-items:center;gap:7px;cursor:pointer;flex-shrink:0}
+.nav-logo img{height:34px;width:34px;border-radius:8px;object-fit:cover;border:1.5px solid rgba(232,0,45,0.45)}
+.nav-logo span{font-family:'Orbitron',sans-serif;font-weight:900;font-size:.82rem;background:linear-gradient(90deg,#E8002D,#ff6b00);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:1.5px}
+#topbar-right{display:flex;gap:.4rem;align-items:center;flex-shrink:0}
+.uchip{font-size:.68rem;font-weight:700;color:#ff4466;background:rgba(232,0,45,0.1);border:1px solid rgba(232,0,45,0.28);border-radius:20px;padding:3px 9px;white-space:nowrap;cursor:pointer}
+.bsm{padding:5px 11px;font-size:.7rem;border-radius:8px;font-weight:700;cursor:pointer;font-family:'Exo 2',sans-serif}
 .bsm-p{background:linear-gradient(135deg,#E8002D,#ff4400);color:#fff;border:none}
 .bsm-s{background:rgba(232,0,45,0.1);color:#ff4466;border:1px solid rgba(232,0,45,0.28)}
 .bsm-d{background:rgba(255,0,110,0.1);color:#ff006e;border:1px solid rgba(255,0,110,0.25)}
 
+/* BOTTOM NAV BAR — Facebook style */
+#botnav{position:fixed;bottom:0;left:0;right:0;z-index:500;height:58px;background:rgba(13,13,13,0.97);backdrop-filter:blur(18px);border-top:1px solid var(--border);display:flex;align-items:stretch}
+.nb{flex:1;background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--dim);transition:all .18s;position:relative;padding:6px 2px}
+.nb:active{background:rgba(232,0,45,0.07)}
+.nb.on{color:#E8002D}
+.nb-icon{font-size:1.25rem;line-height:1;display:block;transition:transform .15s}
+.nb.on .nb-icon{transform:translateY(-1px)}
+.nb-label{font-size:.52rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;line-height:1;transition:color .15s}
+.nb.on .nb-label{color:#E8002D}
+.nb.on::before{content:'';position:absolute;top:0;left:18%;right:18%;height:2.5px;background:linear-gradient(90deg,#E8002D,#ff4400);border-radius:0 0 3px 3px}
+.nbadge{position:absolute;top:5px;right:calc(50% - 18px);background:#E8002D;color:#fff;font-size:.48rem;border-radius:8px;padding:1px 4px;min-width:14px;text-align:center;display:none;font-weight:700}
+
+/* offset pages so content isn't hidden under top/bottom bars */
+body{padding-top:52px;padding-bottom:58px}
+
 /* PAGES */
-.page{display:none;position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:1.6rem .9rem;animation:fadein .2s ease}
-.page.on{display:block}
-@keyframes fadein{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.page{display:none;position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:1.4rem .9rem}
+.page.on{display:block;animation:fadein .22s ease}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 
 /* TOAST */
 #toast{position:fixed;top:62px;left:50%;transform:translateX(-50%);z-index:9999;padding:9px 20px;border-radius:10px;font-weight:700;font-size:.8rem;display:none;white-space:nowrap;pointer-events:none}
@@ -106,7 +117,7 @@ nav{position:sticky;top:0;z-index:500;background:rgba(13,13,13,0.97);backdrop-fi
 .mc:hover{color:#fff}
 
 /* CHAT */
-#chat-wrap{display:flex;flex-direction:column;height:calc(100vh - 160px);min-height:360px}
+#chat-wrap{display:flex;flex-direction:column;height:calc(100vh - 52px - 58px - 80px);min-height:320px}
 .crb{background:none;border:1px solid rgba(255,255,255,0.07);cursor:pointer;font-family:'Exo 2',sans-serif;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--dim);padding:5px 11px;border-radius:20px;transition:all .18s}
 .crb:hover{color:#fff;border-color:rgba(232,0,45,0.4)}.crb.on{color:#fff;background:rgba(232,0,45,0.16);border-color:#E8002D}
 #chat-msgs{flex:1;overflow-y:auto;padding:.65rem;background:#0a0a0a;border-radius:12px;border:1px solid rgba(232,0,45,0.12);display:flex;flex-direction:column;gap:.4rem;scroll-behavior:smooth}
@@ -127,7 +138,7 @@ nav{position:sticky;top:0;z-index:500;background:rgba(13,13,13,0.97);backdrop-fi
 #csend{background:linear-gradient(135deg,#E8002D,#ff4400);border:none;border-radius:50%;width:36px;height:36px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0}
 
 /* DM */
-#pm-wrap{display:flex;height:calc(100vh - 160px);min-height:360px;gap:.7rem}
+#pm-wrap{display:flex;height:calc(100vh - 52px - 58px - 80px);min-height:320px;gap:.7rem}
 #pm-list{width:190px;flex-shrink:0;background:#0a0a0a;border:1px solid var(--border);border-radius:12px;overflow-y:auto;padding:.35rem}
 .pli{display:flex;align-items:center;gap:.55rem;padding:.55rem .65rem;border-radius:9px;cursor:pointer;transition:background .15s}
 .pli:hover{background:rgba(232,0,45,0.07)}.pli.on{background:rgba(232,0,45,0.13)}
@@ -259,26 +270,51 @@ nav{position:sticky;top:0;z-index:500;background:rgba(13,13,13,0.97);backdrop-fi
 <div id="toast"></div>
 <div id="notif-wrap"></div>
 
-<!-- NAV -->
-<nav id="mnav">
+<!-- TOP BAR -->
+<div id="topbar">
   <div class="nav-logo" onclick="go('home')">
     <img src="https://i.ibb.co/MDGqDxPS/grok-1773616908832-2.jpg" alt="logo">
     <span>eFOOTBALL</span>
   </div>
-  <div class="nav-links">
-    <button class="nb on" onclick="go('home',this)">&#127968; Home</button>
-    <button class="nb" onclick="go('leagues',this)">&#9917; Leagues</button>
-    <button class="nb" onclick="go('fixtures',this)">&#128197; Fixtures</button>
-    <button class="nb" onclick="go('matchprep',this)">&#127918; Match</button>
-    <button class="nb" onclick="go('ucl',this)">&#127942; UCL</button>
-    <button class="nb" onclick="go('chat',this)" id="chat-nb">&#128172; Chat<span class="nbadge" id="chat-badge"></span></button>
-    <button class="nb" onclick="go('pm',this)" id="pm-nb">&#9993; DM<span class="nbadge" id="pm-badge"></span></button>
-  </div>
-  <div class="nav-right" id="nav-right">
+  <div id="nav-right">
     <button class="bsm bsm-s" onclick="lTab('in');showLanding()">Login</button>
     <button class="bsm bsm-p" onclick="lTab('up');showLanding()">Join</button>
   </div>
-</nav>
+</div>
+
+<!-- BOTTOM NAV BAR -->
+<div id="botnav">
+  <button class="nb on" onclick="go('home',this)">
+    <span class="nb-icon">&#127968;</span>
+    <span class="nb-label">Home</span>
+  </button>
+  <button class="nb" onclick="go('leagues',this)">
+    <span class="nb-icon">&#9917;</span>
+    <span class="nb-label">Leagues</span>
+  </button>
+  <button class="nb" onclick="go('fixtures',this)">
+    <span class="nb-icon">&#128197;</span>
+    <span class="nb-label">Fixtures</span>
+  </button>
+  <button class="nb" onclick="go('matchprep',this)">
+    <span class="nb-icon">&#127918;</span>
+    <span class="nb-label">Match</span>
+  </button>
+  <button class="nb" onclick="go('ucl',this)">
+    <span class="nb-icon">&#127942;</span>
+    <span class="nb-label">UCL</span>
+  </button>
+  <button class="nb" onclick="go('chat',this)" id="chat-nb">
+    <span class="nb-icon">&#128172;</span>
+    <span class="nb-label">Chat</span>
+    <span class="nbadge" id="chat-badge"></span>
+  </button>
+  <button class="nb" onclick="go('pm',this)" id="pm-nb">
+    <span class="nb-icon">&#9993;</span>
+    <span class="nb-label">DM</span>
+    <span class="nbadge" id="pm-badge"></span>
+  </button>
+</div>
 
 <!-- PAGES -->
 <div class="page on" id="page-home">

@@ -188,7 +188,7 @@ nav{position:sticky;top:0;z-index:200;background:rgba(13,13,13,0.97);backdrop-fi
 #loader{
   position:fixed;inset:0;background:var(--dark);z-index:10000;
   display:flex;align-items:center;justify-content:center;
-  transition:opacity .4s ease;
+  transition:opacity .35s ease;
 }
 #loader.hidden{opacity:0;pointer-events:none;}
 #loader-inner{
@@ -216,6 +216,8 @@ nav{position:sticky;top:0;z-index:200;background:rgba(13,13,13,0.97);backdrop-fi
 .loader-bar-inner{height:100%;background:linear-gradient(90deg,#E8002D,#ff6b00);border-radius:3px;animation:loaderSlide 1.6s ease-in-out infinite}
 @keyframes loaderSlide{0%{width:0%;margin-left:0}50%{width:65%;margin-left:17%}100%{width:0%;margin-left:100%}}
 #loader-text{font-family:'Orbitron',monospace;font-size:.65rem;color:#E8002D;letter-spacing:4px;opacity:.8;animation:textBlink 1.6s ease-in-out infinite}
+#loader-text::after{content:'';animation:loadDots 1.2s steps(3,end) infinite}
+@keyframes loadDots{0%{content:''}33%{content:'.'} 66%{content:'..'} 100%{content:'...'}}
 @keyframes textBlink{0%,100%{opacity:.5}50%{opacity:1}}
 
 /* MISC */
@@ -314,14 +316,14 @@ nav{position:sticky;top:0;z-index:200;background:rgba(13,13,13,0.97);backdrop-fi
     <img src="https://i.ibb.co/MDGqDxPS/grok-1773616908832-2.jpg" alt="eFootball Universe" id="loader-logo">
     <div id="loader-brand">eFOOTBALL<br><span id="loader-brand-sub">UNIVERSE</span></div>
     <div class="loader-bar"><div class="loader-bar-inner"></div></div>
-    <div id="loader-text">LOADING...</div>
+    <div id="loader-text">LOADING</div>
   </div>
 </div>
 <div id="toast"></div>
 <div id="notif-popup"></div>
 
 <!-- NAV -->
-<nav id="mnav" style="display:none">
+<nav id="mnav">
   <div class="nav-logo" onclick="go('home')" style="display:flex;align-items:center;gap:7px;-webkit-text-fill-color:unset;background:none"><img src="https://i.ibb.co/MDGqDxPS/grok-1773616908832-2.jpg" alt="eFootball Universe" style="height:34px;width:34px;border-radius:8px;object-fit:cover;border:1.5px solid rgba(232,0,45,0.5);box-shadow:0 0 10px rgba(232,0,45,0.3)"><span style="font-family:'Orbitron',monospace;font-weight:900;font-size:.85rem;background:linear-gradient(90deg,#E8002D,#ff6b00);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:1.5px">eFOOTBALL</span></div>
   <div class="nav-links">
     <button class="nb active" onclick="go('home',this)">🏠 Home</button>
@@ -829,15 +831,11 @@ firebase.initializeApp({
 });
 var auth=firebase.auth(), db=firebase.database();
 var PAYSTACK_DEFAULT_PK='pk_live_46d79b8be095322027cec63e4b69a5e48e32a3a4';
+// Hide loader as soon as scripts are parsed (non-blocking approach)
+// Firebase auth/data will still load in background after page is visible
 window._loaderTO=setTimeout(function(){
-  if(typeof hideLoader==='function'){hideLoader();}
-  else{
-    var l=document.getElementById('loader');
-    if(l){l.classList.add('hidden');setTimeout(function(){l.style.display='none';},420);}
-    var n=document.getElementById('mnav');if(n)n.style.display='flex';
-    document.body.style.overflow='';
-  }
-},6000);
+  hideLoader();
+},800); // Short timeout - just enough for Firebase SDK to initialize
 
 // ── ADMIN EMAIL ──────────────────────────────────────────────────────────
 var ADMIN_EMAIL = "admin@efootballuniverse.com"; // change to your email
@@ -902,6 +900,10 @@ function go(name, btn){
 function updateBadge(id,n){var e=$(id);if(!e)return;if(n>0){e.style.display='inline';e.textContent=n>9?'9+':n;}else{e.style.display='none';}}
 
 // ── AUTH STATE ────────────────────────────────────────────────────────────
+// Render nav immediately with logged-out state (Login/Join buttons)
+// so page is fully usable before Firebase responds
+updateNav();
+
 auth.onAuthStateChanged(function(user){
   me=user;
   if(user){
@@ -920,6 +922,8 @@ auth.onAuthStateChanged(function(user){
   hideLoader();
 });
 
+// Realtime data listeners - fire independently of auth
+
 function hideLoader(){
   clearTimeout(window._loaderTO);
   var l=$('loader');
@@ -929,6 +933,11 @@ function hideLoader(){
   document.body.style.overflow='';
   setTimeout(function(){l.style.display='none';},420);
 }
+
+// Also hide on DOMContentLoaded as bulletproof fallback
+document.addEventListener('DOMContentLoaded',function(){
+  setTimeout(hideLoader, 1200);
+});
 
 // ── REALTIME ─────────────────────────────────────────────────────────────
 db.ref('ef_players').on('value',function(s){allPlayers=s.val()||{};refreshAll();});
@@ -942,22 +951,24 @@ function refreshAll(){
 
 // ── NAV ───────────────────────────────────────────────────────────────────
 function updateNav(){
-  var e=$('nav-right');
+  var e=$('nav-right'); if(!e) return;
   if(myProfile){
     var isAdmin=me&&me.email===ADMIN_EMAIL;
     e.innerHTML='<span class="uchip" onclick="go(\'profile\')" title="View profile">👤 '+esc(myProfile.username)+'</span>'
       +(isAdmin?'<button class="bd bsm" onclick="go(\'admin\')">🔐 Admin</button>':'')
       +'<button class="bd bsm" onclick="doLogout()">Out</button>';
-    $('home-cta').innerHTML='<button class="bp" style="font-size:.88rem;padding:10px 20px" onclick="go(\'fixtures\')">📅 Enter Result</button><button class="bs" style="font-size:.88rem;padding:10px 20px" onclick="go(\'profile\')">My Profile</button>';
-    $('add-fix-btn').style.display='inline-flex';
-    $('score-panel').style.display='block';
-    $('cinp-row').style.display='flex';$('chat-locked').style.display='none';
+    var hcta=$('home-cta');if(hcta)hcta.innerHTML='<button class="bp" style="font-size:.88rem;padding:10px 20px" onclick="go(\'fixtures\')">📅 Enter Result</button><button class="bs" style="font-size:.88rem;padding:10px 20px" onclick="go(\'profile\')">My Profile</button>';
+    var afb=$('add-fix-btn');if(afb)afb.style.display='inline-flex';
+    var sp=$('score-panel');if(sp)sp.style.display='block';
+    var cr=$('cinp-row');if(cr)cr.style.display='flex';
+    var cl=$('chat-locked');if(cl)cl.style.display='none';
   } else {
     e.innerHTML='<button class="bs bsm" onclick="openM(\'login-mo\')">Login</button><button class="bp bsm" onclick="openM(\'reg-mo\')">Join</button>';
-    $('home-cta').innerHTML='<button class="bp" style="font-size:.88rem;padding:10px 20px" onclick="openM(\'reg-mo\')">🎮 Join Now</button><button class="bs" style="font-size:.88rem;padding:10px 20px" onclick="openM(\'login-mo\')">Login</button>';
-    $('add-fix-btn').style.display='none';
-    $('score-panel').style.display='none';
-    $('cinp-row').style.display='none';$('chat-locked').style.display='block';
+    var hcta=$('home-cta');if(hcta)hcta.innerHTML='<button class="bp" style="font-size:.88rem;padding:10px 20px" onclick="openM(\'reg-mo\')">🎮 Join Now</button><button class="bs" style="font-size:.88rem;padding:10px 20px" onclick="openM(\'login-mo\')">Login</button>';
+    var afb=$('add-fix-btn');if(afb)afb.style.display='none';
+    var sp=$('score-panel');if(sp)sp.style.display='none';
+    var cr=$('cinp-row');if(cr)cr.style.display='none';
+    var cl=$('chat-locked');if(cl)cl.style.display='block';
   }
 }
 

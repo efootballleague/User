@@ -705,12 +705,11 @@ function showLanding(){
 }
 function enterApp(){
   var l=$('landing');
-  if(l){
+  if(l&&!l.classList.contains('gone')){
     l.style.opacity='0';
     setTimeout(function(){l.classList.add('gone');l.style.opacity='';},300);
   }
   updateNav();
-  refreshAll();
 }
 
 // ============================================================
@@ -751,7 +750,15 @@ loadScripts([
 loadScript('https://js.paystack.co/v2/inline.js',function(){});
 
 function startApp(){
-  db.ref('ef_players').on('value',function(s){allPlayers=s.val()||{};debouncedRefresh();});
+  db.ref('ef_players').on('value',function(s){
+    var newData=s.val()||{};
+    // Check if player count or scores changed (not just lastSeen ping)
+    var oldCount=Object.keys(allPlayers).length;
+    var newCount=Object.keys(newData).length;
+    allPlayers=newData;
+    if(newCount!==oldCount) debouncedRefresh(); // new/removed player
+    else refreshAgoLabels(); // just update timestamps silently
+  });
   db.ref('ef_matches').on('value',function(s){
   allMatches=s.val()||{};
   debouncedRefresh();
@@ -771,17 +778,22 @@ function startApp(){
   auth.onAuthStateChanged(function(user){
     me=user;
     if(user){
-      enterApp();
+      // Don't enterApp yet — wait for profile to load first
       db.ref('ef_players/'+user.uid).on('value',function(s){
-        myProfile=s.val();updateNav();debouncedRefresh();
+        myProfile=s.val();
+        enterApp();   // NOW hide landing — myProfile is ready
+        updateNav();
+        debouncedRefresh();
         if(myProfile){
           setOnline();
-          listenUnread();      // guarded — only attaches once
-          listenGlobalDMs();   // guarded — only attaches once
+          listenUnread();
+          listenGlobalDMs();
         }
       });
     }else{
-      myProfile=null;updateNav();
+      myProfile=null;
+      updateNav();
+      // Not logged in — keep landing visible
     }
   },function(err){console.error('Auth error:',err);});
 }
@@ -1462,19 +1474,20 @@ function loadChat(){
     var box=$('chat-msgs');if(!box)return;
     var atBot=box.scrollHeight-box.scrollTop-box.clientHeight<80;
     var names={global:'Global',epl:'eVitality',esl:'eSol',ebl:'eKraft',esc:'eScudetto',banter:'Banter'};
-    box.innerHTML='<div class="csys">'+esc(names[chatRoom]||chatRoom)+'</div>';
+    var parts=['<div class="csys">'+esc(names[chatRoom]||chatRoom)+'</div>'];
     var ld='';
     arr.forEach(function(m){
       var d=new Date(m.ts).toDateString(),today=new Date().toDateString();
-      if(d!==ld){ld=d;var lbl=d===today?'Today':new Date(m.ts).toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short'});box.innerHTML+='<div class="csys">--- '+lbl+' ---</div>';}
-      if(m.system){box.innerHTML+='<div class="csys">'+esc(m.text)+'</div>';return;}
+      if(d!==ld){ld=d;var lbl=d===today?'Today':new Date(m.ts).toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short'});parts.push('<div class="csys">--- '+lbl+' ---</div>');}
+      if(m.system){parts.push('<div class="csys">'+esc(m.text)+'</div>');return;}
       var mine=myProfile&&m.uid===myProfile.uid;
       var c=clubColor(m.club||'?');
-      box.innerHTML+='<div class="cmsg'+(mine?' mine':'')+'"><div class="cav" style="background:'+c+'22;border:1.5px solid '+c+'55;color:'+c+'" onclick="openReport(\''+m.uid+'\',\''+esc(m.username||'?')+'\')">'+esc(m.username||'?').slice(0,2).toUpperCase()+'</div>'
+      parts.push('<div class="cmsg'+(mine?' mine':'')+'"><div class="cav" style="background:'+c+'22;border:1.5px solid '+c+'55;color:'+c+'" onclick="openReport(''+m.uid+'',''+esc(m.username||'?')+'')">'+esc(m.username||'?').slice(0,2).toUpperCase()+'</div>'
         +'<div><div class="cbub '+(mine?'mine':'other')+'">'
         +(!mine?'<div style="font-size:.6rem;font-weight:700;color:'+c+';margin-bottom:2px">'+esc(m.username||'')+'</div>':'')
-        +esc(m.text)+'</div><div class="cmeta'+(mine?' mine':'')+'">'+fmtTime(m.ts)+'</div></div></div>';
+        +esc(m.text)+'</div><div class="cmeta'+(mine?' mine':'')+'">'+fmtTime(m.ts)+'</div></div></div>');
     });
+    box.innerHTML=parts.join('');
     if(atBot)box.scrollTop=box.scrollHeight;
   });
   chatOff=function(){ref.off('value',handler);};
@@ -1568,7 +1581,7 @@ function openDMWith(uid,name){
     var raw=s.val()||{};
     var arr=Object.values(raw).sort(function(a,b){return a.ts-b.ts;});
     if(!msgs)return;
-    msgs.innerHTML='';
+    var pmParts=[];
     // Auto-mark latest incoming message as seen
     var keys=Object.keys(raw);
     if(keys.length){
@@ -1586,11 +1599,11 @@ function openDMWith(uid,name){
         if(seen) ticks='<span style="color:#00d4ff;font-size:.72rem;margin-left:3px">&#10003;&#10003;</span>';
         else if(m.sent) ticks='<span style="color:var(--dim);font-size:.72rem;margin-left:3px">&#10003;</span>';
       }
-      msgs.innerHTML+='<div class="cmsg'+(mine?' mine':'')+'"><div class="cav" style="background:'+(mine?'rgba(232,0,45,0.2)':'rgba(100,100,100,0.2)')+';color:'+(mine?'#ff4466':'#aaa')+'">'+esc(m.fromName||'?').slice(0,2).toUpperCase()+'</div>'
+      pmParts.push('<div class="cmsg'+(mine?' mine':'')+'"><div class="cav" style="background:'+(mine?'rgba(232,0,45,0.2)':'rgba(100,100,100,0.2)')+';color:'+(mine?'#ff4466':'#aaa')+'">'+esc(m.fromName||'?').slice(0,2).toUpperCase()+'</div>'
         +'<div><div class="cbub '+(mine?'mine':'other')+'">'+(m.system?'<em style="font-size:.76rem">'+esc(m.text)+'</em>':esc(m.text))+'</div>'
-        +'<div class="cmeta'+(mine?' mine':'')+'">'+fmtTime(m.ts)+ticks+'</div></div></div>';
+        +'<div class="cmeta'+(mine?' mine':'')+'">'+fmtTime(m.ts)+ticks+'</div></div></div>');
     });
-    msgs.scrollTop=msgs.scrollHeight;
+    msgs.innerHTML=pmParts.join('');msgs.scrollTop=msgs.scrollHeight;
   });
   pmOff=function(){ref.off('value',handler);};
 }

@@ -80,7 +80,7 @@ nav{position:sticky;top:0;z-index:200;background:rgba(13,13,13,0.97);backdrop-fi
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 
 /* TOAST */
-#toast{position:fixed;top:66px;left:50%;transform:translateX(-50%);z-index:9999;
+#toast{position:fixed;top:66px;left:50%;transform:translateX(-50%);z-index:10002;
   padding:9px 22px;border-radius:10px;font-weight:700;font-size:.82rem;display:none;
   white-space:nowrap;pointer-events:none;animation:slideD .3s ease}
 @keyframes slideD{from{opacity:0;transform:translateX(-50%) translateY(-12px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
@@ -97,7 +97,7 @@ nav{position:sticky;top:0;z-index:200;background:rgba(13,13,13,0.97);backdrop-fi
 .tbl td:nth-child(2),.tbl td:nth-child(3){text-align:left}
 
 /* MODAL */
-.mo{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:500;align-items:center;justify-content:center;padding:1rem}
+.mo{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:10001;align-items:center;justify-content:center;padding:1rem}
 .mo.open{display:flex}
 .mb{background:#0f0f0f;border:1px solid rgba(232,0,45,0.22);border-radius:14px;padding:1.6rem;
   width:100%;max-width:440px;position:relative;max-height:92vh;overflow-y:auto}
@@ -295,7 +295,7 @@ nav{position:sticky;top:0;z-index:200;background:rgba(13,13,13,0.97);backdrop-fi
 
 
 /* MESSAGE POPUP NOTIFICATION */
-#notif-popup{position:fixed;bottom:80px;right:16px;z-index:8888;display:flex;flex-direction:column;gap:8px;pointer-events:none;max-width:300px}
+#notif-popup{position:fixed;bottom:80px;right:16px;z-index:10003;display:flex;flex-direction:column;gap:8px;pointer-events:none;max-width:300px}
 .notif-card{background:#1a1a1a;border:1px solid rgba(232,0,45,0.35);border-radius:13px;padding:.85rem 1rem;
   box-shadow:0 8px 32px rgba(0,0,0,0.5),0 0 0 1px rgba(232,0,45,0.1);
   pointer-events:all;cursor:pointer;animation:notifSlide .3s cubic-bezier(.34,1.56,.64,1);
@@ -879,7 +879,16 @@ function lsColor(ts){
 }
 function clubColor(n){var m={"Neon City FC":"#00d4ff","Storm United":"#ff6b00","Volt Rangers":"#ffe600","Iron Wolves":"#bf00ff","Sol Madrid":"#ffd600","Bayern Digital":"#dc241f","Inter Digital":"#0044bb"};if(m[n])return m[n];var h=0;for(var i=0;i<n.length;i++)h=(h*31+n.charCodeAt(i))&0xFFFFFF;return '#'+h.toString(16).padStart(6,'0');}
 function clubAv(n,sz){var c=clubColor(n||'?');return '<div class="cbadge" style="width:'+sz+'px;height:'+sz+'px;background:'+c+'22;border:1.5px solid '+c+'55;font-size:'+(sz*.28)+'px;color:'+c+'">'+(n||'?').split(' ').map(function(w){return w[0]||'';}).join('').slice(0,2).toUpperCase()+'</div>';}
-function openM(id){$(id).classList.add('open');}
+function openM(id){
+  // If landing is still visible, hide it before opening modal
+  var l=$('landing');
+  if(l&&!l.classList.contains('hidden')){
+    l.classList.add('hidden');
+    document.body.style.overflow='';
+    setTimeout(function(){l.style.display='none';},380);
+  }
+  $(id).classList.add('open');
+}
 function closeM(id){$(id).classList.remove('open');}
 function togglePanel(id){var e=$(id);e.style.display=e.style.display==='none'||!e.style.display?'block':'none';}
 function toast(msg,type){var e=$('toast');e.textContent=msg;e.style.background=type==='error'?'rgba(255,0,110,0.18)':'rgba(0,255,136,0.13)';e.style.border='1px solid '+(type==='error'?'#ff006e':'#00ff88');e.style.color=type==='error'?'#ff006e':'#00ff88';e.style.display='block';clearTimeout(e._t);e._t=setTimeout(function(){e.style.display='none';},2800);}
@@ -930,11 +939,13 @@ auth.onAuthStateChanged(function(user){
 
 function enterApp(){
   var l=$('landing');
-  if(!l||l.classList.contains('hidden'))return;
+  if(l&&!l.classList.contains('hidden')){
+    l.classList.add('hidden');
+    document.body.style.overflow='';
+    setTimeout(function(){l.style.display='none';},380);
+  }
   updateNav();
-  l.classList.add('hidden');
-  document.body.style.overflow='';
-  setTimeout(function(){l.style.display='none';},380);
+  refreshAll();
 }
 function hideLoader(){enterApp();}
 
@@ -2100,7 +2111,7 @@ function doLogin(){
   if(!em||!pw){err.textContent='Fill all fields.';return;}
   var btn=$('li-btn');btn.textContent='Logging in...';btn.disabled=true;
   auth.signInWithEmailAndPassword(em,pw)
-    .then(function(){btn.textContent='⚡ Login';btn.disabled=false;closeM('login-mo');enterApp();$('li-em').value='';$('li-pw').value='';toast('Welcome back! ⚡');})
+    .then(function(){btn.textContent='⚡ Login';btn.disabled=false;closeM('login-mo');$('li-em').value='';$('li-pw').value='';toast('Welcome back! ⚡');})
     .catch(function(e){err.textContent='Invalid email or password';btn.textContent='⚡ Login';btn.disabled=false;});
 }
 function regStep1(){

@@ -795,7 +795,10 @@ firebase.initializeApp({
 });
 var auth=firebase.auth(), db=firebase.database();
 var PAYSTACK_DEFAULT_PK='pk_live_46d79b8be095322027cec63e4b69a5e48e32a3a4';
-window._loaderTO=setTimeout(function(){var f=$('loader-fallback');if(f)f.style.display='block';},6000);
+window._loaderTO=setTimeout(function(){
+  var l=$('loader');if(l)l.style.display='none';
+  var n=$('mnav');if(n)n.style.display='flex';
+},6000);
 
 // ── ADMIN EMAIL ──────────────────────────────────────────────────────────
 var ADMIN_EMAIL = "admin@efootballuniverse.com"; // change to your email
@@ -871,6 +874,12 @@ auth.onAuthStateChanged(function(user){
   } else {
     myProfile=null;updateNav();refreshAll();
   }
+  $('loader').style.display='none';
+  $('mnav').style.display='flex';
+  clearTimeout(window._loaderTO);
+},function(err){
+  // Auth error — still hide loader so user isn't stuck forever
+  console.error('Auth error:',err);
   $('loader').style.display='none';
   $('mnav').style.display='flex';
   clearTimeout(window._loaderTO);

@@ -185,6 +185,8 @@ nav{position:sticky;top:0;z-index:200;background:rgba(13,13,13,0.97);backdrop-fi
 .user-row{display:flex;align-items:center;gap:.8rem;padding:.7rem .9rem;background:var(--card);border-radius:10px;margin-bottom:.5rem;border:1px solid var(--border)}
 
 /* LOADER */
+.spin{font-size:2.5rem;animation:spinPulse 1s linear infinite;display:inline-block}
+@keyframes spinPulse{0%{transform:rotate(0deg) scale(1);opacity:1}50%{transform:rotate(180deg) scale(1.2);opacity:.7}100%{transform:rotate(360deg) scale(1);opacity:1}}
 #loader{position:fixed;inset:0;background:var(--dark);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.2rem}
 .loader-logo{width:80px;height:80px;border-radius:18px;object-fit:cover;border:2px solid rgba(232,0,45,0.5);box-shadow:0 0 30px rgba(232,0,45,0.3);animation:logoPulse 1.5s ease-in-out infinite}
 .loader-bar{width:200px;height:3px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden}
@@ -399,7 +401,7 @@ nav{position:sticky;top:0;z-index:200;background:rgba(13,13,13,0.97);backdrop-fi
     </div>
   </div>
   <!-- ADD FIXTURE -->
-  <div id="add-fix-panel" style="display:none" class="card" style="border-color:rgba(255,230,0,0.2);margin-bottom:.8rem">
+  <div id="add-fix-panel" style="display:none;border-color:rgba(255,230,0,0.2);margin-bottom:.8rem" class="card">
     <div style="padding:1.1rem">
       <div style="font-family:'Orbitron',monospace;font-size:.75rem;color:#ffe600;margin-bottom:.9rem;letter-spacing:1px">+ ADD FIXTURE</div>
       <div class="row">
@@ -796,8 +798,8 @@ firebase.initializeApp({
 var auth=firebase.auth(), db=firebase.database();
 var PAYSTACK_DEFAULT_PK='pk_live_46d79b8be095322027cec63e4b69a5e48e32a3a4';
 window._loaderTO=setTimeout(function(){
-  var l=$('loader');if(l)l.style.display='none';
-  var n=$('mnav');if(n)n.style.display='flex';
+  var l=document.getElementById('loader');if(l)l.style.display='none';
+  var n=document.getElementById('mnav');if(n)n.style.display='flex';
 },6000);
 
 // ── ADMIN EMAIL ──────────────────────────────────────────────────────────
@@ -809,6 +811,7 @@ var ALL_CLUBS={epl:["Neon City FC","Storm United","Volt Rangers","Iron Wolves","
 
 // ── STATE ────────────────────────────────────────────────────────────────
 var me=null, myProfile=null;
+var _onlineIntervalSet=false;
 var allPlayers={}, allMatches={};
 var curLg='epl', curFxFilter='all', chatRoom='global';
 var chatListener=null, typingTO=null, lastMsgDate='', chatOpen=false;
@@ -923,7 +926,7 @@ function setOnline(){
   ref.set({name:myProfile.username,ts:Date.now()});
   ref.onDisconnect().remove();
   db.ref('ef_players/'+me.uid+'/lastSeen').set(Date.now());
-  setInterval(function(){if(myProfile)db.ref('ef_players/'+me.uid+'/lastSeen').set(Date.now());},60000);
+  if(!_onlineIntervalSet){_onlineIntervalSet=true;setInterval(function(){if(myProfile)db.ref('ef_players/'+me.uid+'/lastSeen').set(Date.now());},60000);}
 }
 
 // ── STANDINGS ────────────────────────────────────────────────────────────
@@ -1207,14 +1210,14 @@ function renderSchedTimeline(){
     var timeStr = d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
     if(dateStr !== lastDate){
       lastDate = dateStr;
-      html += '<div style="font-family:'Orbitron',monospace;font-size:.65rem;color:var(--dim);letter-spacing:2px;padding:.4rem 0;margin-top:'+(i>0?'.8rem':'0')+'">'+dateStr+'</div>';
+      html += '<div style="font-family:Orbitron,monospace;font-size:.65rem;color:var(--dim);letter-spacing:2px;padding:.4rem 0;margin-top:'+(i>0?'.8rem':'0')+'">'+dateStr+'</div>';
     }
     var isMyMatch = myProfile && (m.homeId===myProfile.uid || m.awayId===myProfile.uid);
     var isMyRef   = myProfile && m.refereeUID===myProfile.uid;
     html += '<div class="mprep-card" style="margin-bottom:.5rem;'+(isMyMatch?'border-color:rgba(255,230,0,0.4);':'')+(isMyRef?'border-color:rgba(0,255,136,0.4);':'')+'padding:.85rem">'
       +'<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.4rem">'
       +'<div style="display:flex;align-items:center;gap:.6rem">'
-      +'<div style="font-family:'Orbitron',monospace;font-size:.85rem;font-weight:900;color:#ffe600;min-width:48px">'+timeStr+'</div>'
+      +'<div style="font-family:Orbitron,monospace;font-size:.85rem;font-weight:900;color:#ffe600;min-width:48px">'+timeStr+'</div>'
       +clubAv(hp.club,24)
       +'<span style="font-size:.8rem;font-weight:700">'+esc(hp.username)+'</span>'
       +'<span style="font-size:.7rem;color:var(--dim)">vs</span>'
@@ -1227,7 +1230,7 @@ function renderSchedTimeline(){
       +(isMyMatch?'<span style="font-size:.6rem;color:#ffe600;background:rgba(255,230,0,0.1);border:1px solid rgba(255,230,0,0.3);border-radius:10px;padding:2px 7px">YOUR MATCH</span>':'')
       +(isMyRef?'<span style="font-size:.6rem;color:#00ff88;background:rgba(0,255,136,0.1);border:1px solid rgba(0,255,136,0.3);border-radius:10px;padding:2px 7px">YOU'RE REF</span>':'')
       +'</div></div>'
-      +(m.roomCode?'<div style="margin-top:.5rem;font-size:.7rem;color:var(--dim)">🎮 Code: <span class="mcode" style="font-size:.75rem;padding:3px 8px;letter-spacing:2px" onclick="copyCode(''+esc(m.roomCode)+'')">'+esc(m.roomCode)+'</span></div>':'')
+      +(m.roomCode?'<div style="margin-top:.5rem;font-size:.7rem;color:var(--dim)">🎮 Code: <span class="mcode" style="font-size:.75rem;padding:3px 8px;letter-spacing:2px" onclick="copyCode('"+esc(m.roomCode)+"')">'+esc(m.roomCode)+'</span></div>':'')
       +'</div>';
   });
   el.innerHTML = html;
@@ -1469,7 +1472,7 @@ function renderUCL(){
       } else if(!myPay){
         statusHtml='<span class="ucl-status-badge usb-unpaid">❌ Not Paid</span>';
         payHtml='<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.7rem">'
-          +'<div><div style="font-size:1.1rem;font-family:'Orbitron',monospace;font-weight:900;color:#ffe600">'+cur+fee+'</div>'
+          +'<div><div style="font-size:1.1rem;font-family:Orbitron,monospace;font-weight:900;color:#ffe600">'+cur+fee+'</div>'
           +'<div style="font-size:.68rem;color:var(--dim)">Entry fee · 48hr deadline</div></div>'
           +'<button class="pay-btn" style="width:auto;padding:10px 22px" onclick="openUCLPayment()">💳 Pay Entry Fee</button>'
           +'</div>';
@@ -1509,13 +1512,13 @@ function renderUCL(){
         :pay&&pay.status==='pending'?'<span class="ucl-status-badge usb-pending" style="font-size:.55rem">⏳ Pending</span>'
         :'<span class="ucl-status-badge usb-unpaid" style="font-size:.55rem">❌ Unpaid</span>';
       return '<div class="card" style="padding:.85rem;display:flex;align-items:center;gap:.7rem;border:1px solid '+lg.c+'33">'
-        +'<div style="font-family:'Orbitron',monospace;font-weight:900;font-size:.88rem;color:#ffe600;min-width:22px">#'+(i+1)+'</div>'
+        +'<div style="font-family:Orbitron,monospace;font-weight:900;font-size:.88rem;color:#ffe600;min-width:22px">#'+(i+1)+'</div>'
         +clubAv(s.club,32)
         +'<div style="flex:1"><div style="font-weight:700;font-size:.82rem">'+esc(s.name)+'</div>'
         +'<div style="font-size:.62rem;color:var(--dim)">'+esc(s.club)+'</div>'
         +'<div style="font-size:.62rem;color:'+lg.c+'">'+lg.f+' '+lg.n+'</div></div>'
         +'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px">'
-        +'<div style="font-family:'Orbitron',monospace;font-weight:900;color:#ffe600;font-size:.82rem">'+(s.effectivePts!==undefined?s.effectivePts:s.w*3+s.d)+'pts</div>'
+        +'<div style="font-family:Orbitron,monospace;font-weight:900;color:#ffe600;font-size:.82rem">'+(s.effectivePts!==undefined?s.effectivePts:s.w*3+s.d)+'pts</div>'
         +payBadge
         +'</div></div>';
     }).join(''):'<div class="card" style="padding:1.3rem;text-align:center;color:var(--dim)">Register & play to qualify!</div>';
@@ -1531,13 +1534,13 @@ function renderUCL(){
   var brEl=$('ucl-bracket');
   if(brEl) brEl.innerHTML=rounds.map(function(r){
     return '<div style="flex:1;display:flex;flex-direction:column;gap:.6rem">'
-      +'<div style="text-align:center;font-family:'Orbitron',monospace;font-size:.58rem;font-weight:700;letter-spacing:2px;color:#ffe600;margin-bottom:.3rem">'+r.t+'</div>'
+      +'<div style="text-align:center;font-family:Orbitron,monospace;font-size:.58rem;font-weight:700;letter-spacing:2px;color:#ffe600;margin-bottom:.3rem">'+r.t+'</div>'
       +r.ms.map(function(m){
         return '<div style="background:var(--card);border:1px solid rgba(255,230,0,0.15);border-radius:8px;overflow:hidden">'
           +'<div style="padding:6px 10px;display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.04);font-size:.72rem;font-weight:600">'
-          +'<span>'+esc(m.h.name||'TBD')+'</span><span style="font-family:'Orbitron',monospace;font-size:.7rem;color:var(--dim)">?</span></div>'
+          +'<span>'+esc(m.h.name||'TBD')+'</span><span style="font-family:Orbitron,monospace;font-size:.7rem;color:var(--dim)">?</span></div>'
           +'<div style="padding:6px 10px;display:flex;justify-content:space-between;font-size:.72rem;font-weight:600">'
-          +'<span>'+esc(m.a.name||'TBD')+'</span><span style="font-family:'Orbitron',monospace;font-size:.7rem;color:var(--dim)">?</span></div>'
+          +'<span>'+esc(m.a.name||'TBD')+'</span><span style="font-family:Orbitron,monospace;font-size:.7rem;color:var(--dim)">?</span></div>'
           +'</div>';
       }).join('')+'</div>';
   }).join('');
@@ -1628,7 +1631,7 @@ function renderUCLPaymentLog(){
   el.innerHTML='<div style="display:flex;flex-direction:column;gap:.5rem">'+pays.map(function(p){
     var sc=p.status==='confirmed'?'#00ff88':p.status==='rejected'?'#ff006e':'#ffe600';
     var ssHtml=p.screenshot
-      ?'<img src="'+p.screenshot+'" style="width:60px;height:45px;object-fit:cover;border-radius:5px;border:1px solid rgba(255,255,255,0.1);cursor:pointer;margin-right:6px" onclick="viewUCLScreenshot(''+p.uid+'')" title="View proof">'
+      ?'<img src="'+p.screenshot+'" style="width:60px;height:45px;object-fit:cover;border-radius:5px;border:1px solid rgba(255,255,255,0.1);cursor:pointer;margin-right:6px" onclick="viewUCLScreenshot('"+p.uid+"')" title="View proof">'
       :'<span style="font-size:.65rem;color:var(--dim)">No screenshot</span>';
     return '<div style="background:var(--card);border:1px solid var(--border);border-radius:9px;padding:.7rem .9rem;display:flex;align-items:center;gap:.7rem;flex-wrap:wrap">'
       +clubAv(p.club||'?',26)
@@ -1639,8 +1642,8 @@ function renderUCLPaymentLog(){
       +'<span style="font-size:.62rem;font-weight:700;color:'+sc+'">'+p.status.toUpperCase()+'</span>'
       +(p.status==='pending'
         ?'<div style="display:flex;gap:4px">'
-          +'<button class="bg bsm" onclick="confirmUCLPayment(''+p.uid+'',''+esc(p.username)+'')">✅ Confirm</button>'
-          +'<button class="bd bsm" onclick="rejectUCLPayment(''+p.uid+'',''+esc(p.username)+'')">❌ Reject</button>'
+          +'<button class="bg bsm" onclick="confirmUCLPayment('"+p.uid+"','"+esc(p.username)+"')">✅ Confirm</button>'
+          +'<button class="bd bsm" onclick="rejectUCLPayment('"+p.uid+"','"+esc(p.username)+"')">❌ Reject</button>'
           +'</div>':'')
       +'</div></div>';
   }).join('')+'</div>';
@@ -1945,7 +1948,7 @@ function loadAdminReports(){
       var ssHtml='';
       if(r.screenshot){
         ssHtml='<div style="margin:.6rem 0"><div style="font-size:.65rem;color:#ffe600;margin-bottom:4px;font-weight:700">📸 SCREENSHOT EVIDENCE</div>'
-          +'<img src="'+r.screenshot+'" class="ss-thumb" onclick="viewScreenshot(''+key+'')" title="Click to enlarge">'
+          +'<img src="'+r.screenshot+'" class="ss-thumb" onclick="viewScreenshot('"+key+"')" title="Click to enlarge">'
           +'<span style="font-size:.6rem;color:var(--dim);margin-left:8px;vertical-align:middle">Click to enlarge</span></div>';
       } else if(isFraud){
         ssHtml='<div style="font-size:.68rem;color:#ff4466;margin:.4rem 0">⚠️ No screenshot provided</div>';
@@ -2003,6 +2006,26 @@ function loadAdminUsers(){
   }).join('');
 }
 function unbanUser(uid,name){db.ref('ef_players/'+uid).update({banned:false}).then(function(){toast(name+' unbanned');});}
+
+function banUser(uid,name){
+  if(!me||me.email!==ADMIN_EMAIL){toast('Admin only','error');return;}
+  if(!confirm('Ban '+name+'? They will no longer be able to access the platform.')) return;
+  db.ref('ef_players/'+uid).update({banned:true}).then(function(){toast(name+' has been banned.');}).catch(function(){toast('Failed to ban user','error');});
+}
+function resolveReport(repKey){
+  if(!me||me.email!==ADMIN_EMAIL){toast('Admin only','error');return;}
+  db.ref('ef_reports/'+repKey).update({status:'resolved',resolvedAt:Date.now(),resolvedBy:'admin'})
+    .then(function(){toast('✅ Report marked as resolved.');})
+    .catch(function(){toast('Failed to resolve report','error');});
+}
+function deleteReport(repKey){
+  if(!me||me.email!==ADMIN_EMAIL){toast('Admin only','error');return;}
+  if(!confirm('Delete this report permanently?')) return;
+  db.ref('ef_reports/'+repKey).remove()
+    .then(function(){toast('Report deleted.');})
+    .catch(function(){toast('Failed to delete report','error');});
+}
+
 function loadAdminMatches(){
   var list=$('admin-matches-list');
   var ms=Object.values(allMatches).sort(function(a,b){return (b.createdAt||0)-(a.createdAt||0);}).slice(0,30);
@@ -2250,7 +2273,7 @@ function renderPenaltyLog(){
       +'<div style="font-size:.68rem;color:#aaa;margin-top:2px">📝 '+esc(p.note||'')+'</div>'
       +'</div>'
       +'<div class="pr-pts">-'+p.pts+'pts</div>'
-      +'<button class="bs bsm" onclick="revokePenalty(''+p.uid+'',''+p.penKey+'')">↩ Revoke</button>'
+      +'<button class="bs bsm" onclick="revokePenalty('"+p.uid+"','"+p.penKey+"')">↩ Revoke</button>'
       +'</div>';
   }).join('')
   +'<div style="margin-top:1rem;padding:.7rem;background:rgba(255,0,110,0.06);border:1px solid rgba(255,0,110,0.15);border-radius:8px;font-size:.72rem;color:var(--dim)">Total players penalised: <strong style="color:#ff006e">'+Object.keys(totalByPlayer).length+'</strong></div>';
@@ -2329,7 +2352,7 @@ function openUserModal(uid){
   var last=ms.slice().sort(function(a,b){return (b.playedAt||0)-(a.playedAt||0)}).slice(0,5);
 
   var html='<div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.2rem;flex-wrap:wrap">'
-    +'<div onclick="openM('user-mo')" style="cursor:default">'
+    +'<div style="cursor:default">'
     +(p.avatar&&p.avatar.startsWith('data:')?'<img src="'+p.avatar+'" style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:2px solid rgba(232,0,45,0.4)">':
       p.avatar&&p.avatar.length<=4?'<div style="width:56px;height:56px;border-radius:50%;background:rgba(232,0,45,0.1);border:2px solid rgba(232,0,45,0.3);display:flex;align-items:center;justify-content:center;font-size:1.8rem">'+p.avatar+'</div>':
       clubAv(p.club,56))
@@ -2467,8 +2490,8 @@ function removeUser(uid,name){
 }
 
 // ── HOOK listenGlobalDMs after auth ──────────────────────────────────────
-var _origUpdateNav=updateNavAuth;
-updateNavAuth=function(){
+var _origUpdateNav=updateNav;
+updateNav=function(){
   _origUpdateNav();
   if(myProfile) listenGlobalDMs();
 };

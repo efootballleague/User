@@ -957,7 +957,14 @@ function landingLogin(){
   var err=$('l-err');
   err.textContent='';
   if(!em||!pw){err.textContent='Please fill in both fields.';return;}
-  if(!auth){err.textContent='Connection error — please refresh.';return;}
+  if(!auth){
+    err.textContent='Connecting to server...';
+    setTimeout(function(){
+      if(!auth){err.textContent='Cannot connect. Check your internet and refresh.';}
+      else{err.textContent='';landingLogin();}
+    },3000);
+    return;
+  }
   var btn=$('l-btn');btn.textContent='Signing in...';btn.disabled=true;
   auth.signInWithEmailAndPassword(em,pw)
     .then(function(){
@@ -1003,7 +1010,14 @@ function landingRegConfirm(){
   var league=$('r-league').value;
   var err=$('r-err2-l');err.textContent='';
   if(!_landingDrawnClub){err.textContent='No club drawn. Please go back.';return;}
-  if(!auth){err.textContent='Connection error — please refresh.';return;}
+  if(!auth){
+    err.textContent='Connecting to server...';
+    setTimeout(function(){
+      if(!auth){err.textContent='Cannot connect. Check your internet and refresh.';}
+      else{err.textContent='';landingLogin();}
+    },3000);
+    return;
+  }
   var btn=$('r-confirm-btn');btn.textContent='Registering...';btn.disabled=true;
   auth.createUserWithEmailAndPassword(email,pw)
     .then(function(cr){
@@ -1062,17 +1076,14 @@ function loadScripts(urls, callback){
   });
 }
 
-// Load Firebase + Paystack async - page HTML and CSS already rendered by now
-document.addEventListener('DOMContentLoaded', function(){
-  loadScripts([
-    'https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js',
-    'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js',
-    'https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js'
-  ], function(){
-    initFirebase();
-    // Load Paystack separately - not critical for core app
-    loadScripts(['https://js.paystack.co/v2/inline.js'], function(){});
-  });
+// Load Firebase immediately (page is already rendered, scripts load async)
+loadScripts([
+  'https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js',
+  'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js',
+  'https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js'
+], function(){
+  initFirebase();
+  loadScripts(['https://js.paystack.co/v2/inline.js'], function(){});
 });
 
 

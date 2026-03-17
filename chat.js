@@ -312,7 +312,7 @@ function renderProfile(){
     +'<div style="display:flex;align-items:center;gap:1.1rem;flex-wrap:wrap">'
     +clubBadge(p.club,52)
     +'<div style="flex:1"><div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:1.2rem">'+esc(p.username)+'</div>'
-    +'<div style="color:#E8002D;font-weight:700;margin-top:1px">'+esc(p.club)+'</div>'
+    +'<div style="color:#00D4FF;font-weight:700;margin-top:1px">'+esc(p.club)+'</div>'
     +'<div style="font-size:.7rem;color:'+lg.c+';margin-top:1px">'+esc(lg.n||'')+'</div>'
     +'<div style="font-size:.63rem;color:var(--dim);margin-top:1px">'+esc(p.country||'')+'</div>'
     +'<div style="font-size:.63rem;color:var(--dim);margin-top:1px">Last seen: '+fmtAgo(p.lastSeen||0)+'</div></div>'
@@ -325,7 +325,7 @@ function renderProfile(){
     +'<div style="display:flex;gap:.45rem;margin-bottom:1rem;flex-wrap:wrap">'
     +'<button class="bs" style="font-size:.72rem;padding:5px 11px" onclick="openMo(\'avatar-mo\')">Edit Avatar</button>'
     +'</div>'
-    +'<div style="font-family:Orbitron,sans-serif;font-size:.68rem;color:#E8002D;letter-spacing:2px;margin-bottom:.65rem">MATCH HISTORY</div>';
+    +'<div style="font-family:Orbitron,sans-serif;font-size:.68rem;color:#00D4FF;letter-spacing:2px;margin-bottom:.65rem">MATCH HISTORY</div>';
   if(!ms.length)html+='<div class="card" style="padding:1.1rem;text-align:center;color:var(--dim)">No matches played yet.</div>';
   else ms.slice().sort(function(a,b){return(b.playedAt||0)-(a.playedAt||0);}).forEach(function(m){
     var ih=m.homeId===p.uid,opp=allPlayers[ih?m.awayId:m.homeId];
@@ -358,7 +358,7 @@ function openUserModal(uid){
   var html='<div style="display:flex;align-items:center;gap:.9rem;margin-bottom:1.1rem;flex-wrap:wrap">'
     +clubBadge(p.club,52)
     +'<div style="flex:1"><div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:1.1rem">'+esc(p.username)+'</div>'
-    +'<div style="color:#E8002D;font-weight:700;font-size:.82rem;margin-top:1px">'+esc(p.club)+'</div>'
+    +'<div style="color:#00D4FF;font-weight:700;font-size:.82rem;margin-top:1px">'+esc(p.club)+'</div>'
     +'<div style="font-size:.68rem;color:'+lg.c+';margin-top:1px">'+esc(lg.n||'')+'</div>'
     +'<div style="font-size:.63rem;color:var(--dim);margin-top:1px">'+esc(p.country||'')+' - <span style="color:'+lsColor(p.lastSeen||0)+'">'+fmtAgo(p.lastSeen||0)+'</span></div></div></div>'
     +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.45rem;margin-bottom:.9rem">'

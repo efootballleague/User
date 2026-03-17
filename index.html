@@ -93,6 +93,13 @@
   </div>
 </div>
 
+
+<!-- NEWS TICKER -->
+<div id="news-ticker-bar" style="overflow:hidden;background:rgba(0,0,0,0.45);border-bottom:1px solid rgba(0,212,255,0.12);padding:.35rem 0;display:none;align-items:center">
+  <div style="background:linear-gradient(135deg,#00D4FF,#00FF85);color:#100018;font-family:Orbitron,sans-serif;font-weight:900;font-size:.55rem;padding:.28rem .8rem;white-space:nowrap;flex-shrink:0;letter-spacing:.5px">BREAKING</div>
+  <div style="overflow:hidden;flex:1"><div id="news-ticker-track" style="display:flex;gap:2.5rem;align-items:center;animation:tickerScroll 45s linear infinite;white-space:nowrap;padding:0 1.5rem"><span style="font-size:.64rem;color:#ccc;display:inline-flex;align-items:center;gap:.5rem"><span style="width:4px;height:4px;border-radius:50%;background:#00D4FF;flex-shrink:0"></span>Loading latest news...</span></div></div>
+</div>
+
 <div id="toast"></div>
 <div id="season-banner" style="display:none;background:rgba(255,230,0,0.07);border-bottom:1px solid rgba(255,230,0,0.18);font-family:Orbitron,sans-serif;letter-spacing:1px"></div>
 <div id="notif-wrap"></div>
@@ -161,11 +168,11 @@
 <!-- PAGES -->
 <div class="page on" id="page-home">
   <div style="text-align:center;padding:1.8rem 0 1.5rem">
-    <img src="https://i.ibb.co/MDGqDxPS/grok-1773616908832-2.jpg" style="width:clamp(90px,20vw,140px);height:clamp(90px,20vw,140px);border-radius:20px;object-fit:cover;border:2.5px solid rgba(232,0,45,0.5);box-shadow:0 0 35px rgba(232,0,45,0.35);animation:lpulse 3s ease-in-out infinite;margin-bottom:1rem">
-    <div style="display:inline-block;background:rgba(232,0,45,0.08);border:1px solid rgba(232,0,45,0.22);border-radius:20px;padding:3px 13px;font-size:.58rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#ff4466;margin-bottom:.8rem">&#9889; Season 2024/25 &#8212; Live</div>
+    <img src="https://i.ibb.co/MDGqDxPS/grok-1773616908832-2.jpg" style="width:clamp(90px,20vw,140px);height:clamp(90px,20vw,140px);border-radius:20px;object-fit:cover;border:2.5px solid rgba(0,212,255,0.5);box-shadow:0 0 40px rgba(0,212,255,0.35);animation:lpulse 3s ease-in-out infinite;margin-bottom:1rem">
+    <div style="display:inline-block;background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.2);border-radius:20px;padding:3px 13px;font-size:.58rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#00D4FF;margin-bottom:.8rem">&#9889; Season 2024/25 &#8212; Live</div>
     <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:clamp(1.7rem,5vw,3.4rem);line-height:1.1;margin-bottom:.6rem">
-      <div style="background:linear-gradient(90deg,#E8002D,#fff);-webkit-background-clip:text;-webkit-text-fill-color:transparent">eFootball</div>
-      <div style="background:linear-gradient(90deg,#00ff88,#ffe600);-webkit-background-clip:text;-webkit-text-fill-color:transparent">Universe</div>
+      <div style="background:linear-gradient(90deg,#00D4FF,#fff);-webkit-background-clip:text;-webkit-text-fill-color:transparent">eFootball</div>
+      <div style="background:linear-gradient(90deg,#00FF85,#FFE600);-webkit-background-clip:text;-webkit-text-fill-color:transparent">Universe</div>
     </div>
     <p style="color:var(--dim);max-width:420px;margin:0 auto 1.3rem;font-size:.87rem">Register, get your club drawn, play fixtures &amp; compete globally.</p>
     <div id="home-cta" style="display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap">
@@ -173,25 +180,38 @@
       <button class="bs" style="font-size:.88rem;padding:10px 20px" onclick="lTab('in');showLanding()">Login</button>
     </div>
   </div>
+  <!-- FABRIZIO ROMANO NEWS ANCHOR -->
+  <div style="margin-bottom:1.5rem">
+    <div class="sh">
+      <div class="st" style="color:#00D4FF;display:flex;align-items:center;gap:.5rem">
+        <img src="https://pbs.twimg.com/profile_images/1592531920777842690/pGMu4FFC_400x400.jpg" crossorigin onerror="this.style.display='none'" style="width:20px;height:20px;border-radius:50%;object-fit:cover;border:1.5px solid #00D4FF" loading="lazy">
+        Breaking News
+      </div>
+      <div class="sl" style="background:linear-gradient(90deg,rgba(0,212,255,0.5),transparent)"></div>
+      <button class="bs" style="font-size:.65rem;padding:4px 10px;flex-shrink:0" onclick="if(typeof generateAllNews==='function')generateAllNews();if(typeof renderNewsAnchor==='function')renderNewsAnchor()">&#8635; Refresh</button>
+    </div>
+    <div id="news-anchor-section"><div style="text-align:center;padding:2rem;color:var(--dim);font-size:.78rem"><div style="font-size:1.5rem;margin-bottom:.5rem">&#128240;</div>Generating latest news...</div></div>
+  </div>
+
   <div class="g4" style="margin-bottom:1.6rem">
     <div class="sbox"><div class="sv" id="st-p">0</div><div class="sl2">Players</div></div>
     <div class="sbox"><div class="sv" id="st-m">0</div><div class="sl2">Matches</div></div>
     <div class="sbox"><div class="sv" id="st-f">0</div><div class="sl2">Fixtures</div></div>
     <div class="sbox"><div class="sv">4</div><div class="sl2">Leagues</div></div>
   </div>
-  <div class="sh"><div class="st" style="color:#00ff88">&#9889; Recent Results</div><div class="sl" style="background:linear-gradient(90deg,#00ff88,transparent)"></div></div>
+  <div class="sh"><div class="st" style="color:#00ff88">>⚡ Recent Results</div><div class="sl" style="background:linear-gradient(90deg,#00FF85,transparent)"></div></div>
   <div class="g2" id="recent-res"><div class="card" style="padding:1.2rem;text-align:center;color:var(--dim)">No results yet.</div></div>
-  <div class="sh" style="margin-top:1.6rem"><div class="st" style="color:#ffe600">&#127885; Top Players</div><div class="sl" style="background:linear-gradient(90deg,#ffe600,transparent)"></div></div>
+  <div class="sh" style="margin-top:1.6rem"><div class="st" style="color:#ffe600">>★ Top Players</div><div class="sl" style="background:linear-gradient(90deg,#ffe600,transparent)"></div></div>
   <div class="g2" id="top-players"><div class="card" style="padding:1.2rem;text-align:center;color:var(--dim)">No players yet.</div></div>
 </div>
 
 <div class="page" id="page-leagues">
-  <div class="sh"><div class="st" style="color:#E8002D">&#9917; Standings</div><div class="sl"></div></div>
+  <div class="sh"><div class="st" style="color:#00D4FF"> Standings</div><div class="sl"></div></div>
   <div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.9rem" id="lg-tabs">
-    <button class="tab on" onclick="switchLg('epl',this)" style="border-color:#3d195b;color:#3d195b">&#127988;&#65039; Premier League</button>
-    <button class="tab" onclick="switchLg('laliga',this)" style="border-color:#ff4b00;color:#ff4b00">&#127988;&#65039; La Liga</button>
-    <button class="tab" onclick="switchLg('seriea',this)" style="border-color:#1a56db;color:#1a56db">&#127988;&#65039; Serie A</button>
-    <button class="tab" onclick="switchLg('ligue1',this)" style="border-color:#daa520;color:#daa520">&#127988;&#65039; Ligue 1</button>
+    <button class="tab on" onclick="switchLg('epl',this)" style="border-color:#37003C;color:#00FF85;background:rgba(55,0,60,0.3)">Premier League</button>
+    <button class="tab" onclick="switchLg('laliga',this)" style="border-color:#EE3224;color:#EE3224">La Liga</button>
+    <button class="tab" onclick="switchLg('seriea',this)" style="border-color:#1B7EC2;color:#1B7EC2">Serie A</button>
+    <button class="tab" onclick="switchLg('ligue1',this)" style="border-color:#0055A5;color:#7ab8ff">Ligue 1</button>
   </div>
   <div style="overflow-x:auto;border-radius:11px;border:1px solid var(--border)">
     <table class="tbl"><thead><tr><th>#</th><th>Player</th><th>Club</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Form</th><th>Pts</th></tr></thead>
@@ -204,7 +224,7 @@
 
 <div class="page" id="page-fixtures">
   <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.6rem;margin-bottom:.9rem">
-    <div class="sh" style="margin-bottom:0"><div class="st" style="color:#E8002D">&#128197; Fixtures</div></div>
+    <div class="sh" style="margin-bottom:0"><div class="st" style="color:#00D4FF"> Fixtures</div></div>
     <button class="bs" id="add-fix-btn" style="display:none;font-size:.72rem;padding:5px 11px" onclick="toggleEl('add-fix-panel')">+ Add Fixture</button>
   </div>
   <div id="score-panel" style="display:none;margin-bottom:.75rem">
@@ -241,13 +261,13 @@
 </div>
 
 <div class="page" id="page-matchprep">
-  <div class="sh"><div class="st" style="color:#ffe600">&#127918; Match Prep</div><div class="sl" style="background:linear-gradient(90deg,#ffe600,transparent)"></div>
+  <div class="sh"><div class="st" style="color:#00FF85">Match Prep</div><div class="sl" style="background:linear-gradient(90deg,#ffe600,transparent)"></div>
     <button class="bp" style="font-size:.7rem;padding:5px 12px" onclick="autoScheduleLeague()">Auto-Schedule</button>
   </div>
 
   <!-- Match Rooms Section -->
   <div class="sh" style="margin-bottom:.65rem">
-    <div class="st" style="color:#00d4ff;font-size:.78rem">&#127965; MATCH ROOMS</div>
+    <div class="st" style="color:#00D4FF;font-size:.78rem">Match Rooms</div>
     <div class="sl" style="background:linear-gradient(90deg,#00d4ff,transparent)"></div>
   </div>
   <p style="font-size:.72rem;color:var(--dim);margin-bottom:.75rem">Private rooms for you, your opponent and the referee. Discuss match time, share room codes.</p>
@@ -258,13 +278,13 @@
       <div class="card" style="padding:1rem;text-align:center;color:var(--dim)">Loading rooms...</div>
     </div>
     <!-- Room chat panel -->
-    <div id="match-room-panel" style="flex:1;background:#0a0a0a;border:1px solid var(--border);border-radius:12px;display:none;min-height:300px;overflow:hidden">
+    <div id="match-room-panel" style="flex:1;background:rgba(0,0,0,0.25);border:1px solid var(--border);border-radius:12px;display:none;min-height:300px;overflow:hidden">
       <div style="padding:2rem;text-align:center;color:var(--dim)">Select a room to open chat</div>
     </div>
   </div>
 
   <!-- Scheduled Timeline -->
-  <div class="sh" style="margin-bottom:.6rem"><div class="st" style="color:#00ff88;font-size:.72rem">UPCOMING SCHEDULED</div></div>
+  <div class="sh" style="margin-bottom:.6rem"><div class="st" style="color:#00FF85;font-size:.72rem">Upcoming Scheduled</div></div>
   <div id="sched-timeline" style="margin-bottom:1.4rem"><div class="card" style="padding:1.1rem;text-align:center;color:var(--dim)">No scheduled matches yet.</div></div>
 
   <div class="sh" style="margin-bottom:.6rem"><div class="st" style="color:#ffe600;font-size:.72rem">YOUR HOME MATCHES</div></div>
@@ -278,11 +298,11 @@
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.65rem;margin-bottom:1.2rem">
     <div class="prize-card prize-gold"><div style="font-size:.6rem;color:#ffe600;font-weight:700;letter-spacing:1px;text-transform:uppercase">1st Place</div><div class="prize-amt" id="prize-1st">&#8212;</div></div>
     <div class="prize-card prize-silver"><div style="font-size:.6rem;color:#ccc;font-weight:700;letter-spacing:1px;text-transform:uppercase">2nd Place</div><div class="prize-amt" id="prize-2nd">&#8212;</div></div>
-    <div class="prize-card" style="border-color:rgba(232,0,45,0.28)"><div style="font-size:.6rem;color:#ff4466;font-weight:700;letter-spacing:1px;text-transform:uppercase">Prize Pool</div><div class="prize-amt" id="prize-pool-total" style="color:#ff4466;font-size:1.4rem">$0</div><div style="font-size:.6rem;color:var(--dim)"><span id="ucl-paid-count">0</span>/16 paid</div></div>
+    <div class="prize-card" style="border-color:rgba(232,0,45,0.28)"><div style="font-size:.6rem;color:#00D4FF;font-weight:700;letter-spacing:1px;text-transform:uppercase">Prize Pool</div><div class="prize-amt" id="prize-pool-total" style="color:#00D4FF;font-size:1.4rem">$0</div><div style="font-size:.6rem;color:var(--dim)"><span id="ucl-paid-count">0</span>/16 paid</div></div>
   </div>
   <div id="ucl-fee-section" style="display:none;background:rgba(232,0,45,0.06);border:1px solid rgba(232,0,45,0.22);border-radius:12px;padding:1rem;margin-bottom:1.2rem">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.6rem;margin-bottom:.7rem">
-      <div><div style="font-family:'Orbitron',sans-serif;font-size:.75rem;color:#E8002D;letter-spacing:1.5px;margin-bottom:2px">ENTRY FEE</div><div style="font-size:.72rem;color:var(--dim)">Qualified &#8212; pay to lock your spot</div></div>
+      <div><div style="font-family:'Orbitron',sans-serif;font-size:.75rem;color:#00D4FF;letter-spacing:1.5px;margin-bottom:2px">ENTRY FEE</div><div style="font-size:.72rem;color:var(--dim)">Qualified &#8212; pay to lock your spot</div></div>
       <div id="ucl-my-status"></div>
     </div>
     <div id="ucl-pay-area"></div>
@@ -296,7 +316,7 @@
   <div style="font-family:'Orbitron',sans-serif;font-size:.68rem;color:#ffe600;letter-spacing:2px;margin-bottom:.65rem">BRACKET</div>
   <div style="overflow-x:auto;padding-bottom:.9rem"><div style="display:flex;gap:.65rem;min-width:520px;align-items:flex-start" id="ucl-bracket"></div></div>
   <div id="ucl-admin-controls" style="display:none;margin-top:1.4rem;padding:1rem;background:rgba(232,0,45,0.05);border:1px solid rgba(232,0,45,0.18);border-radius:12px">
-    <div style="font-family:'Orbitron',sans-serif;font-size:.68rem;color:#E8002D;letter-spacing:1.5px;margin-bottom:.8rem">ADMIN &#8212; UCL SETTINGS</div>
+    <div style="font-family:'Orbitron',sans-serif;font-size:.68rem;color:#00D4FF;letter-spacing:1.5px;margin-bottom:.8rem">ADMIN &#8212; UCL SETTINGS</div>
     <div class="row" style="margin-bottom:.55rem">
       <div style="flex:1;min-width:120px"><label class="lbl">Entry Fee</label><input class="inp" id="ucl-fee-inp" type="number" min="1" placeholder="e.g. 5"></div>
       <div style="flex:1;min-width:100px"><label class="lbl">Currency</label><input class="inp" id="ucl-cur-inp" placeholder="NGN"></div>
@@ -326,7 +346,7 @@
 
 <div class="page" id="page-chat">
   <div style="display:flex;align-items:center;gap:.7rem;margin-bottom:.9rem">
-    <div style="font-family:'Orbitron',sans-serif;font-weight:700;font-size:.95rem;letter-spacing:2px;color:#E8002D">&#128172; Live Chat</div>
+    <div style="font-family:'Orbitron',sans-serif;font-weight:700;font-size:.95rem;letter-spacing:2px;color:#00D4FF">&#128172; Live Chat</div>
     <div style="font-size:.68rem;color:var(--dim)"><span style="width:7px;height:7px;border-radius:50%;background:#00ff88;display:inline-block;margin-right:3px;box-shadow:0 0 5px #00ff8899"></span><span id="online-count">0</span> online</div>
   </div>
   <div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.7rem">
@@ -357,7 +377,7 @@
 
 <div class="page" id="page-pm">
   <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.6rem;margin-bottom:.9rem">
-    <div style="font-family:'Orbitron',sans-serif;font-weight:700;font-size:.95rem;letter-spacing:2px;color:#E8002D">Direct Messages</div>
+    <div style="font-family:'Orbitron',sans-serif;font-weight:700;font-size:.95rem;letter-spacing:2px;color:#00D4FF">Direct Messages</div>
     <button class="bs" style="font-size:.72rem;padding:5px 10px" onclick="openMo('new-dm-mo')">+ New DM</button>
   </div>
   <div id="pm-locked" style="display:none;text-align:center;padding:2.5rem;color:var(--dim)">Login to send DMs<br><button class="bp" style="font-size:.74rem;padding:5px 12px;margin-top:.7rem" onclick="lTab('in');showLanding()">Login</button></div>
@@ -368,7 +388,7 @@
       <div id="pm-msgs"></div>
       <div id="pm-inp-row" style="display:none">
         <input id="pm-inp" type="text" maxlength="400" placeholder="Aa" onkeydown="if(event.key==='Enter')sendPM()">
-        <button id="pm-send" onclick="sendPM()" style="background:linear-gradient(135deg,#E8002D,#ff4400);border:none;border-radius:50%;width:36px;height:36px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0">&#10148;</button>
+        <button id="pm-send" onclick="sendPM()" style="background:linear-gradient(135deg,#00D4FF,#00FF85);border:none;border-radius:50%;width:36px;height:36px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0;color:#100018">&#10148;</button>
       </div>
     </div>
   </div>
@@ -377,7 +397,7 @@
 <div class="page" id="page-profile"><div id="profile-content"></div></div>
 
 <div class="page" id="page-admin">
-  <div class="sh"><div class="st" style="color:#E8002D">Admin Panel</div><div class="sl"></div></div>
+  <div class="sh"><div class="st" style="color:#FF2882">Admin Panel</div><div class="sl"></div></div>
   <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:1.1rem">
     <button class="atab on" onclick="aTab('reports',this)">Reports</button>
     <button class="atab" onclick="aTab('users',this)">Users</button>
@@ -420,7 +440,7 @@
     <h3>Report User</h3>
     <input type="hidden" id="rep-uid"><input type="hidden" id="rep-uname">
     <div style="display:flex;flex-direction:column;gap:.8rem">
-      <div><label class="lbl">Reporting</label><div id="rep-who" style="font-weight:700;color:#ff4466;font-size:.88rem"></div></div>
+      <div><label class="lbl">Reporting</label><div id="rep-who" style="font-weight:700;color:#00D4FF;font-size:.88rem"></div></div>
       <div><label class="lbl">Reason</label>
         <select class="inp" id="rep-reason">
           <option value="">&#8212; Select &#8212;</option>
@@ -444,13 +464,13 @@
     <h3>Deduct Points</h3>
     <input type="hidden" id="ded-rep-key"><input type="hidden" id="ded-uid"><input type="hidden" id="ded-name">
     <div style="display:flex;flex-direction:column;gap:.8rem">
-      <div><label class="lbl">Player</label><div id="ded-player" style="font-weight:700;color:#ff4466;font-size:.9rem"></div></div>
+      <div><label class="lbl">Player</label><div id="ded-player" style="font-weight:700;color:#FF2882;font-size:.9rem"></div></div>
       <div><label class="lbl">Points to Deduct</label><input class="inp" id="ded-pts" type="number" min="1" max="30" value="3"></div>
       <div><label class="lbl">Admin Note</label><textarea class="inp" id="ded-note" rows="2" placeholder="Reason..."></textarea></div>
       <div class="err" id="ded-err"></div>
       <div style="display:flex;gap:.55rem">
         <button class="bs" style="flex:1;padding:9px" onclick="closeMo('deduct-mo')">Cancel</button>
-        <button class="bp" style="flex:2;padding:9px;background:linear-gradient(135deg,#ff006e,#cc0044)" onclick="applyDeduction()" id="ded-btn">Apply Deduction</button>
+        <button class="bp" style="flex:2;padding:9px;background:linear-gradient(135deg,#FF2882,#cc0033)" onclick="applyDeduction()" id="ded-btn">Apply Deduction</button>
       </div>
     </div>
   </div>
@@ -531,12 +551,12 @@
     </div>
 
     <!-- Score steppers -->
-    <div style="display:flex;align-items:center;justify-content:center;gap:1rem;margin-bottom:1rem;padding:.9rem;background:#0a0a0a;border-radius:12px;border:1px solid var(--border)">
+    <div style="display:flex;align-items:center;justify-content:center;gap:1rem;margin-bottom:1rem;padding:.9rem;background:rgba(0,0,0,0.3);border-radius:12px;border:1px solid rgba(0,212,255,0.15)">
       <!-- Home -->
       <div style="text-align:center;flex:1">
         <div style="font-size:.65rem;color:var(--dim);margin-bottom:.4rem" id="sm-home-name">Home</div>
         <div style="display:flex;align-items:center;justify-content:center;gap:.5rem">
-          <button onclick="stepGoal('hg',-1)" style="background:rgba(232,0,45,0.15);border:1px solid rgba(232,0,45,0.3);color:#E8002D;width:34px;height:34px;border-radius:50%;font-size:1.2rem;cursor:pointer;font-weight:700;display:flex;align-items:center;justify-content:center">&#8722;</button>
+          <button onclick="stepGoal('hg',-1)" style="background:rgba(255,40,130,0.12);border:1px solid rgba(255,40,130,0.35);color:#FF2882;width:34px;height:34px;border-radius:50%;font-size:1.2rem;cursor:pointer;font-weight:700;display:flex;align-items:center;justify-content:center">&#8722;</button>
           <div id="sm-hg" style="font-family:Orbitron,sans-serif;font-weight:900;font-size:2rem;color:#fff;min-width:36px;text-align:center">0</div>
           <input type="hidden" id="sm-hg-val" value="0">
           <button onclick="stepGoal('hg',1)" style="background:rgba(0,255,136,0.12);border:1px solid rgba(0,255,136,0.3);color:#00ff88;width:34px;height:34px;border-radius:50%;font-size:1.2rem;cursor:pointer;font-weight:700;display:flex;align-items:center;justify-content:center">+</button>
@@ -547,7 +567,7 @@
       <div style="text-align:center;flex:1">
         <div style="font-size:.65rem;color:var(--dim);margin-bottom:.4rem" id="sm-away-name">Away</div>
         <div style="display:flex;align-items:center;justify-content:center;gap:.5rem">
-          <button onclick="stepGoal('ag',-1)" style="background:rgba(232,0,45,0.15);border:1px solid rgba(232,0,45,0.3);color:#E8002D;width:34px;height:34px;border-radius:50%;font-size:1.2rem;cursor:pointer;font-weight:700;display:flex;align-items:center;justify-content:center">&#8722;</button>
+          <button onclick="stepGoal('ag',-1)" style="background:rgba(255,40,130,0.12);border:1px solid rgba(255,40,130,0.35);color:#FF2882;width:34px;height:34px;border-radius:50%;font-size:1.2rem;cursor:pointer;font-weight:700;display:flex;align-items:center;justify-content:center">&#8722;</button>
           <div id="sm-ag" style="font-family:Orbitron,sans-serif;font-weight:900;font-size:2rem;color:#fff;min-width:36px;text-align:center">0</div>
           <input type="hidden" id="sm-ag-val" value="0">
           <button onclick="stepGoal('ag',1)" style="background:rgba(0,255,136,0.12);border:1px solid rgba(0,255,136,0.3);color:#00ff88;width:34px;height:34px;border-radius:50%;font-size:1.2rem;cursor:pointer;font-weight:700;display:flex;align-items:center;justify-content:center">+</button>
@@ -558,18 +578,18 @@
     <!-- Screenshot upload -->
     <div class="lf">
       <label class="lbl">Match Screenshot (required)</label>
-      <label style="display:flex;align-items:center;gap:.65rem;background:rgba(255,255,255,0.04);border:1.5px dashed rgba(255,255,255,0.14);border-radius:10px;padding:.75rem 1rem;cursor:pointer;transition:border-color .2s" onmouseover="this.style.borderColor='#00ff88'" onmouseout="this.style.borderColor='rgba(255,255,255,0.14)'">
+      <label style="display:flex;align-items:center;gap:.65rem;background:rgba(255,255,255,0.04);border:1.5px dashed rgba(255,255,255,0.14);border-radius:10px;padding:.75rem 1rem;cursor:pointer;transition:border-color .2s" onmouseover="this.style.borderColor='#00D4FF'" onmouseout="this.style.borderColor='rgba(0,212,255,0.15)'">
         <span style="font-size:1.4rem">&#128247;</span>
         <span id="sm-ss-label" style="font-size:.78rem;color:var(--dim)">Tap to upload screenshot</span>
         <input type="file" id="sm-screenshot" accept="image/*" style="display:none" onchange="smPreviewScreenshot(this)">
       </label>
-      <img id="sm-ss-preview" style="width:100%;max-height:150px;object-fit:contain;border-radius:8px;margin-top:.55rem;border:1px solid rgba(0,255,136,0.2);display:none" alt="preview">
+      <img id="sm-ss-preview" style="width:100%;max-height:150px;object-fit:contain;border-radius:8px;margin-top:.55rem;border:1px solid rgba(0,212,255,0.2);display:none" alt="preview">
     </div>
 
     <!-- Honesty declaration -->
     <label style="display:flex;align-items:flex-start;gap:.65rem;background:rgba(255,230,0,0.06);border:1px solid rgba(255,230,0,0.2);border-radius:10px;padding:.8rem;cursor:pointer;margin-bottom:.7rem">
-      <input type="checkbox" id="sm-honest" style="margin-top:2px;width:16px;height:16px;accent-color:#ffe600;flex-shrink:0">
-      <span style="font-size:.75rem;color:#ccc;line-height:1.5">I confirm this result is <strong style="color:#ffe600">accurate and honest</strong>. I understand that submitting a <strong style="color:#ff006e">false result</strong> will result in an automatic <strong style="color:#ff006e">point deduction</strong> and possible ban.</span>
+      <input type="checkbox" id="sm-honest" style="margin-top:2px;width:16px;height:16px;accent-color:#00D4FF;flex-shrink:0">
+      <span style="font-size:.75rem;color:#ccc;line-height:1.5">I confirm this result is <strong style="color:#ffe600">accurate and honest</strong>. I understand that submitting a <strong style="color:#FF2882">false result</strong> will result in an automatic <strong style="color:#FF2882">point deduction</strong> and possible ban.</span>
     </label>
 
     <div class="err" id="sm-err" style="margin-bottom:.4rem"></div>
@@ -584,8 +604,8 @@
   <div class="mb"><button class="mc" onclick="closeMo('dispute-mo')">&#10005;</button>
     <h3>&#10060; Dispute This Result</h3>
     <input type="hidden" id="disp-mid">
-    <div style="background:rgba(255,0,110,0.08);border:1px solid rgba(255,0,110,0.25);border-radius:10px;padding:.8rem;margin-bottom:.9rem">
-      <div style="font-size:.7rem;color:#ff006e;font-weight:700;margin-bottom:3px">&#9888; Submitted score:</div>
+    <div style="background:rgba(255,40,130,0.07);border:1px solid rgba(255,40,130,0.22);border-radius:10px;padding:.8rem;margin-bottom:.9rem">
+      <div style="font-size:.7rem;color:#FF2882;font-weight:700;margin-bottom:3px">&#9888; Submitted score:</div>
       <div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:1.4rem;color:#fff" id="disp-score">0 &#8211; 0</div>
     </div>
     <div style="font-size:.76rem;color:#ccc;margin-bottom:.9rem;line-height:1.6">Upload your screenshot showing the real result. The referee will compare both and decide.</div>
@@ -599,7 +619,7 @@
       <img id="disp-ss-preview" style="width:100%;max-height:140px;object-fit:contain;border-radius:8px;margin-top:.5rem;border:1px solid rgba(255,0,110,0.2);display:none" alt="">
     </div>
     <div class="err" id="disp-err" style="margin-bottom:.4rem"></div>
-    <button class="bp" style="width:100%;padding:12px;font-size:.88rem;background:linear-gradient(135deg,#ff006e,#cc0044)" id="disp-submit-btn" onclick="submitDispute()">
+    <button class="bp" style="width:100%;padding:12px;font-size:.88rem;background:linear-gradient(135deg,#FF2882,#cc0033)" id="disp-submit-btn" onclick="submitDispute()">
       &#10060; Submit Dispute
     </button>
   </div>
@@ -687,6 +707,9 @@
 </div>
 
 <script src="core.js"></script>
+<script src="news.js"></script>
+<script src="odds.js"></script>
+<script src="swap.js"></script>
 <script src="pages.js"></script>
 <script src="ucl.js"></script>
 <script src="chat.js"></script>
@@ -694,6 +717,192 @@
 <script src="features.js"></script>
 <script src="referee.js"></script>
 <script src="matchroom.js"></script>
+
+
+<!-- GOOGLE ACCOUNT SETUP MODAL -->
+<div class="mo" id="google-setup-mo">
+  <div class="mb" style="max-width:400px;max-height:90vh;overflow-y:auto">
+    <h3>&#9917; Complete Your Profile</h3>
+    <p style="font-size:.72rem;color:var(--dim);margin-bottom:1rem">One last step — choose your league and club to join the competition.</p>
+    <div style="display:flex;gap:4px;margin-bottom:1.2rem" id="setup-progress">
+      <div style="flex:1;height:3px;border-radius:2px;background:linear-gradient(90deg,#00D4FF,#00FF85)" id="sdot-1"></div>
+      <div style="flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,0.1)" id="sdot-2"></div>
+      <div style="flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,0.1)" id="sdot-3"></div>
+    </div>
+    <div id="gs-step1" style="display:block">
+      <div class="lf"><label class="lbl">Username / Gamertag</label><input class="inp" id="gs-name" placeholder="YourGamertag" maxlength="20"></div>
+      <div class="lf"><label class="lbl">Country</label>
+        <select class="inp" id="gs-country">
+          <option value="">&#8212; Select &#8212;</option>
+          <option>Nigeria</option><option>Ghana</option><option>Kenya</option><option>South Africa</option>
+          <option>United Kingdom</option><option>United States</option><option>Germany</option>
+          <option>France</option><option>Spain</option><option>Italy</option><option>Brazil</option>
+          <option>Portugal</option><option>Other</option>
+        </select>
+      </div>
+      <div class="errmsg" id="gs-err1"></div>
+      <button class="btn-p" onclick="gsNext1()">Next &#8594;</button>
+    </div>
+    <div id="gs-step2" style="display:none">
+      <div class="lf"><label class="lbl">Choose Your League</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.45rem;margin-top:4px">
+          <div class="league-opt" data-val="epl" onclick="gsSelectLeague(this)" style="display:flex;align-items:center;gap:.5rem;padding:.6rem;background:rgba(55,0,60,0.35);border:1.5px solid rgba(55,0,60,0.5);border-radius:11px;cursor:pointer;transition:all .2s">
+            <img src="https://upload.wikimedia.org/wikipedia/en/f/f2/Premier_League_Logo.svg" loading="lazy" style="width:26px;height:26px;object-fit:contain">
+            <div><div style="font-size:.72rem;font-weight:700">Premier League</div><div style="font-size:.56rem;color:#00FF85;font-weight:600">&#127988;&#65039; England</div></div>
+          </div>
+          <div class="league-opt" data-val="laliga" onclick="gsSelectLeague(this)" style="display:flex;align-items:center;gap:.5rem;padding:.6rem;background:rgba(238,50,36,0.1);border:1.5px solid rgba(238,50,36,0.3);border-radius:11px;cursor:pointer;transition:all .2s">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/1/13/LaLiga_logo_2023.svg" loading="lazy" style="width:26px;height:26px;object-fit:contain">
+            <div><div style="font-size:.72rem;font-weight:700">LaLiga</div><div style="font-size:.56rem;color:#ff8070;font-weight:600">&#127466;&#127480; Spain</div></div>
+          </div>
+          <div class="league-opt" data-val="seriea" onclick="gsSelectLeague(this)" style="display:flex;align-items:center;gap:.5rem;padding:.6rem;background:rgba(27,126,194,0.12);border:1.5px solid rgba(27,126,194,0.3);border-radius:11px;cursor:pointer;transition:all .2s">
+            <img src="https://upload.wikimedia.org/wikipedia/en/e/e1/Serie_A_logo_%282019%29.svg" loading="lazy" style="width:26px;height:26px;object-fit:contain">
+            <div><div style="font-size:.72rem;font-weight:700">Serie A</div><div style="font-size:.56rem;color:#6ac4ff;font-weight:600">&#127470;&#127481; Italy</div></div>
+          </div>
+          <div class="league-opt" data-val="ligue1" onclick="gsSelectLeague(this)" style="display:flex;align-items:center;gap:.5rem;padding:.6rem;background:rgba(0,85,165,0.15);border:1.5px solid rgba(0,85,165,0.35);border-radius:11px;cursor:pointer;transition:all .2s">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/9/9f/Ligue1_logo_2024.svg" loading="lazy" style="width:26px;height:26px;object-fit:contain">
+            <div><div style="font-size:.72rem;font-weight:700">Ligue 1</div><div style="font-size:.56rem;color:#7ab8ff;font-weight:600">&#127467;&#127479; France</div></div>
+          </div>
+        </div>
+        <input type="hidden" id="gs-league" value="">
+      </div>
+      <div class="errmsg" id="gs-err2"></div>
+      <div style="display:flex;gap:.5rem"><button class="btn-s" style="width:auto;padding:10px 16px" onclick="gsBack1()">&#8592;</button><button class="btn-p" onclick="gsNext2()">Pick Club &#8594;</button></div>
+    </div>
+    <div id="gs-step3" style="display:none">
+      <div style="font-size:.68rem;color:var(--dim);margin-bottom:.7rem"><span style="color:#00FF85">&#9679;</span> Available &nbsp;<span style="color:#FF2882">&#9679;</span> Taken</div>
+      <div id="gs-club-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;max-height:270px;overflow-y:auto;margin-bottom:.7rem"></div>
+      <div class="errmsg" id="gs-err3"></div>
+      <div style="display:flex;gap:.5rem"><button class="btn-s" style="width:auto;padding:10px 16px" onclick="gsBack2()">&#8592;</button><button class="btn-p" id="gs-confirm-btn" onclick="gsConfirm()">&#10003; Join the League!</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- TEAM SWAP MODAL -->
+<div class="mo" id="swap-mo" onclick="if(event.target===this)closeMo('swap-mo')">
+  <div class="mb" style="max-width:400px;max-height:85vh;overflow-y:auto">
+    <button class="mc" onclick="closeMo('swap-mo')">&#10005;</button>
+    <h3>&#8644; Request Team Swap</h3>
+    <div style="font-size:.72rem;color:var(--dim);margin-bottom:.8rem;line-height:1.6">Request to swap clubs with another player in your league. Same league, managers trade clubs.</div>
+    <div style="margin-bottom:.8rem"><label class="lbl">Your Current Club</label><div id="swap-my-club"></div></div>
+    <div id="swap-target-info" style="display:none;background:rgba(0,212,255,0.06);border:1px solid rgba(0,212,255,0.18);border-radius:9px;padding:.6rem .75rem;margin-bottom:.65rem;font-size:.72rem;color:#00D4FF"></div>
+    <div style="margin-bottom:.65rem"><label class="lbl">Pick a player to swap with</label><div id="swap-player-list" style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:.35rem"></div></div>
+    <div class="lf"><label class="lbl">Message (optional)</label><input class="inp" id="swap-msg" maxlength="100" placeholder="e.g. I prefer your club..."></div>
+    <div class="errmsg" id="swap-err"></div>
+    <button id="swap-send-btn" onclick="sendSwapRequest()" disabled style="width:100%;background:linear-gradient(135deg,#00D4FF,#00FF85);color:#100018;border:none;border-radius:12px;padding:13px;font-family:Exo 2,sans-serif;font-weight:900;font-size:.9rem;cursor:pointer;text-transform:uppercase;opacity:0.5;transition:all .22s">&#8644; Send Swap Request</button>
+  </div>
+</div>
+
+<!-- EFOOTBALL DOWNLOAD LINKS MODAL -->
+<div class="mo" id="efootball-links-mo" onclick="if(event.target===this)closeMo('efootball-links-mo')">
+  <div class="mb"><button class="mc" onclick="closeMo('efootball-links-mo')">&#10005;</button>
+    <h3>&#128242; Get eFootball</h3>
+    <p style="font-size:.74rem;color:var(--dim);margin-bottom:1rem">Download eFootball to play your match.</p>
+    <a href="https://apps.apple.com/app/efootball-2024/id1448787484" target="_blank" style="display:flex;align-items:center;gap:.6rem;text-decoration:none;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:13px;margin-bottom:.6rem;color:#fff;transition:all .2s">
+      <span style="font-size:1.3rem">&#127822;</span>
+      <div><div style="font-size:.8rem;font-weight:700">Download on App Store</div><div style="font-size:.6rem;color:var(--dim)">iPhone &amp; iPad</div></div>
+    </a>
+    <a href="https://play.google.com/store/apps/details?id=com.konami.efootball.android" target="_blank" style="display:flex;align-items:center;gap:.6rem;text-decoration:none;background:rgba(0,255,133,0.06);border:1px solid rgba(0,255,133,0.2);border-radius:12px;padding:13px;color:#fff;transition:all .2s">
+      <span style="font-size:1.3rem">&#129302;</span>
+      <div><div style="font-size:.8rem;font-weight:700">Download on Google Play</div><div style="font-size:.6rem;color:var(--dim)">Android</div></div>
+    </a>
+  </div>
+</div>
+
+<!-- RESULT CELEBRATION SCREEN -->
+<div id="result-celebration" style="display:none;position:fixed;inset:0;z-index:9500;background:linear-gradient(160deg,#180020,#100018);overflow:hidden;flex-direction:column;align-items:center;justify-content:center"></div>
+
+<!-- POST-MATCH RESULT SUBMIT MODAL -->
+<div class="mo" id="post-match-mo" onclick="if(event.target===this)closeMo('post-match-mo')">
+  <div class="mb" style="max-width:380px">
+    <button class="mc" onclick="closeMo('post-match-mo')">&#10005;</button>
+    <input type="hidden" id="pm-mid">
+    <div style="text-align:center;margin-bottom:1rem">
+      <div style="font-size:1.8rem;margin-bottom:.3rem">&#9917;</div>
+      <h3 style="font-family:Orbitron,sans-serif;font-size:1rem;color:#00D4FF">Match Finished?</h3>
+      <div id="pm-match-label" style="font-size:.68rem;color:var(--dim);margin-top:.3rem"></div>
+    </div>
+    <div style="background:rgba(0,0,0,0.3);border:1px solid rgba(0,212,255,0.15);border-radius:14px;padding:1.1rem;margin-bottom:.9rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem">
+        <div style="flex:1;text-align:center">
+          <div id="pm-home-label" style="font-size:.62rem;color:var(--dim);margin-bottom:.5rem;font-weight:700"></div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:.5rem">
+            <button onclick="pmStepGoal('hg',-1)" style="background:rgba(255,40,130,0.12);border:1.5px solid rgba(255,40,130,0.4);color:#FF2882;width:32px;height:32px;border-radius:50%;font-size:1.2rem;cursor:pointer;font-weight:700;transition:all .18s;display:flex;align-items:center;justify-content:center">&#8722;</button>
+            <div id="pm-hg-display" style="font-family:Orbitron,sans-serif;font-weight:900;font-size:2.5rem;color:#fff;min-width:40px;text-align:center">0</div>
+            <button onclick="pmStepGoal('hg',1)" style="background:rgba(0,255,133,0.1);border:1.5px solid rgba(0,255,133,0.4);color:#00FF85;width:32px;height:32px;border-radius:50%;font-size:1.2rem;cursor:pointer;font-weight:700;transition:all .18s;display:flex;align-items:center;justify-content:center">+</button>
+          </div>
+        </div>
+        <div style="font-family:Orbitron,sans-serif;font-size:1.5rem;color:var(--dim);font-weight:900">&#8211;</div>
+        <div style="flex:1;text-align:center">
+          <div id="pm-away-label" style="font-size:.62rem;color:var(--dim);margin-bottom:.5rem;font-weight:700"></div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:.5rem">
+            <button onclick="pmStepGoal('ag',-1)" style="background:rgba(255,40,130,0.12);border:1.5px solid rgba(255,40,130,0.4);color:#FF2882;width:32px;height:32px;border-radius:50%;font-size:1.2rem;cursor:pointer;font-weight:700;transition:all .18s;display:flex;align-items:center;justify-content:center">&#8722;</button>
+            <div id="pm-ag-display" style="font-family:Orbitron,sans-serif;font-weight:900;font-size:2.5rem;color:#fff;min-width:40px;text-align:center">0</div>
+            <button onclick="pmStepGoal('ag',1)" style="background:rgba(0,255,133,0.1);border:1.5px solid rgba(0,255,133,0.4);color:#00FF85;width:32px;height:32px;border-radius:50%;font-size:1.2rem;cursor:pointer;font-weight:700;transition:all .18s;display:flex;align-items:center;justify-content:center">+</button>
+          </div>
+        </div>
+      </div>
+      <input type="hidden" id="pm-hg-val" value="0"><input type="hidden" id="pm-ag-val" value="0">
+    </div>
+    <div class="lf">
+      <label class="lbl">Match Screenshot (required proof)</label>
+      <label style="display:flex;align-items:center;gap:.65rem;background:rgba(0,212,255,0.03);border:1.5px dashed rgba(0,212,255,0.2);border-radius:10px;padding:.75rem 1rem;cursor:pointer;transition:border-color .2s" onmouseover="this.style.borderColor='#00D4FF'" onmouseout="this.style.borderColor='rgba(0,212,255,0.2)'">
+        <span style="font-size:1.4rem">&#128247;</span>
+        <span id="pm-ss-label" style="font-size:.78rem;color:var(--dim)">Tap to upload screenshot</span>
+        <input type="file" id="pm-screenshot" accept="image/*" style="display:none" onchange="pmPreviewScreenshot(this)">
+      </label>
+      <img id="pm-ss-preview" style="width:100%;max-height:140px;object-fit:contain;border-radius:8px;margin-top:.5rem;border:1px solid rgba(0,212,255,0.2);display:none" alt="">
+    </div>
+    <label style="display:flex;align-items:flex-start;gap:.65rem;background:rgba(255,230,0,0.05);border:1px solid rgba(255,230,0,0.15);border-radius:10px;padding:.8rem;cursor:pointer;margin-bottom:.8rem">
+      <input type="checkbox" id="pm-honest" style="margin-top:2px;width:16px;height:16px;accent-color:#00D4FF;flex-shrink:0">
+      <span style="font-size:.72rem;color:#ccc;line-height:1.6">I confirm this result is <strong style="color:#00FF85">accurate and honest</strong>. False results = <strong style="color:#FF2882">point deduction and ban</strong>.</span>
+    </label>
+    <div class="errmsg" id="pm-err"></div>
+    <button id="pm-submit-btn" onclick="if(typeof submitPostMatchResult==='function')submitPostMatchResult()" style="width:100%;background:linear-gradient(135deg,#00D4FF,#00FF85);color:#100018;border:none;border-radius:12px;padding:14px;font-family:Exo 2,sans-serif;font-weight:900;font-size:.95rem;cursor:pointer;text-transform:uppercase;transition:all .22s">&#10003; Submit Result</button>
+  </div>
+</div>
+
+<!-- PREDICT MATCH MODAL -->
+<div class="mo" id="predict-mo" onclick="if(event.target===this)closeMo('predict-mo')">
+  <div class="mb" style="max-width:380px">
+    <button class="mc" onclick="closeMo('predict-mo')">&#10005;</button>
+    <input type="hidden" id="predict-mid">
+    <div style="text-align:center;margin-bottom:.9rem">
+      <div id="predict-league-badge" style="margin-bottom:.5rem"></div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:1rem;margin-bottom:.3rem">
+        <div style="text-align:center"><div id="predict-home-badge"></div><div id="predict-home-name" style="font-size:.72rem;font-weight:700;margin-top:.3rem"></div></div>
+        <div style="font-family:Orbitron,sans-serif;font-size:1rem;color:var(--dim);font-weight:900">VS</div>
+        <div style="text-align:center"><div id="predict-away-badge"></div><div id="predict-away-name" style="font-size:.72rem;font-weight:700;margin-top:.3rem"></div></div>
+      </div>
+    </div>
+    <div style="margin-bottom:.8rem">
+      <div style="font-size:.58rem;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:.4rem">Match Odds</div>
+      <div id="predict-odds-row" style="display:flex;gap:.4rem"></div>
+    </div>
+    <div style="background:rgba(0,0,0,0.3);border:1px solid rgba(0,212,255,0.15);border-radius:13px;padding:1rem;margin-bottom:.7rem">
+      <div style="font-size:.58rem;color:var(--dim);text-transform:uppercase;letter-spacing:1px;text-align:center;margin-bottom:.7rem">Predict the Score</div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:1.2rem">
+        <div style="display:flex;align-items:center;gap:.45rem">
+          <button onclick="if(typeof predStep==='function')predStep('h',-1)" style="background:rgba(255,40,130,0.12);border:1.5px solid rgba(255,40,130,0.35);color:#FF2882;width:32px;height:32px;border-radius:50%;font-size:1.2rem;cursor:pointer;font-weight:700;display:flex;align-items:center;justify-content:center">&#8722;</button>
+          <div id="pred-hg" style="font-family:Orbitron,sans-serif;font-weight:900;font-size:2.4rem;color:#fff;min-width:36px;text-align:center">0</div>
+          <button onclick="if(typeof predStep==='function')predStep('h',1)" style="background:rgba(0,255,133,0.1);border:1.5px solid rgba(0,255,133,0.35);color:#00FF85;width:32px;height:32px;border-radius:50%;font-size:1.2rem;cursor:pointer;font-weight:700;display:flex;align-items:center;justify-content:center">+</button>
+        </div>
+        <div style="font-family:Orbitron,sans-serif;font-size:1.5rem;color:var(--dim);font-weight:900">&#8211;</div>
+        <div style="display:flex;align-items:center;gap:.45rem">
+          <button onclick="if(typeof predStep==='function')predStep('a',-1)" style="background:rgba(255,40,130,0.12);border:1.5px solid rgba(255,40,130,0.35);color:#FF2882;width:32px;height:32px;border-radius:50%;font-size:1.2rem;cursor:pointer;font-weight:700;display:flex;align-items:center;justify-content:center">&#8722;</button>
+          <div id="pred-ag" style="font-family:Orbitron,sans-serif;font-weight:900;font-size:2.4rem;color:#fff;min-width:36px;text-align:center">0</div>
+          <button onclick="if(typeof predStep==='function')predStep('a',1)" style="background:rgba(0,255,133,0.1);border:1.5px solid rgba(0,255,133,0.35);color:#00FF85;width:32px;height:32px;border-radius:50%;font-size:1.2rem;cursor:pointer;font-weight:700;display:flex;align-items:center;justify-content:center">+</button>
+        </div>
+      </div>
+      <input type="hidden" id="pred-hg-val" value="0"><input type="hidden" id="pred-ag-val" value="0">
+    </div>
+    <div style="background:rgba(255,230,0,0.05);border:1px solid rgba(255,230,0,0.15);border-radius:9px;padding:.65rem;margin-bottom:.7rem;font-size:.68rem;color:#ccc;line-height:1.7">
+      <strong style="color:#FFE600">+3 pts</strong> Exact score &nbsp; <strong style="color:#00D4FF">+1 pt</strong> Correct result
+    </div>
+    <div id="predict-already" style="display:none;font-size:.7rem;color:#00FF85;background:rgba(0,255,133,0.07);border:1px solid rgba(0,255,133,0.2);border-radius:8px;padding:.5rem .7rem;margin-bottom:.6rem"></div>
+    <div class="errmsg" id="predict-err"></div>
+    <button id="predict-submit-btn" onclick="if(typeof submitPrediction==='function')submitPrediction()" style="width:100%;background:linear-gradient(135deg,#FFE600,#FF8C00);color:#100018;border:none;border-radius:12px;padding:13px;font-family:Exo 2,sans-serif;font-weight:900;font-size:.92rem;cursor:pointer;text-transform:uppercase;transition:all .22s">Submit Prediction</button>
+  </div>
+</div>
 
 </body>
 </html>

@@ -238,11 +238,11 @@ function renderRefPanel(){
       var timeLeft=Math.max(0,deadline-Date.now());
       var hoursLeft=Math.floor(timeLeft/3600000),minsLeft=Math.floor((timeLeft%3600000)/60000);
       html+='<div class="ref-duty-card" style="border-color:'+(isDisputed?'rgba(255,0,110,0.4)':'rgba(0,212,255,0.25)')+'">'
-        +(isDisputed?'<div style="background:rgba(255,0,110,0.12);border-radius:7px;padding:.45rem .7rem;margin-bottom:.65rem;font-size:.74rem;color:#ff006e;font-weight:700">⚠️ DISPUTED — Away team uploaded counter-screenshot</div>':'')
+        +(isDisputed?'<div style="background:rgba(255,0,110,0.12);border-radius:7px;padding:.45rem .7rem;margin-bottom:.65rem;font-size:.74rem;color:#FF2882;font-weight:700">⚠️ DISPUTED — Away team uploaded counter-screenshot</div>':'')
         +'<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.45rem;margin-bottom:.7rem">'
         +'<div style="display:flex;align-items:center;gap:.45rem">'+lgBadge(m.league)
         +'<span style="font-size:.72rem;font-weight:700">'+esc(hp.username)+' vs '+esc(ap.username)+'</span></div>'
-        +'<span style="font-size:.6rem;color:'+(hoursLeft<6?'#ff006e':'#ffe600')+';font-weight:700">⏰ '+(timeLeft>0?hoursLeft+'h '+minsLeft+'m left':'Expired')+'</span></div>'
+        +'<span style="font-size:.6rem;color:'+(hoursLeft<6?'#FF2882':'#FFE600')+';font-weight:700">⏰ '+(timeLeft>0?hoursLeft+'h '+minsLeft+'m left':'Expired')+'</span></div>'
         // Score
         +'<div style="display:flex;align-items:center;justify-content:center;gap:.75rem;margin-bottom:.8rem">'
         +clubBadge(hp.club,m.league,28)
@@ -253,7 +253,7 @@ function renderRefPanel(){
         // Screenshots
         +'<div style="display:grid;grid-template-columns:'+(isDisputed&&m.awayDispute?'1fr 1fr':'1fr')+';gap:.55rem;margin-bottom:.75rem">'
         +(m.screenshot?'<div><div style="font-size:.6rem;color:#ffe600;margin-bottom:3px">HOME SCREENSHOT</div><a href="'+m.screenshot+'" target="_blank"><img src="'+m.screenshot+'" style="width:100%;max-height:160px;object-fit:contain;border-radius:8px;border:1px solid rgba(255,255,255,0.1)"></a></div>':'')
-        +(isDisputed&&m.awayDispute&&m.awayDispute.screenshot?'<div><div style="font-size:.6rem;color:#ff006e;margin-bottom:3px">AWAY SCREENSHOT</div><a href="'+m.awayDispute.screenshot+'" target="_blank"><img src="'+m.awayDispute.screenshot+'" style="width:100%;max-height:160px;object-fit:contain;border-radius:8px;border:1px solid rgba(255,0,110,0.3)"></a></div>':'')
+        +(isDisputed&&m.awayDispute&&m.awayDispute.screenshot?'<div><div style="font-size:.6rem;color:#FF2882;margin-bottom:3px">AWAY SCREENSHOT</div><a href="'+m.awayDispute.screenshot+'" target="_blank"><img src="'+m.awayDispute.screenshot+'" style="width:100%;max-height:160px;object-fit:contain;border-radius:8px;border:1px solid rgba(255,0,110,0.3)"></a></div>':'')
         +'</div>'
         // Buttons
         +'<div style="display:flex;gap:.5rem;flex-wrap:wrap">'
@@ -275,10 +275,10 @@ function renderRefPanel(){
       var hp=allPlayers[m.homeId],ap=allPlayers[m.awayId];if(!hp||!ap)return;
       var status=m.refStatus||'pre-approved';
       var sc={
-        'pre-approved': {c:'#00ff88',t:'✅ Live'},
-        'confirmed':    {c:'#00ff88',t:'✅ Confirmed by Referee'},
-        'disputed':     {c:'#ff006e',t:'⚠️ Under Dispute'},
-        'reversed':     {c:'#ff006e',t:'🔄 Result Reversed'},
+        'pre-approved': {c:'#00FF85',t:'✅ Live'},
+        'confirmed':    {c:'#00FF85',t:'✅ Confirmed by Referee'},
+        'disputed':     {c:'#FF2882',t:'⚠️ Under Dispute'},
+        'reversed':     {c:'#FF2882',t:'🔄 Result Reversed'},
         'escalated':    {c:'#ff6b00',t:'⬆️ Admin Review'},
       }[status]||{c:'#aaa',t:status};
       // Is away team for this match?

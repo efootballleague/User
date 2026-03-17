@@ -15,8 +15,8 @@ function aTab(name,btn){
 function renderAdminSeason(){
   var el=$('ap-season');if(!el)return;
   el.innerHTML=adminSeasonControls()
-    +'<div style="margin-top:1rem;padding:1rem;background:rgba(255,0,110,0.05);border:1px solid rgba(255,0,110,0.15);border-radius:12px">'
-    +'<div style="font-family:Orbitron,sans-serif;font-size:.65rem;color:#ff006e;letter-spacing:1.5px;margin-bottom:.7rem">DANGER ZONE</div>'
+    +'<div style="margin-top:1rem;padding:1rem;background:rgba(255,40,130,0.05);border:1px solid rgba(255,40,130,0.15);border-radius:12px">'
+    +'<div style="font-family:Orbitron,sans-serif;font-size:.65rem;color:#FF2882;letter-spacing:1.5px;margin-bottom:.7rem">DANGER ZONE</div>'
     +'<button class="bd" style="font-size:.74rem;padding:7px 14px;background:rgba(139,0,0,0.25)" onclick="seasonReset()">&#9888; Reset All Match Data</button>'
     +'<div style="font-size:.63rem;color:var(--dim);margin-top:.4rem">Clears all results. Player accounts stay.</div>'
     +'</div>';
@@ -35,15 +35,15 @@ function loadAdminReports(){
       return'<div class="rep-card'+(done?' done':'')+'" style="'+(isFraud&&!done?'border-left-color:#ff6600;':'')+'">'
         +'<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.45rem;margin-bottom:.45rem">'
         +(isFraud?'<span style="background:rgba(255,102,0,0.14);color:#ff6600;font-size:.58rem;font-weight:700;padding:2px 6px;border-radius:9px;border:1px solid rgba(255,102,0,0.28);margin-right:5px">FRAUD</span>':'')
-        +'<span style="font-weight:700;color:#E8002D">'+esc(r.reportedName)+'</span> reported by <span style="font-weight:700">'+esc(r.reporterName)+'</span>'
+        +'<span style="font-weight:700;color:#00D4FF">'+esc(r.reportedName)+'</span> reported by <span style="font-weight:700">'+esc(r.reporterName)+'</span>'
         +'<span style="font-size:.6rem;color:var(--dim)">'+fmtFull(r.ts)+'</span></div>'
         +'<div style="font-size:.78rem;margin-bottom:.38rem"><strong>Reason:</strong> '+esc(r.reason)+'</div>'
         +(r.details?'<div style="font-size:.73rem;color:var(--dim);margin-bottom:.45rem">'+esc(r.details)+'</div>':'')
         +(done?'<span style="font-size:.63rem;color:#00ff88">Resolved</span>'
-          +(r.type==='result_review'||r.type==='result_rejected'?'<div style="margin-top:.45rem"><div style="font-size:.68rem;color:#ffe600;margin-bottom:.35rem">Score: '+esc(r.hg||'?')+' – '+esc(r.ag||'?')+'</div>'+(r.screenshot?'<a href="'+esc(r.screenshot)+'" target="_blank"><img src="'+esc(r.screenshot)+'" style="width:100%;max-height:130px;object-fit:contain;border-radius:7px;border:1px solid rgba(255,255,255,0.1);margin-bottom:.35rem"></a>':'')+'</div>':'')
+          +(r.type==='result_review'||r.type==='result_rejected'?'<div style="margin-top:.45rem"><div style="font-size:.68rem;color:#ffe600;margin-bottom:.35rem">Score: '+esc(r.hg||'?')+' – '+esc(r.ag||'?')+'</div>'+(r.screenshot?'<div class="ss-reveal-btn" data-src="'+esc(r.screenshot)+'" onclick="revealScreenshot(this)" style="display:flex;align-items:center;gap:.5rem;background:rgba(0,212,255,0.06);border:1px solid rgba(0,212,255,0.2);border-radius:8px;padding:.55rem .8rem;cursor:pointer;margin-top:.35rem;transition:all .2s"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg><span style="font-size:.7rem;color:#00D4FF;font-weight:700">Tap to view screenshot</span></div>':'')+'</div>':'')
           :'<div style="display:flex;gap:.45rem;flex-wrap:wrap;margin-top:.45rem">'
           +'<button class="bg" style="font-size:.65rem;padding:4px 9px" onclick="resolveReport(\''+key+'\')">Resolve</button>'
-          +(isFraud?'<button class="bp" style="font-size:.65rem;padding:4px 9px;background:linear-gradient(135deg,#ff006e,#cc0044)" onclick="openDeductModal(\''+key+'\',\''+esc(r.reportedUID)+'\',\''+esc(r.reportedName)+'\')">Deduct Points</button>':'')
+          +(isFraud?'<button class="bp" style="font-size:.65rem;padding:4px 9px;background:linear-gradient(135deg,#FF2882,#cc0044)" onclick="openDeductModal(\''+key+'\',\''+esc(r.reportedUID)+'\',\''+esc(r.reportedName)+'\')">Deduct Points</button>':'')
           +'<button class="bd" style="font-size:.65rem;padding:4px 9px" onclick="banUser(\''+esc(r.reportedUID)+'\',\''+esc(r.reportedName)+'\')">Ban</button>'
           +'<button class="bs" style="font-size:.65rem;padding:4px 9px" onclick="deleteReport(\''+key+'\')">Delete</button></div>')
         +'</div>';
@@ -58,7 +58,7 @@ function loadAdminUsers(){
     var lg=LGS[p.league]||{};
     return'<div class="urow">'
       +clubBadge(p.club,28)
-      +'<div style="flex:1"><div style="font-weight:700;font-size:.82rem">'+esc(p.username)+(p.banned?'<span style="color:#ff006e;font-size:.58rem;margin-left:4px">BANNED</span>':'')+'</div>'
+      +'<div style="flex:1"><div style="font-weight:700;font-size:.82rem">'+esc(p.username)+(p.banned?'<span style="color:#FF2882;font-size:.58rem;margin-left:4px">BANNED</span>':'')+'</div>'
       +'<div style="font-size:.63rem;color:var(--dim)">'+esc(p.club)+' - '+esc(lg.n||'')+' - <span style="color:'+lsColor(p.lastSeen||0)+'">'+fmtAgo(p.lastSeen||0)+'</span></div></div>'
       +'<div style="display:flex;gap:.35rem">'
       +'<button class="bs" style="font-size:.63rem;padding:3px 8px" onclick="openDMWith(\''+p.uid+'\',\''+esc(p.username)+'\')">DM</button>'
@@ -145,7 +145,7 @@ function renderPenaltyLog(){
       +'<div style="flex:1"><div style="font-weight:700;font-size:.82rem">'+esc(p.playerName||'Unknown')+'</div>'
       +'<div style="font-size:.68rem;color:var(--dim)">'+esc(p.reason)+' - '+fmtFull(p.appliedAt)+'</div>'
       +'<div style="font-size:.65rem;color:#aaa;margin-top:1px">'+esc(p.note||'')+'</div></div>'
-      +'<div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:.95rem;color:#ff006e">-'+p.pts+'pts</div>'
+      +'<div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:.95rem;color:#FF2882">-'+p.pts+'pts</div>'
       +'<button class="bs" style="font-size:.63rem;padding:3px 8px" onclick="revokePenalty(\''+p.uid+'\',\''+p.penKey+'\')">Revoke</button>'
       +'</div>';
   }).join('');
@@ -153,4 +153,11 @@ function renderPenaltyLog(){
 function revokePenalty(uid,penKey){
   if(!confirm('Revoke this penalty?'))return;
   db.ref('ef_penalties/'+uid+'/'+penKey).remove().then(function(){toast('Penalty revoked.');}).catch(function(){toast('Failed','error');});
+}
+function revealScreenshot(el){
+  var src=el.getAttribute('data-src');if(!src)return;
+  var wrap=document.createElement('div');
+  wrap.style.cssText='margin-top:.35rem;animation:fadein .3s ease';
+  wrap.innerHTML='<a href="'+src+'" target="_blank" style="display:block"><img src="'+src+'" loading="lazy" style="width:100%;max-height:200px;object-fit:contain;border-radius:9px;border:1px solid rgba(0,212,255,0.2);cursor:zoom-in"></a><div style="font-size:.58rem;color:var(--dim);text-align:center;margin-top:3px">Tap to open full size</div>';
+  el.parentNode.replaceChild(wrap,el);
 }

@@ -9,14 +9,29 @@ var CLOUDINARY_PRESET = 'efootball_screenshots';
 // ACHIEVEMENT BADGES
 // ============================================================
 var BADGES = {
-  league_winner:{ icon:'🏆', label:'League Winner',    color:'#ffe600', desc:'Finished 1st in their league' },
-  comeback:     { icon:'💪', label:'Comeback King',    color:'#bf00ff', desc:'Was 5th or below after match 2, finished top 4' },
-  unbeaten:     { icon:'🛡️', label:'Unbeaten Run',     color:'#00ff88', desc:'5+ games without a loss' },
-  top_form:     { icon:'🔥', label:'On Fire',          color:'#ff6b00', desc:'Won last 3 games in a row' },
-  clean_sheet:  { icon:'🧤', label:'Clean Sheet King', color:'#00d4ff', desc:'3+ clean sheets in last 10' },
-  giant_killer: { icon:'⚡', label:'Giant Killer',     color:'#ff006e', desc:'Beat a top 3 player' },
-  veteran:      { icon:'⭐', label:'Veteran',          color:'#aaa',    desc:'Played 10+ matches' },
-  consistent:   { icon:'📈', label:'Consistent',       color:'#ffe600', desc:'Unbeaten in last 5 matches' },
+  // ── MATCH PERFORMANCE ─────────────────────────────
+  league_winner:{ icon:'🏆', label:'League Winner',      color:'#FFE600', desc:'Finished 1st in their league',            rarity:'legendary' },
+  comeback:     { icon:'💪', label:'Comeback King',       color:'#bf00ff', desc:'Was bottom half early, finished top 4',   rarity:'epic'      },
+  unbeaten:     { icon:'🛡',  label:'Unbeaten Run',        color:'#00FF85', desc:'5+ games without a loss',                 rarity:'rare'      },
+  top_form:     { icon:'🔥', label:'On Fire',             color:'#ff6b00', desc:'Won last 3 matches in a row',              rarity:'rare'      },
+  clean_sheet:  { icon:'🧤', label:'Clean Sheet King',    color:'#00D4FF', desc:'3+ clean sheets in last 10 games',         rarity:'rare'      },
+  giant_killer: { icon:'⚡', label:'Giant Killer',        color:'#FF2882', desc:'Beat a top-3 ranked player',              rarity:'epic'      },
+  veteran:      { icon:'⭐', label:'Veteran',             color:'#aaa',    desc:'Played 10+ matches',                      rarity:'common'    },
+  consistent:   { icon:'📈', label:'Mr Consistent',       color:'#FFE600', desc:'Unbeaten in last 5 matches',              rarity:'rare'      },
+  // ── PREDICTION BADGES ─────────────────────────────
+  oracle:       { icon:'🔮', label:'The Oracle',          color:'#a855f7', desc:'10+ exact score predictions correct',     rarity:'legendary' },
+  sharp:        { icon:'🎯', label:'Sharp Shooter',       color:'#00D4FF', desc:'5+ exact score predictions correct',      rarity:'epic'      },
+  predictor:    { icon:'🧠', label:'Predictor',           color:'#00FF85', desc:'10+ correct match outcome predictions',    rarity:'rare'      },
+  prophet:      { icon:'👁',  label:'The Prophet',        color:'#FFE600', desc:'3 exact score predictions in a row',      rarity:'epic'      },
+  analyst:      { icon:'📊', label:'Analyst',             color:'#00D4FF', desc:'Predicted 20+ matches total',             rarity:'rare'      },
+};
+
+// Rarity glow map
+var RARITY_GLOW = {
+  legendary: 'rgba(255,230,0,0.6)',
+  epic:      'rgba(168,85,247,0.5)',
+  rare:      'rgba(0,212,255,0.5)',
+  common:    'rgba(255,255,255,0.2)'
 };
 
 function computeBadges(uid){
@@ -89,6 +104,17 @@ function computeBadges(uid){
     if(earlyPos>=5&&curPos>=1&&curPos<=4) earned.push('comeback');
   }
 
+  // ── PREDICTION BADGES ─────────────────────────────────────
+  var pd=allPlayers[uid];
+  if(pd&&pd.predStats){
+    var ps=pd.predStats;
+    if((ps.exact||0)>=10)       earned.push('oracle');
+    else if((ps.exact||0)>=5)   earned.push('sharp');
+    if((ps.correct||0)>=10)     earned.push('predictor');
+    if((ps.streak||0)>=3)       earned.push('prophet');
+    if((ps.total||0)>=20)       earned.push('analyst');
+  }
+
   return earned.filter(function(v,i,a){return a.indexOf(v)===i;}); // dedupe
 }
 
@@ -96,21 +122,69 @@ function renderBadges(uid,size){
   var earned=computeBadges(uid); if(!earned.length)return'';
   size=size||22;
   return earned.map(function(key){
-    var b=BADGES[key];if(!b)return'';
-    return'<span title="'+b.label+': '+b.desc+'" style="display:inline-flex;align-items:center;justify-content:center;width:'+size+'px;height:'+size+'px;border-radius:50%;background:'+b.color+'22;border:1px solid '+b.color+'55;font-size:'+(size*.55)+'px;cursor:default">'+b.icon+'</span>';
+    var b=BADGES[key]; if(!b)return'';
+    var glow=RARITY_GLOW[b.rarity]||'rgba(255,255,255,0.2)';
+    var legendary=b.rarity==='legendary', epic=b.rarity==='epic';
+    var shadow=legendary?'box-shadow:0 0 8px '+glow+',0 0 18px '+glow+';':epic?'box-shadow:0 0 6px '+glow+';':'';
+    var border=legendary?'2px':'1.5px';
+    return'<span title="'+b.label+(b.rarity?' ('+b.rarity.charAt(0).toUpperCase()+b.rarity.slice(1)+')':'')+': '+b.desc+'" '
+      +'style="display:inline-flex;align-items:center;justify-content:center;'
+      +'width:'+size+'px;height:'+size+'px;border-radius:50%;'
+      +'background:'+b.color+'1a;border:'+border+' solid '+b.color+';'
+      +'font-size:'+(size*.55)+'px;cursor:default;flex-shrink:0;transition:transform .15s;'+shadow+'"'
+      +' onmouseover="this.style.transform='scale(1.25)'"'
+      +' onmouseout="this.style.transform='scale(1)'">'+b.icon+'</span>';
   }).join('');
 }
 
 function renderBadgeList(uid){
   var earned=computeBadges(uid);
-  if(!earned.length)return'<div style="color:var(--dim);font-size:.75rem">No badges yet. Keep playing!</div>';
-  return earned.map(function(key){
-    var b=BADGES[key];if(!b)return'';
-    return'<div style="display:flex;align-items:center;gap:.65rem;padding:.55rem .75rem;background:'+b.color+'0d;border:1px solid '+b.color+'33;border-radius:10px;margin-bottom:.4rem">'
-      +'<span style="font-size:1.3rem">'+b.icon+'</span>'
-      +'<div><div style="font-weight:700;font-size:.82rem;color:'+b.color+'">'+b.label+'</div>'
-      +'<div style="font-size:.65rem;color:var(--dim)">'+b.desc+'</div></div></div>';
-  }).join('');
+  var allKeys=Object.keys(BADGES);
+  var locked=allKeys.filter(function(k){return earned.indexOf(k)===-1;});
+  var rarityColor={legendary:'#FFE600',epic:'#a855f7',rare:'#00D4FF',common:'#888'};
+  var html='';
+
+  if(earned.length){
+    html+='<div style="font-family:Orbitron,sans-serif;font-size:.6rem;color:#00FF85;letter-spacing:1.5px;margin-bottom:.6rem">EARNED ('+earned.length+')</div>';
+    html+=earned.map(function(key){
+      var b=BADGES[key];if(!b)return'';
+      var glow=RARITY_GLOW[b.rarity]||'transparent';
+      var rc=rarityColor[b.rarity]||'#888';
+      return'<div style="display:flex;align-items:center;gap:.65rem;padding:.7rem .85rem;'
+        +'background:'+b.color+'0d;border:1.5px solid '+b.color+'33;border-radius:13px;margin-bottom:.45rem;'
+        +'box-shadow:0 2px 14px '+glow.replace('0.6','0.12').replace('0.5','0.1')+(b.rarity==='legendary'?',0 0 22px '+glow.replace('0.6','0.2'):'')+';">'
+        +'<div style="width:40px;height:40px;border-radius:50%;background:'+b.color+'18;border:2px solid '+b.color+';'
+        +'display:flex;align-items:center;justify-content:center;font-size:1.35rem;flex-shrink:0">'+b.icon+'</div>'
+        +'<div style="flex:1;min-width:0">'
+        +'<div style="font-weight:700;font-size:.86rem;color:'+b.color+'">'+b.label+'</div>'
+        +'<div style="font-size:.64rem;color:#bbb;margin-top:2px">'+b.desc+'</div>'
+        +'</div>'
+        +'<span style="font-size:.5rem;font-weight:700;padding:2px 7px;border-radius:9px;'
+        +'background:'+rc+'18;color:'+rc+';border:1px solid '+rc+'33;white-space:nowrap;flex-shrink:0">'
+        +(b.rarity||'common').toUpperCase()+'</span>'
+        +'</div>';
+    }).join('');
+  }
+
+  if(locked.length){
+    html+='<div style="font-family:Orbitron,sans-serif;font-size:.6rem;color:var(--dim);letter-spacing:1.5px;margin:.8rem 0 .5rem">LOCKED ('+locked.length+')</div>';
+    html+=locked.map(function(key){
+      var b=BADGES[key];if(!b)return'';
+      return'<div style="display:flex;align-items:center;gap:.65rem;padding:.65rem .85rem;'
+        +'background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:13px;margin-bottom:.35rem;opacity:0.4">'
+        +'<div style="width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,0.05);'
+        +'display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;filter:grayscale(1)">'+b.icon+'</div>'
+        +'<div style="flex:1;min-width:0">'
+        +'<div style="font-size:.84rem;font-weight:700;color:var(--dim)">'+b.label+'</div>'
+        +'<div style="font-size:.62rem;color:var(--dim);margin-top:2px">'+b.desc+'</div>'
+        +'</div>'
+        +'<span style="font-size:.56rem;color:var(--dim);flex-shrink:0">🔒 Locked</span>'
+        +'</div>';
+    }).join('');
+  }
+
+  if(!earned.length&&!locked.length) return'<div style="color:var(--dim);font-size:.75rem">No badges defined.</div>';
+  return html||'<div style="color:var(--dim);font-size:.75rem;text-align:center;padding:1rem">No badges yet — keep playing and predicting!</div>';
 }
 
 // ============================================================
@@ -203,10 +277,10 @@ function renderH2H(uid1,uid2){
     +'<div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-bottom:.75rem">'
     +'<div style="text-align:center;flex:1"><div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:1.6rem;color:#00ff88">'+w1+'</div><div style="font-size:.6rem;color:var(--dim)">'+esc(p1.username)+' Wins</div></div>'
     +'<div style="text-align:center;flex:1"><div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:1.6rem;color:#ffe600">'+draws+'</div><div style="font-size:.6rem;color:var(--dim)">Draws</div></div>'
-    +'<div style="text-align:center;flex:1"><div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:1.6rem;color:#ff006e">'+w2+'</div><div style="font-size:.6rem;color:var(--dim)">'+esc(p2.username)+' Wins</div></div>'
+    +'<div style="text-align:center;flex:1"><div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:1.6rem;color:#FF2882">'+w2+'</div><div style="font-size:.6rem;color:var(--dim)">'+esc(p2.username)+' Wins</div></div>'
     +'</div>'
     +'<div style="display:flex;height:6px;border-radius:4px;overflow:hidden;margin-bottom:.6rem">'
-    +(w1+draws+w2>0?'<div style="flex:'+w1+';background:#00ff88"></div><div style="flex:'+draws+';background:#ffe600"></div><div style="flex:'+w2+';background:#ff006e"></div>':'<div style="flex:1;background:rgba(255,255,255,0.06)"></div>')
+    +(w1+draws+w2>0?'<div style="flex:'+w1+';background:#00ff88"></div><div style="flex:'+draws+';background:#ffe600"></div><div style="flex:'+w2+';background:#FF2882"></div>':'<div style="flex:1;background:rgba(255,255,255,0.06)"></div>')
     +'</div>'
     +'<div style="display:flex;justify-content:space-between;font-size:.7rem;color:var(--dim)">'
     +'<span>'+esc(p1.username)+': '+gf1+' goals</span><span>'+gf2+' goals: '+esc(p2.username)+'</span>'
@@ -214,7 +288,7 @@ function renderH2H(uid1,uid2){
     +'<div style="font-family:Orbitron,sans-serif;font-size:.6rem;color:var(--dim);letter-spacing:1.5px;margin-bottom:.45rem">LAST MEETINGS</div>';
   meetings.slice(0,5).forEach(function(m){
     var isH=m.homeId===uid1,g1=isH?m.hg:m.ag,g2=isH?m.ag:m.hg;
-    var r=g1>g2?'W':g1<g2?'L':'D',rc=r==='W'?'#00ff88':r==='L'?'#ff006e':'#ffe600';
+    var r=g1>g2?'W':g1<g2?'L':'D',rc=r==='W'?'#00ff88':r==='L'?'#FF2882':'#ffe600';
     html+='<div style="display:flex;align-items:center;gap:.55rem;padding:.4rem .55rem;background:#0a0a0a;border-radius:8px;margin-bottom:3px">'
       +'<span style="font-size:.65rem;font-weight:700;color:'+rc+';width:14px">'+r+'</span>'
       +'<span style="font-size:.73rem;font-family:Orbitron,sans-serif;font-weight:900;color:#fff;letter-spacing:2px">'+g1+' – '+g2+'</span>'
@@ -236,7 +310,7 @@ function renderFormChart(uid){
     return{r:g1>g2?'W':g1===g2?'D':'L',g1:g1,g2:g2,ts:m.playedAt};
   });
   var bars=results.map(function(r){
-    var c=r.r==='W'?'#00ff88':r.r==='D'?'#ffe600':'#ff006e';
+    var c=r.r==='W'?'#00ff88':r.r==='D'?'#ffe600':'#FF2882';
     var h=r.r==='W'?100:r.r==='D'?50:20;
     return'<div title="'+r.r+' '+r.g1+'-'+r.g2+' on '+fmtDate(r.ts)+'" style="display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:50px;flex:1;gap:2px">'
       +'<div style="width:100%;max-width:18px;height:'+h+'%;background:'+c+';border-radius:3px 3px 0 0;transition:height .3s ease"></div>'
@@ -384,7 +458,7 @@ function uploadCover(inputEl){
 // ADMIN RESTRICTIONS — ban from specific features
 // ============================================================
 var RESTRICTION_TYPES={
-  no_submit:  {label:'Cannot submit results', icon:'🚫', color:'#ff006e'},
+  no_submit:  {label:'Cannot submit results', icon:'🚫', color:'#FF2882'},
   no_chat:    {label:'Cannot use chat',        icon:'💬', color:'#ff6b00'},
   no_referee: {label:'Cannot be referee',      icon:'🟢', color:'#ff4466'},
   no_ucl:     {label:'Cannot join UCL',        icon:'🏆', color:'#ffe600'},
@@ -425,7 +499,7 @@ function openRestrictModal(uid,name){
     html+='<div style="display:flex;align-items:center;gap:.65rem;padding:.65rem .8rem;background:var(--card);border-radius:10px;margin-bottom:.4rem;border:1px solid '+(active?info.color+'44':'var(--border)')+'">'
       +'<span>'+info.icon+'</span>'
       +'<div style="flex:1"><div style="font-size:.8rem;font-weight:700;color:'+(active?info.color:'#ccc')+'">'+info.label+'</div>'
-      +(active?'<div style="font-size:.62rem;color:#ff006e">Currently restricted</div>':'')
+      +(active?'<div style="font-size:.62rem;color:#FF2882">Currently restricted</div>':'')
       +'</div>'
       +(active
         ?'<button class="bg" style="font-size:.65rem;padding:3px 9px" onclick="removeRestriction(\''+uid+'\',\''+type+'\')">Remove</button>'

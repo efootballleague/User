@@ -23,8 +23,8 @@ function renderStd(lid){
   var rows=computeStd(lid),total=rows.length,html='';
   if(!rows.length){html='<tr><td colspan="12" style="padding:1.6rem;color:var(--dim);text-align:center">No players in this league.</td></tr>';}
   else rows.forEach(function(r,i){
-    var pos=i+1,pc=pos===1?'#ffe600':pos<=4?'#00d4ff':pos>total-3?'#ff006e':'var(--dim)';
-    var gd=r.gf-r.ga,gdc=gd>0?'#00ff88':gd<0?'#ff006e':'var(--dim)';
+    var pos=i+1,pc=pos===1?'#FFE600':pos<=4?'#00D4FF':pos>total-3?'#FF2882':'var(--dim)';
+    var gd=r.gf-r.ga,gdc=gd>0?'#00FF85':gd<0?'#FF2882':'var(--dim)';
     var form=r.form.slice(-5).map(function(f){return'<span class="fd '+f+'"></span>';}).join('');
     var penBadge=r.penPts>0?'<span class="deduct-badge">-'+r.penPts+'</span>':'';
     var dot='<span data-lastseen="'+r.lastSeen+'" style="width:7px;height:7px;border-radius:50%;background:'+lsColor(r.lastSeen)+';display:inline-block;margin-right:3px" title="'+fmtAgo(r.lastSeen)+'"></span>';
@@ -36,7 +36,7 @@ function renderStd(lid){
       +'<td>'+r.gf+'</td><td>'+r.ga+'</td>'
       +'<td style="color:'+gdc+'">'+(gd>0?'+':'')+gd+'</td>'
       +'<td>'+form+'</td>'
-      +'<td><span style="font-family:Orbitron,sans-serif;font-weight:900;font-size:.82rem;color:'+(r.penPts>0?'#ff006e':'#fff')+'">'+r.pts+'</span>'+penBadge+'</td>'
+      +'<td><span style="font-family:Orbitron,sans-serif;font-weight:900;font-size:.82rem;color:'+(r.penPts>0?'#FF2882':'#fff')+'">'+r.pts+'</span>'+penBadge+'</td>'
       +'</tr>';
   });
   var body=$('std-body');if(body)body.innerHTML=html;
@@ -67,7 +67,7 @@ function renderRecentRes(){
       +'<div style="display:flex;align-items:center;justify-content:space-between;gap:.38rem">'
       +'<div style="flex:1;text-align:center">'+clubBadge(hp.club,m.league,24)+'<div style="font-size:.73rem;font-weight:700;margin-top:2px">'+esc(hp.username)+'</div></div>'
       +'<div style="background:#0a0a0a;border-radius:7px;padding:5px 10px;text-align:center">'
-      +'<div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:.92rem;color:#00ff88;letter-spacing:2px">'+m.hg+'-'+m.ag+'</div>'
+      +'<div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:.92rem;color:#00FF85;letter-spacing:2px">'+m.hg+'-'+m.ag+'</div>'
       +'<div style="font-size:.52rem;color:var(--dim)">FT</div></div>'
       +'<div style="flex:1;text-align:center">'+clubBadge(ap.club,m.league,24)+'<div style="font-size:.73rem;font-weight:700;margin-top:2px">'+esc(ap.username)+'</div></div>'
       +'</div></div>';
@@ -87,7 +87,7 @@ function renderTopPlayers(){
     var p=x.p,lg=LGS[p.league]||{};
     return'<div class="card" style="padding:.82rem;display:flex;align-items:center;gap:.65rem;cursor:pointer" onclick="openUserModal(\''+p.uid+'\')">'
       +'<div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:.85rem;color:#ffe600;min-width:18px">#'+(i+1)+'</div>'
-      +clubBadge(p.club,32)
+      +clubBadge(p.club,p.league||curLg,32)
       +'<div style="flex:1"><div style="font-weight:700;font-size:.82rem">'+esc(p.username)+'</div>'
       +'<div style="font-size:.6rem;color:var(--dim)">'+esc(p.club)+'</div>'
       +'<div style="font-size:.6rem;color:'+lg.c+'">'+esc(lg.n||'')+'</div></div>'
@@ -124,12 +124,12 @@ function renderFx(){
       var isMine=myProfile&&(m.homeId===myProfile.uid||m.awayId===myProfile.uid);
       var isPost=!!m.postponed;
       var timeStr=m.matchTime?fmtTime(m.matchTime):'TBD';
-      var statusC=m.played?'#00ff88':isPost?'#ff6b00':'var(--dim)';
+      var statusC=m.played?'#00FF85':isPost?'#ff6b00':'var(--dim)';
       var isPending=m.pendingResult&&!m.played;
     var statusT=m.played?'FT':isPending?('⏳ Ref Review'):(isPost?'POSTPONED':''+timeStr);
-    var statusC=m.played?'#00ff88':isPending?'#00d4ff':isPost?'#ff6b00':'var(--dim)';
+    var statusC=m.played?'#00FF85':isPending?'#00D4FF':isPost?'#ff6b00':'var(--dim)';
       var score=m.played
-        ?'<div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:.92rem;color:#00ff88;letter-spacing:2px">'+m.hg+'-'+m.ag+'</div><div style="font-size:.52rem;color:var(--dim)">FT</div>'
+        ?'<div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:.92rem;color:#00FF85;letter-spacing:2px">'+m.hg+'-'+m.ag+'</div><div style="font-size:.52rem;color:var(--dim)">FT</div>'
         :'<div style="font-size:.62rem;color:'+(isPost?'#ff6b00':'var(--dim)')+';font-weight:700">'+(isPost?'PST':'vs')+'</div>';
       html+='<div class="card" style="padding:.85rem;margin-bottom:.45rem;'+(isMine?'border-color:rgba(255,230,0,0.28);':isPost?'border-color:rgba(255,107,0,0.28);opacity:.8;':'')+'">'
         +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;flex-wrap:wrap;gap:.28rem">'
@@ -137,9 +137,9 @@ function renderFx(){
         +'<span style="font-size:.56rem;font-weight:700;padding:2px 6px;border-radius:4px;background:'+lg.bg+';color:'+lg.c+'">'+esc(lg.n||'')+'</span>'
         +(isMine?'<span style="font-size:.54rem;font-weight:700;color:#ffe600;background:rgba(255,230,0,0.08);border:1px solid rgba(255,230,0,0.2);border-radius:8px;padding:1px 5px">YOUR MATCH</span>':'')
         +(m.awayVerifying&&myProfile&&m.awayId===myProfile.uid&&!m.awayDispute?'<span style="font-size:.54rem;font-weight:700;color:#ff6b00;background:rgba(255,107,0,0.08);border:1px solid rgba(255,107,0,0.2);border-radius:8px;padding:1px 5px">&#9888; VERIFY</span>':'')
-        +(m.pendingResult?'<span style="font-size:.54rem;font-weight:700;color:#00d4ff;background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.2);border-radius:8px;padding:1px 5px">&#128994; REF REVIEW</span>':'')
+        +(m.pendingResult?'<span style="font-size:.54rem;font-weight:700;color:#00D4FF;background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.2);border-radius:8px;padding:1px 5px">&#128994; REF REVIEW</span>':'')
         +(m.refStatus==='rejected'?'<span style="font-size:.54rem;font-weight:700;color:#ff006e;background:rgba(255,0,110,0.08);border:1px solid rgba(255,0,110,0.2);border-radius:8px;padding:1px 5px">&#10060; REJECTED</span>':'')
-        +(m.refereeName?'<span style="font-size:.56rem;color:#00ff88;background:rgba(0,255,136,0.07);border:1px solid rgba(0,255,136,0.18);border-radius:8px;padding:1px 5px">Ref: '+esc(m.refereeName)+'</span>':'')
+        +(m.refereeName?'<span style="font-size:.56rem;color:#00FF85;background:rgba(0,255,136,0.07);border:1px solid rgba(0,255,136,0.18);border-radius:8px;padding:1px 5px">Ref: '+esc(m.refereeName)+'</span>':'')
         +'</div><span style="font-size:.6rem;color:'+statusC+';font-weight:600">'+statusT+'</span></div>'
         +'<div style="display:flex;align-items:center;justify-content:space-between;gap:.38rem">'
         +'<div style="flex:1;text-align:center;cursor:pointer" onclick="openUserModal(\''+hp.uid+'\')">'+clubBadge(hp.club,m.league,24)+'<div style="font-size:.73rem;font-weight:700;margin-top:2px">'+esc(hp.username)+'</div></div>'
@@ -260,7 +260,7 @@ function renderSchedTimeline(){
       +'</div>'
       +'<div style="display:flex;align-items:center;gap:.4rem;flex-wrap:wrap">'
       +'<span style="font-size:.56rem;font-weight:700;padding:2px 6px;border-radius:4px;background:'+lg.bg+';color:'+lg.c+'">'+esc(lg.n||'')+'</span>'
-      +(m.refereeName?'<span style="font-size:.6rem;color:#00ff88;background:rgba(0,255,136,0.07);border:1px solid rgba(0,255,136,0.18);border-radius:9px;padding:2px 6px">Ref: '+esc(m.refereeName)+'</span>':'')
+      +(m.refereeName?'<span style="font-size:.6rem;color:#00FF85;background:rgba(0,255,136,0.07);border:1px solid rgba(0,255,136,0.18);border-radius:9px;padding:2px 6px">Ref: '+esc(m.refereeName)+'</span>':'')
       +(isMine?'<span style="font-size:.58rem;color:#ffe600;background:rgba(255,230,0,0.09);border:1px solid rgba(255,230,0,0.28);border-radius:9px;padding:2px 6px">YOUR MATCH</span>':'')
       +'</div></div>'
       +(m.roomCode?'<div style="margin-top:.45rem;font-size:.68rem;color:var(--dim)">Code: <span class="mcode" style="font-size:.72rem;padding:3px 7px;letter-spacing:2px" onclick="copyCode(\''+esc(m.roomCode)+'\')">'+esc(m.roomCode)+'</span></div>':'')

@@ -156,7 +156,7 @@ function openMatchRoom(mid){
       // Input
       +'<div style="display:flex;gap:.45rem;padding:.55rem .75rem;border-top:1px solid var(--border);align-items:center">'
       +'<input id="room-inp" type="text" maxlength="400" placeholder="Message the group..." style="flex:1;background:#1e1e1e;border:1.5px solid rgba(255,255,255,0.08);border-radius:22px;color:#fff;padding:9px 14px;font-family:Exo 2,sans-serif;font-size:.84rem;outline:none" onkeydown="if(event.key===\'Enter\')sendRoomMsg(\''+roomKey+'\')">'
-      +'<button onclick="sendRoomMsg(\''+roomKey+'\')" style="background:linear-gradient(135deg,#E8002D,#ff4400);border:none;border-radius:50%;width:38px;height:38px;cursor:pointer;font-size:1rem;flex-shrink:0">&#10148;</button>'
+      +'<button onclick="sendRoomMsg(\''+roomKey+'\')" style="background:linear-gradient(135deg,#00D4FF,#00FF85);border:none;border-radius:50%;width:38px;height:38px;cursor:pointer;font-size:1rem;flex-shrink:0">&#10148;</button>'
       +'</div>';
 
     panel.style.display='flex';
@@ -182,7 +182,7 @@ function loadRoomChat(roomKey){
         +'<div style="width:24px;height:24px;border-radius:50%;background:'+c+'22;border:1.5px solid '+c+'55;color:'+c+';display:flex;align-items:center;justify-content:center;font-size:.52rem;font-weight:800;flex-shrink:0">'+esc(msg.fromName||'?').slice(0,2).toUpperCase()+'</div>'
         +'<div style="max-width:72%">'
         +(!mine?'<div style="font-size:.58rem;font-weight:700;color:'+c+';margin-bottom:1px">'+esc(msg.fromName||'')+'</div>':'')
-        +'<div style="padding:7px 11px;border-radius:'+(mine?'14px 14px 4px 14px':'14px 14px 14px 4px')+';background:'+(mine?'linear-gradient(135deg,#E8002D,#cc0011)':'#2a2a2a')+';color:#fff;font-size:.82rem;line-height:1.42;word-break:break-word">'+esc(msg.text)+'</div>'
+        +'<div style="padding:7px 11px;border-radius:'+(mine?'14px 14px 4px 14px':'14px 14px 14px 4px')+';background:'+(mine?'linear-gradient(135deg,#00D4FF,rgba(0,212,255,0.5))':'#2a2a2a')+';color:#fff;font-size:.82rem;line-height:1.42;word-break:break-word">'+esc(msg.text)+'</div>'
         +'<div style="font-size:.54rem;color:var(--dim);margin-top:1px;'+(mine?'text-align:right':'')+'">'+fmtTime(msg.ts)+'</div>'
         +'</div></div>');
     });

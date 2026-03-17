@@ -1,4 +1,33 @@
 
+// ── SKELETON LOADERS — Show structure while data loads ───────
+function showSkeletons(){
+  var shimmer='background:linear-gradient(90deg,rgba(255,255,255,0.04) 0%,rgba(255,255,255,0.09) 50%,rgba(255,255,255,0.04) 100%);background-size:200% 100%;animation:shimmer 1.2s ease-in-out infinite;border-radius:8px';
+  var skel='<div style="'+shimmer+';height:16px;margin-bottom:8px;width:80%"></div>'
+           +'<div style="'+shimmer+';height:12px;width:50%"></div>';
+
+  // Skeleton stat boxes
+  var g4=$('home-stats-grid');
+  if(g4)g4.innerHTML='<div class="sbox">'+skel+'</div><div class="sbox">'+skel+'</div><div class="sbox">'+skel+'</div><div class="sbox">'+skel+'</div>';
+
+  // Skeleton news
+  var ns=$('news-anchor-section');
+  if(ns&&ns.innerHTML.indexOf('Generating')===-1)return;
+  var sk2='<div style="background:var(--card);border:1px solid var(--border);border-radius:13px;padding:.9rem;margin-bottom:.5rem">'
+    +'<div style="'+shimmer+';height:12px;width:60%;margin-bottom:10px"></div>'
+    +'<div style="'+shimmer+';height:16px;width:90%;margin-bottom:8px"></div>'
+    +'<div style="'+shimmer+';height:12px;width:75%"></div>'
+    +'</div>';
+  if(ns)ns.innerHTML=sk2+sk2+sk2;
+}
+
+
+// Inject shimmer animation if not in CSS
+(function(){
+  var s=document.createElement('style');
+  s.textContent='@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}';
+  document.head.appendChild(s);
+})();
+
 // ============================================================
 // HELPERS
 // ============================================================
@@ -188,73 +217,183 @@ function lTab(t){
   if(tabs[1])tabs[1].classList.toggle('on',t!=='in');
 }
 function showLanding(){
+  var ls=$('loading-screen');
+  if(ls){
+    ls.style.opacity='0';
+    ls.style.transition='opacity .25s ease';
+    setTimeout(function(){ls.style.display='none';},260);
+  }
   var l=$('landing');
   if(l){l.classList.remove('gone');l.classList.add('visible');}
-  var ls=$('loading-screen');if(ls)ls.classList.add('gone');
 }
 function enterApp(){
-  var ls=$('loading-screen');if(ls)ls.classList.add('gone');
+  var ls=$('loading-screen');
+  if(ls){
+    ls.style.opacity='0';
+    ls.style.transition='opacity .25s ease';
+    setTimeout(function(){ls.style.display='none';},260);
+  }
   var l=$('landing');if(l){l.classList.remove('visible');l.classList.add('gone');}
   updateNav();
+  // Show home page skeleton immediately while data loads
+  var pg=$('page-home');if(pg&&!document.querySelector('.page.on'))pg.classList.add('on');
+  showSkeletons();
 }
 
 // ============================================================
-// FIREBASE LOADER
+// FIREBASE LOADER — Fast, resilient, with progress + timeout
 // ============================================================
-function loadScript(url,cb){
-  var s=document.createElement('script');
-  s.src=url;s.onload=cb;s.onerror=function(){console.warn('Failed:',url);cb();};
+var _loadStart = Date.now();
+var _appStarted = false;
+
+function setLoadMsg(msg, pct) {
+  var m = document.getElementById('loading-msg');
+  var b = document.getElementById('loading-bar-inner');
+  if(m) m.textContent = msg;
+  if(b) b.style.width = (pct||0) + '%';
+}
+
+function forceShowLanding() {
+  // Emergency escape hatch — show landing even if Firebase hasn't loaded
+  var ls = document.getElementById('loading-screen');
+  if(ls) ls.style.display = 'none';
+  var land = document.getElementById('landing');
+  if(land) { land.classList.remove('gone'); land.classList.add('visible'); }
+  if(!_appStarted) console.warn('App forced open without Firebase');
+}
+
+function loadScript(url, cb) {
+  var s = document.createElement('script');
+  s.src = url;
+  s.onload = cb;
+  s.onerror = function() { console.warn('Script failed:', url); cb(); };
   document.head.appendChild(s);
 }
-function loadScripts(urls,cb){
-  var n=urls.length;if(!n){cb();return;}
-  var done=0;
-  urls.forEach(function(u){loadScript(u,function(){if(++done===n)cb();});});
+
+function loadScripts(urls, cb) {
+  var n = urls.length; if(!n){cb();return;}
+  var done = 0;
+  urls.forEach(function(u){ loadScript(u, function(){ if(++done===n) cb(); }); });
 }
+
+// Show "taking too long" button after 5 seconds
+setTimeout(function(){
+  var skip = document.getElementById('loading-skip');
+  var msg  = document.getElementById('loading-msg');
+  if(skip && !_appStarted) {
+    skip.style.display = 'block';
+    if(msg) msg.textContent = 'Slow connection detected...';
+  }
+}, 5000);
+
+// Absolute failsafe — force the app open after 12 seconds no matter what
+setTimeout(function(){
+  if(!_appStarted) {
+    console.warn('12s timeout — forcing app open');
+    forceShowLanding();
+  }
+}, 12000);
+
+setLoadMsg('Connecting...', 10);
 
 loadScripts([
   'https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js',
   'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js',
   'https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js'
-],function(){
-  try{
-    firebase.initializeApp({
-      apiKey:"AIzaSyDbhuP9fhjI_0cxiUSTYi6dw4xqM0QI8wg",
-      authDomain:"videocall-ada87.firebaseapp.com",
-      databaseURL:"https://videocall-ada87-default-rtdb.firebaseio.com",
-      projectId:"videocall-ada87",
-      storageBucket:"videocall-ada87.firebasestorage.app",
-      messagingSenderId:"1048410446932",
-      appId:"1:1048410446932:web:0f3e3d8538e466202061c1"
-    });
-    auth=firebase.auth();
-    db=firebase.database();
-    auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
-      .then(function(){startApp();})
-      .catch(function(){startApp();});
-  }catch(e){console.error('Firebase init error:',e);}
+], function() {
+  setLoadMsg('Starting...', 40);
+  try {
+    if(!firebase.apps.length) {
+      firebase.initializeApp({
+        apiKey:"AIzaSyDbhuP9fhjI_0cxiUSTYi6dw4xqM0QI8wg",
+        authDomain:"videocall-ada87.firebaseapp.com",
+        databaseURL:"https://videocall-ada87-default-rtdb.firebaseio.com",
+        projectId:"videocall-ada87",
+        storageBucket:"videocall-ada87.firebasestorage.app",
+        messagingSenderId:"1048410446932",
+        appId:"1:1048410446932:web:0f3e3d8538e466202061c1"
+      });
+    }
+    auth = firebase.auth();
+    db   = firebase.database();
+    setLoadMsg('Checking auth...', 60);
+    // Skip setPersistence — saves one async round trip
+    startApp();
+  } catch(e) {
+    console.error('Firebase init failed:', e);
+    setLoadMsg('Connection error', 0);
+    forceShowLanding();
+  }
 });
-loadScript('https://js.paystack.co/v2/inline.js',function(){});
+
+// Paystack loads in background — never blocks app
+loadScript('https://js.paystack.co/v2/inline.js', function(){});
 
 function startApp(){
-  db.ref('ef_players').on('value',function(s){
-    var newData=s.val()||{};
-    var oldCount=Object.keys(allPlayers).length;
-    var newCount=Object.keys(newData).length;
-    allPlayers=newData;
-    if(newCount!==oldCount)debouncedRefresh();
-    else refreshAgoLabels();
+  _appStarted = true;
+  setLoadMsg('Loading...', 70);
+
+  // Auth resolves fast for returning users (cached token)
+  var authResolved = false;
+
+  function tryEnter(){
+    if(!authResolved) return;
+    setLoadMsg('Ready!', 100);
+    setTimeout(function(){
+      if(me){
+        db.ref('ef_players/'+me.uid).once('value',function(s){
+          myProfile=s.val();
+          enterApp(); updateNav(); debouncedRefresh();
+          db.ref('ef_players/'+me.uid).on('value',function(s2){
+            myProfile=s2.val(); updateNav();
+            if(myProfile){
+              setOnline();listenUnread();listenGlobalDMs();initRefereeSystem();listenMatchRooms();
+              if(typeof initSwap==='function')initSwap();
+            }
+          });
+          if(myProfile){
+            setOnline();listenUnread();listenGlobalDMs();initRefereeSystem();listenMatchRooms();
+            if(typeof initSwap==='function')initSwap();
+          }
+        },function(err){
+          console.error('Profile error:',err);
+          enterApp(); updateNav();
+        });
+      } else {
+        myProfile=null; showLanding(); updateNav();
+      }
+    },50);
+  }
+
+  // Resolve auth — fast if session cached
+  auth.onAuthStateChanged(function(user){
+    me=user; authResolved=true; tryEnter();
+  },function(err){
+    console.error('Auth error:',err);
+    me=null; authResolved=true; tryEnter();
   });
+
+  // Background listeners — don't block initial render
+  db.ref('ef_players').on('value',function(s){
+    var d=s.val()||{};
+    var changed=Object.keys(d).length!==Object.keys(allPlayers).length;
+    allPlayers=d;
+    if(changed)debouncedRefresh();else refreshAgoLabels();
+  },function(e){console.warn('players err:',e);});
+
   db.ref('ef_matches').on('value',function(s){
     allMatches=s.val()||{};
     debouncedRefresh();
     var pg=activePage();
     if(pg==='fixtures')loadScoreSel();
     if(pg==='matchprep'){renderMatchPrep();renderSchedTimeline();}
+  },function(e){console.warn('matches err:',e);});
+
+  db.ref('ef_online').on('value',function(s){
+    var e=$('online-count');if(e)e.textContent=Object.keys(s.val()||{}).length;
   });
-  db.ref('ef_online').on('value',function(s){var e=$('online-count');if(e)e.textContent=Object.keys(s.val()||{}).length;});
-  db.ref('ef_ucl_settings').on('value',function(s){uclSettings=s.val()||{};if($('page-ucl').classList.contains('on'))renderUCL();});
-  db.ref('ef_ucl_payments').on('value',function(s){uclPayments=s.val()||{};if($('page-ucl').classList.contains('on'))renderUCL();});
+  db.ref('ef_ucl_settings').on('value',function(s){uclSettings=s.val()||{};if($('page-ucl')&&$('page-ucl').classList.contains('on'))renderUCL();});
+  db.ref('ef_ucl_payments').on('value',function(s){uclPayments=s.val()||{};if($('page-ucl')&&$('page-ucl').classList.contains('on'))renderUCL();});
   db.ref('ef_penalties').on('value',function(s){
     allPenalties=s.val()||{};
     if(activePage()==='leagues')renderStd(curLg);
@@ -265,30 +404,10 @@ function startApp(){
     if(activePage()==='polls')renderPolls();
     renderPollBadge();
   });
-  // Season banner
-  setTimeout(function(){renderSeasonBanner();},1000);
-  setTimeout(function(){if(typeof initNews==='function')initNews();},2000);
-  auth.onAuthStateChanged(function(user){
-    me=user;
-    if(user){
-      db.ref('ef_players/'+user.uid).once('value',function(s){
-        myProfile=s.val();
-        enterApp();
-        updateNav();
-        debouncedRefresh();
-        db.ref('ef_players/'+user.uid).on('value',function(s){
-          myProfile=s.val();
-          updateNav();
-          if(myProfile){setOnline();listenUnread();listenGlobalDMs();initRefereeSystem();listenMatchRooms();if(typeof initSwap==='function')initSwap();}
-        });
-        if(myProfile){setOnline();listenUnread();listenGlobalDMs();initRefereeSystem();listenMatchRooms();if(typeof initSwap==='function')initSwap();}
-      });
-    }else{
-      myProfile=null;
-      showLanding();
-      updateNav();
-    }
-  },function(err){console.error('Auth error:',err);showLanding();});
+
+  // Deferred non-critical stuff
+  setTimeout(function(){renderSeasonBanner();},800);
+  setTimeout(function(){if(typeof initNews==='function')initNews();},2500);
 }
 
 // ============================================================

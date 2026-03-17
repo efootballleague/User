@@ -5,7 +5,11 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <title>eFootball Universe</title>
 <link rel="icon" href="https://i.ibb.co/MDGqDxPS/grok-1773616908832-2.jpg">
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+<!-- Fonts — non-blocking for fast first paint -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600;700;800&display=swap" rel="stylesheet"></noscript>
 
 <!-- Styles -->
 <link rel="stylesheet" href="style.css">
@@ -16,9 +20,12 @@
 
 <!-- LOADING SCREEN -->
 <div id="loading-screen">
-  <img src="https://i.ibb.co/MDGqDxPS/grok-1773616908832-2.jpg" alt="logo">
-  <div id="loading-bar"><div id="loading-bar-inner"></div></div>
-  <p>Loading...</p>
+  <img src="https://i.ibb.co/MDGqDxPS/grok-1773616908832-2.jpg" alt="logo" style="width:72px;height:72px;border-radius:18px;object-fit:cover">
+  <div id="loading-bar" style="width:160px;height:3px;background:rgba(255,255,255,0.07);border-radius:3px;overflow:hidden">
+    <div id="loading-bar-inner" style="height:100%;width:0%;background:linear-gradient(90deg,#00D4FF,#00FF85);border-radius:3px;transition:width .3s ease"></div>
+  </div>
+  <p id="loading-msg" style="font-family:sans-serif;font-size:.6rem;color:#00D4FF;letter-spacing:3px;text-transform:uppercase">Loading...</p>
+  <button id="loading-skip" onclick="forceShowLanding()" style="display:none;margin-top:.8rem;background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);color:#00D4FF;font-size:.7rem;padding:7px 16px;border-radius:8px;cursor:pointer;font-family:sans-serif">Taking too long? Tap here</button>
 </div>
 
 <!-- LANDING -->
@@ -193,7 +200,7 @@
     <div id="news-anchor-section"><div style="text-align:center;padding:2rem;color:var(--dim);font-size:.78rem"><div style="font-size:1.5rem;margin-bottom:.5rem">&#128240;</div>Generating latest news...</div></div>
   </div>
 
-  <div class="g4" style="margin-bottom:1.6rem">
+  <div class="g4" id="home-stats-grid" style="margin-bottom:1.6rem">
     <div class="sbox"><div class="sv" id="st-p">0</div><div class="sl2">Players</div></div>
     <div class="sbox"><div class="sv" id="st-m">0</div><div class="sl2">Matches</div></div>
     <div class="sbox"><div class="sv" id="st-f">0</div><div class="sl2">Fixtures</div></div>

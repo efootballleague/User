@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>eFootball Universe</title>
+<link rel="icon" href="https://i.ibb.co/MDGqDxPS/grok-1773616908832-2.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600;700;800&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600;700;800&display=swap" rel="stylesheet"></noscript>
+
+<!-- Styles -->
+<link rel="stylesheet" href="style.css">
+
+<!-- Firebase SDKs — loaded by core.js dynamically, no blocking -->
+</head>
+<body>
+
+<!-- LOADING SCREEN -->
+<div id="loading-screen">
+  <img src="https://i.ibb.co/MDGqDxPS/grok-1773616908832-2.jpg" alt="logo">
+  <div id="loading-bar"><div id="loading-bar-inner"></div></div>
+  <p>Loading...</p>
+</div>
+
+<!-- LANDING -->
+<div id="landing">
+  <div id="landing-inner">
+    <img src="https://i.ibb.co/MDGqDxPS/grok-1773616908832-2.jpg" id="l-logo" alt="logo">
+    <div id="l-brand">eFOOTBALL<br><span id="l-sub">UNIVERSE</span></div>
+    <div id="l-tag">Register &middot; Compete &middot; Dominate</div>
+    <div id="l-tabs">
+      <button class="l-tab on" onclick="lTab('in')">&#9889; Sign In</button>
+      <button class="l-tab" onclick="lTab('up')">&#127918; Create Account</button>
+    </div>
+    <!-- SIGN IN -->
+    <div id="l-in" class="l-panel on">
+      <div class="lf"><label class="lbl">Email</label>
+        <input class="inp" id="li-em" type="email" placeholder="your@email.com" autocomplete="email">
+      </div>
+      <div class="lf"><label class="lbl">Password</label>
+        <input class="inp" id="li-pw" type="password" placeholder="&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;" autocomplete="current-password" onkeydown="if(event.key==='Enter')doSignIn()">
+      </div>
+      <div class="errmsg" id="li-err"></div>
+      <button class="btn-p" id="li-btn" onclick="doSignIn()">&#9889; Sign In</button>
+    </div>
+    <!-- REGISTER -->
+    <div id="l-up" class="l-panel">
+      <div id="l-s1">
+        <div class="lf"><label class="lbl">Username</label><input class="inp" id="ru-name" placeholder="YourGamertag" autocomplete="username"></div>
+        <div class="lf"><label class="lbl">Email</label><input class="inp" id="ru-em" type="email" placeholder="your@email.com" autocomplete="email"></div>
+        <div class="lf"><label class="lbl">Password (min 8)</label><input class="inp" id="ru-pw" type="password" placeholder="&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;" autocomplete="new-password"></div>
+        <div class="lf"><label class="lbl">Country</label>
+          <select class="inp" id="ru-country">
+            <option value="">&#8212; Select &#8212;</option>
+            <option>Nigeria</option><option>Ghana</option><option>Kenya</option><option>South Africa</option>
+            <option>United Kingdom</option><option>United States</option><option>Germany</option>
+            <option>France</option><option>Spain</option><option>Italy</option><option>Brazil</option>
+            <option>Portugal</option><option>Other</option>
+          </select>
+        </div>
+        <div class="lf"><label class="lbl">League</label>
+          <select class="inp" id="ru-league">
+            <option value="">&#8212; Select &#8212;</option>
+            <option value="epl">&#127988;&#65039; Premier League</option>
+            <option value="laliga">&#127988;&#65039; La Liga</option>
+            <option value="seriea">&#127988;&#65039; Serie A</option>
+            <option value="ligue1">&#127988;&#65039; Ligue 1</option>
+          </select>
+        </div>
+        <div class="errmsg" id="ru-err"></div>
+        <button class="btn-p" id="ru-btn" onclick="doRegStep1()">&#127920; Draw My Club!</button>
+      </div>
+      <!-- Club picker step -->
+      <div id="l-s-picker" style="display:none">
+        <div id="l-club-picker"></div>
+        <button class="btn-s" style="margin-top:.6rem" onclick="regBack()">&#8592; Back</button>
+      </div>
+
+      <div id="l-s2" style="display:none;text-align:center">
+        <p style="color:var(--dim);font-size:.8rem;margin-bottom:.8rem">Your club has been drawn...</p>
+        <div id="l-club-box">
+          <div id="l-club-badge" style="margin:0 auto .5rem;display:flex;justify-content:center"></div>
+          <div id="l-club-name"></div>
+          <div id="l-club-lg"></div>
+        </div>
+        <div class="errmsg" id="ru-err2" style="margin-top:.5rem"></div>
+        <div style="display:flex;gap:.6rem;justify-content:center;margin-top:.8rem">
+          <button class="btn-s" style="width:auto;padding:10px 18px" onclick="regBack()">&#8617; Redraw</button>
+          <button class="btn-p" style="width:auto;padding:10px 20px" id="ru-confirm" onclick="doRegConfirm()">&#10003; Confirm</button>
+        </div>
+      </div>
+    </div>
+    <div id="l-guest" onclick="enterApp()">Already browsing? <span>View as guest &#8594;</span></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<div id="news-ticker-bar">
+  <div class="news-ticker-label">BREAKING</div>
+  <div style="overflow:hidden;flex:1"><div class="news-ticker-track" id="news-ticker-track"><span class="news-ticker-item"><span class="news-ticker-dot"></span>Loading news...</span></div></div>
+</div>
+<div id="season-banner" style="display:none;background:rgba(255,230,0,0.07);border-bottom:1px solid rgba(255,230,0,0.18);font-family:Orbitron,sans-serif;letter-spacing:1px"></div>
+<div id="notif-wrap"></div>
+
+<!-- TOP BAR -->
+<div id="topbar">
+  <div class="nav-logo" onclick="go('home')">
+    <img src="https://i.ibb.co/MDGqDxPS/grok-1773616908832-2.jpg" alt="logo">
+    <span>eFOOTBALL</span>
+  </div>
+  <div id="nav-right">
+    <button class="bsm bsm-s" onclick="lTab('in');showLanding()">Login</button>
+    <button class="bsm bsm-p" onclick="lTab('up');showLanding()">Join</button>
+  </div>
+</div>
+
+<!-- BOTTOM NAV — 5 items, clean and tappable -->
+<div id="botnav">
+  <button class="nb on" onclick="go('home',this)">
+    <svg class="nb-svg" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    <span class="nb-label">Home</span>
+  </button>
+  <button class="nb" onclick="go('leagues',this)">
+    <svg class="nb-svg" viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+    <span class="nb-label">Leagues</span>
+  </button>
+  <button class="nb nb-center" onclick="go('matchprep',this)">
+    <div class="nb-center-icon">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+    </div>
+    <span class="nb-label">Match</span>
+    <span class="nbadge" id="matchroom-badge"></span>
+  </button>
+  <button class="nb" onclick="go('chat',this)" id="chat-nb">
+    <svg class="nb-svg" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    <span class="nb-label">Chat</span>
+    <span class="nbadge" id="chat-badge"></span>
+  </button>
+  <button class="nb" onclick="go('fixtures',this)">
+    <svg class="nb-svg" viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    <span class="nb-label">Fixtures</span>
+  </button>
+</div>
+<!-- Badge IDs used by notification system -->
+<span id="polls-badge" style="display:none"></span>
+<span id="ref-badge" style="display:none"></span>
+<span id="pm-badge" style="display:none"></span>
+
+<!-- PAGES -->
+<div class="page on" id="page-home">
+  <!-- Compact hero -->
+  <div style="display:flex;align-items:center;gap:.9rem;padding:.8rem 0 1.2rem">
+    <img src="https://i.ibb.co/MDGqDxPS/grok-1773616908832-2.jpg" loading="lazy" style="width:54px;height:54px;border-radius:14px;object-fit:cover;border:2px solid rgba(0,212,255,0.5);box-shadow:0 0 18px rgba(0,212,255,0.3);flex-shrink:0">
+    <div style="flex:1;min-width:0">
+      <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:1.1rem;line-height:1.2">
+        <span style="color:#00D4FF">eFootball</span> <span style="color:#00FF85">Universe</span>
+      </div>
+      <div style="font-size:.65rem;color:var(--dim);margin-top:2px">⚡ Season 2024/25 — <span style="color:#00FF85">Live</span></div>
+    </div>
+    <div id="home-cta">
+      <button class="btn-p" style="font-size:.75rem;padding:8px 16px;width:auto" onclick="lTab('up');showLanding()">Join</button>
+    </div>
+  </div>
+    <!-- News anchor -->
+  <div style="margin-bottom:1.2rem">
+    <div class="sh">
+      <div class="st">📰 Breaking News</div>
+      <div class="sl"></div>
+      <button class="bs" style="font-size:.64rem;padding:3px 10px;flex-shrink:0" onclick="if(typeof generateAllNews==='function'){generateAllNews();}">↻</button>
+    </div>
+    <div id="news-anchor-section"><div style="text-align:center;padding:1.5rem;color:var(--dim);font-size:.78rem">Generating news...</div></div>
+  </div>
+    <div class="g4" style="margin-bottom:1.6rem">
+    <div class="sbox"><div class="sv" id="st-p">-</div><div class="sl2">Players</div></div>
+    <div class="sbox"><div class="sv" id="st-m">-</div><div class="sl2">Matches</div></div>
+    <div class="sbox"><div class="sv" id="st-f">-</div><div class="sl2">Fixtures</div></div>
+    <div class="sbox"><div class="sv">4</div><div class="sl2">Leagues</div></div>
+  </div>
+  <div class="sh"><div class="st" style="color:#00FF85">&#9889; Recent Results</div><div class="sl" style="background:linear-gradient(90deg,#00ff88,transparent)"></div></div>
+  <div class="g2" id="recent-res"><div class="card" style="padding:1.2rem;text-align:center;color:var(--dim)">No results yet.</div></div>
+  <div class="sh" style="margin-top:1.6rem"><div class="st" style="color:#FFE600">&#127885; Top Players</div><div class="sl" style="background:linear-gradient(90deg,#ffe600,transparent)"></div></div>
+  <div class="g2" id="top-players"><div class="card" style="padding:1.2rem;text-align:center;color:var(--dim)">No players yet.</div></div>
+</div>
+
+<div class="page" id="page-leagues">
+  <div class="sh"><div class="st" style="color:#00D4FF">&#9917; Standings</div><div class="sl"></div></div>
+  <div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.9rem" id="lg-tabs">
+    <button class="tab on" onclick="switchLg('epl',this)" style="border-color:#37003C;color:#00FF85;background:rgba(55,0,60,0.3)">Premier League</button>
+    <button class="tab" onclick="switchLg('laliga',this)" style="border-color:#EE3224;color:#EE3224">La Liga</button>
+    <button class="tab" onclick="switchLg('seriea',this)" style="border-color:#1B7EC2;color:#1B7EC2">Serie A</button>
+    <button class="tab" onclick="switchLg('ligue1',this)" style="border-color:#0055A5;color:#7ab8ff">Ligue 1</button>
+  </div>
+  <div style="overflow-x:auto;border-radius:11px;border:1px solid var(--border)">
+    <table class="tbl"><thead><tr><th>#</th><th>Player</th><th>Club</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Form</th><th>Pts</th></tr></thead>
+    <tbody id="std-body"><tr><td colspan="12" style="padding:1.6rem;color:var(--dim);text-align:center">No players yet.</td></tr></tbody></table>
+  </div>
+  <div style="display:flex;gap:.9rem;flex-wrap:wrap;margin-top:.6rem;font-size:.63rem;color:var(--dim)">
+    <span>&#128993; Champion</span><span>&#128994; UCL (2-4)</span><span>&#128308; Relegation (bottom 3)</span>
+  </div>
+</div>
+
+<div class="page" id="page-fixtures">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.6rem;margin-bottom:.9rem">
+    <div class="sh" style="margin-bottom:0"><div class="st" style="color:#00D4FF">&#128197; Fixtures</div></div>
+    <button class="bs" id="add-fix-btn" style="display:none;font-size:.72rem;padding:5px 11px" onclick="toggleEl('add-fix-panel')">+ Add Fixture</button>
+  </div>
+  <div id="score-panel" style="display:none;margin-bottom:.75rem">
+    <button class="bp" style="width:100%;padding:12px;font-size:.88rem;border-radius:11px" onclick="openScoreModal()">
+      &#9889; Submit Match Result
+    </button>
+  </div>
+  <div id="add-fix-panel" style="display:none;margin-bottom:.75rem" class="card">
+    <div style="padding:1rem">
+      <div style="font-family:'Orbitron',sans-serif;font-size:.72rem;color:#FFE600;margin-bottom:.8rem;letter-spacing:1px">+ ADD FIXTURE</div>
+      <div class="row">
+        <div style="flex:1;min-width:110px"><label class="lbl">League</label>
+          <select class="inp" id="fix-lg" onchange="loadFxPlayers()">
+            <option value="">&#8212;</option>
+            <option value="epl">Premier League</option>
+            <option value="laliga">La Liga</option>
+            <option value="seriea">Serie A</option>
+            <option value="ligue1">Ligue 1</option>
+          </select></div>
+        <div style="flex:1;min-width:110px"><label class="lbl">Home</label><select class="inp" id="fix-home"><option value="">&#8212;</option></select></div>
+        <div style="flex:1;min-width:110px"><label class="lbl">Away</label><select class="inp" id="fix-away"><option value="">&#8212;</option></select></div>
+        <button class="bp" style="font-size:.74rem;padding:5px 13px" onclick="addFixture()">Add</button>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.75rem" id="fix-filters">
+    <button class="tab on" onclick="filterFx('all',this)">All</button>
+    <button class="tab" onclick="filterFx('epl',this)">EPL</button>
+    <button class="tab" onclick="filterFx('laliga',this)">La Liga</button>
+    <button class="tab" onclick="filterFx('seriea',this)">Serie A</button>
+    <button class="tab" onclick="filterFx('ligue1',this)">Ligue 1</button>
+  </div>
+  <div id="fix-list"><div class="card" style="padding:1.2rem;text-align:center;color:var(--dim)">No fixtures yet.</div></div>
+</div>
+
+<div class="page" id="page-matchprep">
+  <div class="sh"><div class="st" style="color:#FFE600">&#127918; Match Prep</div><div class="sl" style="background:linear-gradient(90deg,#ffe600,transparent)"></div>
+    <button class="bp" style="font-size:.7rem;padding:5px 12px" onclick="autoScheduleLeague()">Auto-Schedule</button>
+  </div>
+
+  <!-- Match Rooms Section -->
+  <div class="sh" style="margin-bottom:.65rem">
+    <div class="st" style="color:#00d4ff;font-size:.78rem">&#127965; MATCH ROOMS</div>
+    <div class="sl" style="background:linear-gradient(90deg,#00d4ff,transparent)"></div>
+  </div>
+  <p style="font-size:.72rem;color:var(--dim);margin-bottom:.75rem">Private rooms for you, your opponent and the referee. Discuss match time, share room codes.</p>
+
+  <div style="display:flex;gap:.75rem;margin-bottom:1.4rem" id="match-rooms-wrap">
+    <!-- Room list -->
+    <div style="width:200px;flex-shrink:0" id="match-rooms-list">
+      <div class="card" style="padding:1rem;text-align:center;color:var(--dim)">Loading rooms...</div>
+    </div>
+    <!-- Room chat panel -->
+    <div id="match-room-panel" style="flex:1;background:rgba(0,0,0,0.35);border:1px solid var(--border);border-radius:12px;display:none;min-height:300px;overflow:hidden">
+      <div style="padding:2rem;text-align:center;color:var(--dim)">Select a room to open chat</div>
+    </div>
+  </div>
+
+  <!-- Scheduled Timeline -->
+  <div class="sh" style="margin-bottom:.6rem"><div class="st" style="color:#00FF85;font-size:.72rem">UPCOMING SCHEDULED</div></div>
+  <div id="sched-timeline" style="margin-bottom:1.4rem"><div class="card" style="padding:1.1rem;text-align:center;color:var(--dim)">No scheduled matches yet.</div></div>
+
+  <div class="sh" style="margin-bottom:.6rem"><div class="st" style="color:#FFE600;font-size:.72rem">YOUR HOME MATCHES</div></div>
+  <div id="prep-home-list"></div>
+  <div class="sh" style="margin-bottom:.6rem;margin-top:1rem"><div class="st" style="color:#00d4ff;font-size:.72rem">YOUR AWAY MATCHES</div></div>
+  <div id="prep-away-list"></div>
+</div>
+
+<div class="page" id="page-ucl">
+  <div class="sh"><div class="st" style="color:#FFE600">&#127942; Champions League</div><div class="sl" style="background:linear-gradient(90deg,#ffe600,transparent)"></div></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.65rem;margin-bottom:1.2rem">
+    <div class="prize-card prize-gold"><div style="font-size:.6rem;color:#FFE600;font-weight:700;letter-spacing:1px;text-transform:uppercase">1st Place</div><div class="prize-amt" id="prize-1st">&#8212;</div></div>
+    <div class="prize-card prize-silver"><div style="font-size:.6rem;color:#ccc;font-weight:700;letter-spacing:1px;text-transform:uppercase">2nd Place</div><div class="prize-amt" id="prize-2nd">&#8212;</div></div>
+    <div class="prize-card" style="border-color:rgba(0,212,255,0.28)"><div style="font-size:.6rem;color:#00D4FF;font-weight:700;letter-spacing:1px;text-transform:uppercase">Prize Pool</div><div class="prize-amt" id="prize-pool-total" style="color:#00D4FF;font-size:1.4rem">$0</div><div style="font-size:.6rem;color:var(--dim)"><span id="ucl-paid-count">0</span>/16 paid</div></div>
+  </div>
+  <div id="ucl-fee-section" style="display:none;background:rgba(0,212,255,0.06);border:1px solid rgba(0,212,255,0.2);border-radius:12px;padding:1rem;margin-bottom:1.2rem">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.6rem;margin-bottom:.7rem">
+      <div><div style="font-family:'Orbitron',sans-serif;font-size:.75rem;color:#00D4FF;letter-spacing:1.5px;margin-bottom:2px">ENTRY FEE</div><div style="font-size:.72rem;color:var(--dim)">Qualified &#8212; pay to lock your spot</div></div>
+      <div id="ucl-my-status"></div>
+    </div>
+    <div id="ucl-pay-area"></div>
+  </div>
+  <div style="background:rgba(255,230,0,0.03);border:1px solid rgba(255,230,0,0.13);border-radius:10px;padding:.85rem;margin-bottom:1.2rem;font-size:.76rem;line-height:1.7;color:#ccc">
+    <div style="font-family:'Orbitron',sans-serif;font-size:.65rem;color:#FFE600;letter-spacing:1.5px;margin-bottom:.4rem">HOW IT WORKS</div>
+    Top 4 from each league (16 total) qualify &#8226; Pay entry fee &#8226; 70% to 1st, 30% to 2nd &#8226; No pay in 48hrs = forfeit spot
+  </div>
+  <div style="font-family:'Orbitron',sans-serif;font-size:.68rem;color:#FFE600;letter-spacing:2px;margin-bottom:.7rem">QUALIFIED PLAYERS</div>
+  <div class="g2" id="ucl-seeds" style="margin-bottom:1.4rem"></div>
+  <div style="font-family:'Orbitron',sans-serif;font-size:.68rem;color:#FFE600;letter-spacing:2px;margin-bottom:.65rem">BRACKET</div>
+  <div style="overflow-x:auto;padding-bottom:.9rem"><div style="display:flex;gap:.65rem;min-width:520px;align-items:flex-start" id="ucl-bracket"></div></div>
+  <div id="ucl-admin-controls" style="display:none;margin-top:1.4rem;padding:1rem;background:rgba(0,212,255,0.05);border:1px solid rgba(0,212,255,0.18);border-radius:12px">
+    <div style="font-family:'Orbitron',sans-serif;font-size:.68rem;color:#00D4FF;letter-spacing:1.5px;margin-bottom:.8rem">ADMIN &#8212; UCL SETTINGS</div>
+    <div class="row" style="margin-bottom:.55rem">
+      <div style="flex:1;min-width:120px"><label class="lbl">Entry Fee</label><input class="inp" id="ucl-fee-inp" type="number" min="1" placeholder="e.g. 5"></div>
+      <div style="flex:1;min-width:100px"><label class="lbl">Currency</label><input class="inp" id="ucl-cur-inp" placeholder="NGN"></div>
+    </div>
+    <div class="row" style="margin-bottom:.55rem">
+      <div style="flex:2;min-width:180px"><label class="lbl">Paystack Public Key</label><input class="inp" id="ucl-pk-inp" placeholder="pk_live_..."></div>
+      <div style="flex:1;min-width:160px"><label class="lbl">Paystack Email</label><input class="inp" id="ucl-acct-inp" placeholder="you@email.com"></div>
+      <button class="bp" style="font-size:.74rem;padding:5px 13px" onclick="saveUCLSettings()">Save</button>
+    </div>
+    <div style="margin-top:.8rem">
+      <div style="font-family:'Orbitron',sans-serif;font-size:.62rem;color:#00e07a;letter-spacing:1px;margin-bottom:.5rem">PAYMENTS</div>
+      <div id="ucl-payment-log" style="font-size:.73rem;color:var(--dim)">Loading...</div>
+    </div>
+  </div>
+</div>
+
+<!-- REFEREE PAGE -->
+<div class="page" id="page-referee"></div>
+
+<!-- LEADERBOARD PAGE -->
+<div class="page" id="page-leaderboard"></div>
+
+<!-- POLLS PAGE -->
+<div class="page" id="page-polls">
+  <!-- rendered by renderPolls() in core.js -->
+</div>
+
+<div class="page" id="page-chat">
+  <div style="display:flex;align-items:center;gap:.7rem;margin-bottom:.9rem">
+    <div style="font-family:'Orbitron',sans-serif;font-weight:700;font-size:.95rem;letter-spacing:2px;color:#00D4FF">&#128172; Live Chat</div>
+    <div style="font-size:.68rem;color:var(--dim)"><span style="width:7px;height:7px;border-radius:50%;background:#00ff88;display:inline-block;margin-right:3px;box-shadow:0 0 5px #00ff8899"></span><span id="online-count">0</span> online</div>
+  </div>
+  <div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.7rem">
+    <button class="crb on" onclick="switchRoom('global',this)">&#127760; Global</button>
+    <button class="crb" onclick="switchRoom('epl',this)">&#127988;&#65039; EPL</button>
+    <button class="crb" onclick="switchRoom('laliga',this)">&#127988;&#65039; La Liga</button>
+    <button class="crb" onclick="switchRoom('seriea',this)">&#127988;&#65039; Serie A</button>
+    <button class="crb" onclick="switchRoom('ligue1',this)">&#127988;&#65039; Ligue 1</button>
+    <button class="crb" onclick="switchRoom('banter',this)">&#128293; Banter</button>
+  </div>
+  <div id="chat-wrap">
+    <div id="chat-msgs"><div class="csys">Welcome! Be respectful</div></div>
+    <div id="chat-typing"></div>
+    <div id="chat-locked" style="display:none;text-align:center;padding:1.3rem;color:var(--dim)">Login to join the conversation
+      <div style="margin-top:.6rem;display:flex;gap:.45rem;justify-content:center">
+        <button class="bp" style="font-size:.74rem;padding:5px 12px" onclick="lTab('in');showLanding()">Login</button>
+        <button class="bs" style="font-size:.74rem;padding:5px 12px" onclick="lTab('up');showLanding()">Register</button>
+      </div>
+    </div>
+    <div id="emoji-popup"></div>
+    <div id="cinp-row">
+      <button id="cinp-emoji" onclick="toggleEmojiPicker()" title="Emoji">&#128512;</button>
+      <input id="cinp" type="text" maxlength="400" placeholder="Aa" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat()}" oninput="onTyping()">
+      <button id="csend" onclick="sendChat()">&#10148;</button>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="page-pm">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.6rem;margin-bottom:.9rem">
+    <div style="font-family:'Orbitron',sans-serif;font-weight:700;font-size:.95rem;letter-spacing:2px;color:#00D4FF">Direct Messages</div>
+    <button class="bs" style="font-size:.72rem;padding:5px 10px" onclick="openMo('new-dm-mo')">+ New DM</button>
+  </div>
+  <div id="pm-locked" style="display:none;text-align:center;padding:2.5rem;color:var(--dim)">Login to send DMs<br><button class="bp" style="font-size:.74rem;padding:5px 12px;margin-top:.7rem" onclick="lTab('in');showLanding()">Login</button></div>
+  <div id="pm-wrap">
+    <div id="pm-list"><div style="font-size:.68rem;color:var(--dim);text-align:center;padding:.9rem">No conversations yet</div></div>
+    <div id="pm-chat">
+      <div id="pm-header"><div style="font-size:.78rem;color:var(--dim);text-align:center;width:100%">Select a conversation</div></div>
+      <div id="pm-msgs"></div>
+      <div id="pm-inp-row" style="display:none">
+        <input id="pm-inp" type="text" maxlength="400" placeholder="Aa" onkeydown="if(event.key==='Enter')sendPM()">
+        <button id="pm-send" onclick="sendPM()" style="background:linear-gradient(135deg,#E8002D,#ff4400);border:none;border-radius:50%;width:36px;height:36px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0">&#10148;</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="page-profile"><div id="profile-content"></div></div>
+
+<div class="page" id="page-admin">
+  <div class="sh"><div class="st" style="color:#00D4FF">Admin Panel</div><div class="sl"></div></div>
+  <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:1.1rem">
+    <button class="atab on" onclick="aTab('reports',this)">Reports</button>
+    <button class="atab" onclick="aTab('users',this)">Users</button>
+    <button class="atab" onclick="aTab('matches',this)">Matches</button>
+    <button class="atab" onclick="aTab('penalties',this)">Penalties</button>
+    <button class="atab" onclick="aTab('season',this)">&#127941; Season</button>
+  </div>
+  <div class="apanel on" id="ap-reports"><div style="font-size:.7rem;color:var(--dim);margin-bottom:.75rem" id="rep-count">Loading...</div><div id="rep-list"></div></div>
+  <div class="apanel" id="ap-season"></div>
+  <div class="apanel" id="ap-users"><div id="admin-users-list"></div></div>
+  <div class="apanel" id="ap-matches"><div id="admin-matches-list"></div></div>
+  <div class="apanel" id="ap-penalties"><div style="font-size:.7rem;color:var(--dim);margin-bottom:.75rem" id="pen-count">Loading...</div><div id="pen-list"></div></div>
+</div>
+
+<!-- MODALS -->
+<div class="mo" id="prep-mo" onclick="if(event.target===this)closeMo('prep-mo')">
+  <div class="mb"><button class="mc" onclick="closeMo('prep-mo')">&#10005;</button>
+    <h3>Drop Match Details</h3>
+    <input type="hidden" id="prep-mid">
+    <div style="display:flex;flex-direction:column;gap:.85rem">
+      <div><label class="lbl">Room Code</label><input class="inp" id="prep-code" maxlength="20" placeholder="e.g. EF-123456" style="font-family:'Orbitron',sans-serif;font-size:.95rem;letter-spacing:2px;text-transform:uppercase"></div>
+      <div><label class="lbl">Match Date &amp; Time</label><input class="inp" id="prep-time" type="datetime-local"><div class="err" id="prep-time-err" style="margin-top:3px"></div></div>
+      <div><label class="lbl">Note (optional)</label><input class="inp" id="prep-note" placeholder="e.g. Best of 1"></div>
+      <div class="err" id="prep-err"></div>
+      <button class="bp" style="width:100%;padding:10px" onclick="submitPrep()">Send to Away Team</button>
+    </div>
+  </div>
+</div>
+
+<div class="mo" id="new-dm-mo" onclick="if(event.target===this)closeMo('new-dm-mo')">
+  <div class="mb"><button class="mc" onclick="closeMo('new-dm-mo')">&#10005;</button>
+    <h3>New Message</h3>
+    <div><label class="lbl">Search Player</label><input class="inp" id="dm-search" placeholder="Type username..." oninput="searchDmPlayer()"></div>
+    <div id="dm-results" style="display:flex;flex-direction:column;gap:.38rem;max-height:210px;overflow-y:auto;margin-top:.7rem"></div>
+  </div>
+</div>
+
+<div class="mo" id="report-mo" onclick="if(event.target===this)closeMo('report-mo')">
+  <div class="mb"><button class="mc" onclick="closeMo('report-mo')">&#10005;</button>
+    <h3>Report User</h3>
+    <input type="hidden" id="rep-uid"><input type="hidden" id="rep-uname">
+    <div style="display:flex;flex-direction:column;gap:.8rem">
+      <div><label class="lbl">Reporting</label><div id="rep-who" style="font-weight:700;color:#00D4FF;font-size:.88rem"></div></div>
+      <div><label class="lbl">Reason</label>
+        <select class="inp" id="rep-reason">
+          <option value="">&#8212; Select &#8212;</option>
+          <option value="Match result fraud">Match result fraud</option>
+          <option value="Abusive language">Abusive language</option>
+          <option value="No-show for match">No-show for match</option>
+          <option value="Unsportsmanlike conduct">Unsportsmanlike conduct</option>
+          <option value="Spam">Spam</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div><label class="lbl">Details</label><textarea class="inp" id="rep-details" rows="3" placeholder="Describe what happened..."></textarea></div>
+      <div class="err" id="rep-err"></div>
+      <button class="bp" style="width:100%;padding:10px" onclick="submitReport()" id="rep-submit-btn">Submit Report</button>
+    </div>
+  </div>
+</div>
+
+<div class="mo" id="deduct-mo" onclick="if(event.target===this)closeMo('deduct-mo')">
+  <div class="mb"><button class="mc" onclick="closeMo('deduct-mo')">&#10005;</button>
+    <h3>Deduct Points</h3>
+    <input type="hidden" id="ded-rep-key"><input type="hidden" id="ded-uid"><input type="hidden" id="ded-name">
+    <div style="display:flex;flex-direction:column;gap:.8rem">
+      <div><label class="lbl">Player</label><div id="ded-player" style="font-weight:700;color:#00D4FF;font-size:.9rem"></div></div>
+      <div><label class="lbl">Points to Deduct</label><input class="inp" id="ded-pts" type="number" min="1" max="30" value="3"></div>
+      <div><label class="lbl">Admin Note</label><textarea class="inp" id="ded-note" rows="2" placeholder="Reason..."></textarea></div>
+      <div class="err" id="ded-err"></div>
+      <div style="display:flex;gap:.55rem">
+        <button class="bs" style="flex:1;padding:9px" onclick="closeMo('deduct-mo')">Cancel</button>
+        <button class="bp" style="flex:2;padding:9px;background:linear-gradient(135deg,#FF2882,#cc0044)" onclick="applyDeduction()" id="ded-btn">Apply Deduction</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="mo" id="ucl-pay-mo" onclick="if(event.target===this)closeMo('ucl-pay-mo')">
+  <div class="mb"><button class="mc" onclick="closeMo('ucl-pay-mo')">&#10005;</button>
+    <h3>UCL Entry Payment</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.55rem;margin-bottom:.9rem">
+      <div style="background:rgba(255,230,0,0.06);border:1px solid rgba(255,230,0,0.18);border-radius:9px;padding:.65rem;text-align:center">
+        <div style="font-size:.58rem;color:#FFE600;font-weight:700;text-transform:uppercase">1st Place</div>
+        <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:.95rem;color:#FFE600" id="modal-prize-1">&#8212;</div>
+      </div>
+      <div style="background:rgba(170,170,170,0.06);border:1px solid rgba(170,170,170,0.14);border-radius:9px;padding:.65rem;text-align:center">
+        <div style="font-size:.58rem;color:#ccc;font-weight:700;text-transform:uppercase">2nd Place</div>
+        <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:.95rem;color:#ccc" id="modal-prize-2">&#8212;</div>
+      </div>
+    </div>
+    <div style="background:rgba(0,200,100,0.05);border:1px solid rgba(0,200,100,0.18);border-radius:10px;padding:.8rem;margin-bottom:.9rem">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:.76rem;color:#ccc">Entry Fee</span>
+        <span style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:.95rem;color:#00e07a" id="modal-fee-display">&#8212;</span>
+      </div>
+    </div>
+    <div class="err" id="pay-err" style="margin-bottom:.45rem"></div>
+    <button class="pay-btn" onclick="launchPaystack()" id="pay-submit-btn">Pay &amp; Lock My Spot</button>
+  </div>
+</div>
+
+<div class="mo" id="user-mo" onclick="if(event.target===this)closeMo('user-mo')">
+  <div class="mb" style="max-width:480px"><button class="mc" onclick="closeMo('user-mo')">&#10005;</button>
+    <div id="user-mo-content"></div>
+  </div>
+</div>
+
+<div class="mo" id="avatar-mo" onclick="if(event.target===this)closeMo('avatar-mo')">
+  <div class="mb"><button class="mc" onclick="closeMo('avatar-mo')">&#10005;</button>
+    <h3>Edit Avatar</h3>
+    <div style="margin-bottom:.9rem"><label class="lbl">Choose Emoji</label><div style="display:flex;flex-wrap:wrap;gap:.45rem" id="emoji-picker"></div></div>
+    <div style="margin-bottom:.9rem"><label class="lbl">Or Upload Image</label>
+      <div class="ss-box"><input type="file" id="avatar-upload" accept="image/*" onchange="previewAvatar(this)">
+        <div id="avatar-ph"><div style="font-size:1.2rem">&#128247;</div><div style="font-size:.73rem;color:var(--dim)">Tap to upload</div></div>
+        <img id="avatar-prev" class="ss-prev" alt="">
+      </div>
+    </div>
+    <div class="err" id="avatar-err"></div>
+    <button class="bp" style="width:100%;padding:10px;margin-top:.5rem" onclick="saveAvatar()" id="avatar-save-btn">Save Avatar</button>
+  </div>
+</div>
+
+<!-- Scripts — load in correct dependency order -->
+<!-- CREATE POLL MODAL -->
+<div class="mo" id="create-poll-mo" onclick="if(event.target===this)closeMo('create-poll-mo')">
+  <div class="mb"><button class="mc" onclick="closeMo('create-poll-mo')">&#10005;</button>
+    <h3>&#128202; Create Poll</h3>
+    <div style="display:flex;flex-direction:column;gap:.75rem">
+      <div><label class="lbl">Question</label><input class="inp" id="poll-question" placeholder="What should we decide?" maxlength="120"></div>
+      <div><label class="lbl">Option 1</label><input class="inp" id="poll-opt1" placeholder="Option A" maxlength="60"></div>
+      <div><label class="lbl">Option 2</label><input class="inp" id="poll-opt2" placeholder="Option B" maxlength="60"></div>
+      <div><label class="lbl">Option 3 (optional)</label><input class="inp" id="poll-opt3" placeholder="Option C" maxlength="60"></div>
+      <div><label class="lbl">Option 4 (optional)</label><input class="inp" id="poll-opt4" placeholder="Option D" maxlength="60"></div>
+      <div class="err" id="poll-err"></div>
+      <button class="bp" style="width:100%;padding:11px" onclick="createPoll()">&#128202; Post Poll</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCORE SUBMISSION MODAL -->
+<div class="mo" id="score-mo" onclick="if(event.target===this)closeMo('score-mo')">
+  <div class="mb" style="max-width:480px"><button class="mc" onclick="closeMo('score-mo')">&#10005;</button>
+    <h3>&#9917; Submit Match Result</h3>
+
+    <!-- Match select -->
+    <div class="lf"><label class="lbl">Select Match</label>
+      <select class="inp" id="sm-match-sel" onchange="smSelectMatch()">
+        <option value="">&#8212; Choose &#8212;</option>
+      </select>
+    </div>
+
+    <!-- Score steppers -->
+    <div style="display:flex;align-items:center;justify-content:center;gap:1rem;margin-bottom:1rem;padding:.9rem;background:rgba(0,0,0,0.35);border-radius:12px;border:1px solid var(--border)">
+      <!-- Home -->
+      <div style="text-align:center;flex:1">
+        <div style="font-size:.65rem;color:var(--dim);margin-bottom:.4rem" id="sm-home-name">Home</div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:.5rem">
+          <button onclick="stepGoal('hg',-1)" style="background:rgba(0,212,255,0.15);border:1px solid rgba(0,212,255,0.3);color:#00D4FF;width:34px;height:34px;border-radius:50%;font-size:1.2rem;cursor:pointer;font-weight:700;display:flex;align-items:center;justify-content:center">&#8722;</button>
+          <div id="sm-hg" style="font-family:Orbitron,sans-serif;font-weight:900;font-size:2rem;color:#fff;min-width:36px;text-align:center">0</div>
+          <input type="hidden" id="sm-hg-val" value="0">
+          <button onclick="stepGoal('hg',1)" style="background:rgba(0,255,136,0.12);border:1px solid rgba(0,255,136,0.3);color:#00FF85;width:34px;height:34px;border-radius:50%;font-size:1.2rem;cursor:pointer;font-weight:700;display:flex;align-items:center;justify-content:center">+</button>
+        </div>
+      </div>
+      <div style="font-family:Orbitron,sans-serif;font-size:1.1rem;color:var(--dim);font-weight:900">&#8211;</div>
+      <!-- Away -->
+      <div style="text-align:center;flex:1">
+        <div style="font-size:.65rem;color:var(--dim);margin-bottom:.4rem" id="sm-away-name">Away</div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:.5rem">
+          <button onclick="stepGoal('ag',-1)" style="background:rgba(0,212,255,0.15);border:1px solid rgba(0,212,255,0.3);color:#00D4FF;width:34px;height:34px;border-radius:50%;font-size:1.2rem;cursor:pointer;font-weight:700;display:flex;align-items:center;justify-content:center">&#8722;</button>
+          <div id="sm-ag" style="font-family:Orbitron,sans-serif;font-weight:900;font-size:2rem;color:#fff;min-width:36px;text-align:center">0</div>
+          <input type="hidden" id="sm-ag-val" value="0">
+          <button onclick="stepGoal('ag',1)" style="background:rgba(0,255,136,0.12);border:1px solid rgba(0,255,136,0.3);color:#00FF85;width:34px;height:34px;border-radius:50%;font-size:1.2rem;cursor:pointer;font-weight:700;display:flex;align-items:center;justify-content:center">+</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screenshot upload -->
+    <div class="lf">
+      <label class="lbl">Match Screenshot (required)</label>
+      <label style="display:flex;align-items:center;gap:.65rem;background:rgba(255,255,255,0.04);border:1.5px dashed rgba(255,255,255,0.14);border-radius:10px;padding:.75rem 1rem;cursor:pointer;transition:border-color .2s" onmouseover="this.style.borderColor='#00ff88'" onmouseout="this.style.borderColor='rgba(255,255,255,0.14)'">
+        <span style="font-size:1.4rem">&#128247;</span>
+        <span id="sm-ss-label" style="font-size:.78rem;color:var(--dim)">Tap to upload screenshot</span>
+        <input type="file" id="sm-screenshot" accept="image/*" style="display:none" onchange="smPreviewScreenshot(this)">
+      </label>
+      <img id="sm-ss-preview" style="width:100%;max-height:150px;object-fit:contain;border-radius:8px;margin-top:.55rem;border:1px solid rgba(0,255,136,0.2);display:none" alt="preview">
+    </div>
+
+    <!-- Honesty declaration -->
+    <label style="display:flex;align-items:flex-start;gap:.65rem;background:rgba(255,230,0,0.06);border:1px solid rgba(255,230,0,0.2);border-radius:10px;padding:.8rem;cursor:pointer;margin-bottom:.7rem">
+      <input type="checkbox" id="sm-honest" style="margin-top:2px;width:16px;height:16px;accent-color:#FFE600;flex-shrink:0">
+      <span style="font-size:.75rem;color:#ccc;line-height:1.5">I confirm this result is <strong style="color:#FFE600">accurate and honest</strong>. I understand that submitting a <strong style="color:#FF2882">false result</strong> will result in an automatic <strong style="color:#FF2882">point deduction</strong> and possible ban.</span>
+    </label>
+
+    <div class="err" id="sm-err" style="margin-bottom:.4rem"></div>
+    <button class="bp" style="width:100%;padding:13px;font-size:.9rem;border-radius:11px" id="sm-submit-btn" onclick="submitScoreModal()">
+      &#128228; Submit to Referee
+    </button>
+  </div>
+</div>
+
+<!-- AWAY TEAM DISPUTE MODAL -->
+<div class="mo" id="dispute-mo" onclick="if(event.target===this)closeMo('dispute-mo')">
+  <div class="mb"><button class="mc" onclick="closeMo('dispute-mo')">&#10005;</button>
+    <h3>&#10060; Dispute This Result</h3>
+    <input type="hidden" id="disp-mid">
+    <div style="background:rgba(255,0,110,0.08);border:1px solid rgba(255,0,110,0.25);border-radius:10px;padding:.8rem;margin-bottom:.9rem">
+      <div style="font-size:.7rem;color:#FF2882;font-weight:700;margin-bottom:3px">&#9888; Submitted score:</div>
+      <div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:1.4rem;color:#fff" id="disp-score">0 &#8211; 0</div>
+    </div>
+    <div style="font-size:.76rem;color:#ccc;margin-bottom:.9rem;line-height:1.6">Upload your screenshot showing the real result. The referee will compare both and decide.</div>
+    <div class="lf">
+      <label class="lbl">Your Screenshot (required)</label>
+      <label style="display:flex;align-items:center;gap:.65rem;background:rgba(255,255,255,0.04);border:1.5px dashed rgba(255,0,110,0.3);border-radius:10px;padding:.75rem 1rem;cursor:pointer">
+        <span style="font-size:1.4rem">&#128247;</span>
+        <span id="disp-ss-label" style="font-size:.78rem;color:var(--dim)">Upload your screenshot</span>
+        <input type="file" id="disp-screenshot" accept="image/*" style="display:none" onchange="dispPreviewScreenshot(this)">
+      </label>
+      <img id="disp-ss-preview" style="width:100%;max-height:140px;object-fit:contain;border-radius:8px;margin-top:.5rem;border:1px solid rgba(255,0,110,0.2);display:none" alt="">
+    </div>
+    <div class="err" id="disp-err" style="margin-bottom:.4rem"></div>
+    <button class="bp" style="width:100%;padding:12px;font-size:.88rem;background:linear-gradient(135deg,#FF2882,#cc0044)" id="disp-submit-btn" onclick="submitDispute()">
+      &#10060; Submit Dispute
+    </button>
+  </div>
+</div>
+
+<!-- SET MATCH TIME MODAL (admin) -->
+<div class="mo" id="set-time-mo" onclick="if(event.target===this)closeMo('set-time-mo')">
+  <div class="mb"><button class="mc" onclick="closeMo('set-time-mo')">&#10005;</button>
+    <h3>&#9200; Set Match Time</h3>
+    <input type="hidden" id="set-time-mid">
+    <div class="lf"><label class="lbl">Date &amp; Time</label>
+      <input class="inp" id="set-time-inp" type="datetime-local">
+    </div>
+    <div class="err" id="set-time-err" style="margin-bottom:.4rem"></div>
+    <button class="bp" style="width:100%;padding:11px" onclick="saveMatchTime()">&#9989; Confirm Time</button>
+  </div>
+</div>
+
+<!-- POSTPONE REQUEST MODAL -->
+<div class="mo" id="postpone-req-mo" onclick="if(event.target===this)closeMo('postpone-req-mo')">
+  <div class="mb"><button class="mc" onclick="closeMo('postpone-req-mo')">&#10005;</button>
+    <h3>&#9208;&#65039; Request Postpone</h3>
+    <input type="hidden" id="ppr-mid">
+    <div style="font-size:.76rem;color:#ccc;margin-bottom:.9rem;line-height:1.6">
+      Choose your preferred date and give a reason. The referee and admin will decide.
+    </div>
+    <div class="lf"><label class="lbl">Preferred Date &amp; Time</label>
+      <input class="inp" id="ppr-date" type="datetime-local">
+    </div>
+    <div class="lf"><label class="lbl">Reason</label>
+      <textarea class="inp" id="ppr-reason" rows="3" maxlength="200" placeholder="e.g. Internet issues, travelling, work schedule..."></textarea>
+    </div>
+    <div class="err" id="ppr-err" style="margin-bottom:.4rem"></div>
+    <button class="bp" style="width:100%;padding:11px" onclick="submitPostponeRequest()">&#9208;&#65039; Submit Request</button>
+  </div>
+</div>
+
+<!-- RESTRICT PLAYER MODAL (admin) -->
+<div class="mo" id="restrict-mo" onclick="if(event.target===this)closeMo('restrict-mo')">
+  <div class="mb"><button class="mc" onclick="closeMo('restrict-mo')">&#10005;</button>
+    <h3>&#128683; Restrict Player</h3>
+    <div id="restrict-modal-content"></div>
+  </div>
+</div>
+
+<!-- BROADCAST MODAL (admin) -->
+<div class="mo" id="broadcast-mo" onclick="if(event.target===this)closeMo('broadcast-mo')">
+  <div class="mb"><button class="mc" onclick="closeMo('broadcast-mo')">&#10005;</button>
+    <h3>&#128226; Broadcast to All Users</h3>
+    <div style="display:flex;flex-direction:column;gap:.75rem">
+      <div><label class="lbl">Type</label>
+        <select class="inp" id="broadcast-type">
+          <option value="info">&#128226; Info</option>
+          <option value="warning">&#9888;&#65039; Warning</option>
+          <option value="celebration">&#127881; Celebration</option>
+        </select>
+      </div>
+      <div><label class="lbl">Message</label>
+        <textarea class="inp" id="broadcast-msg" rows="3" maxlength="200" placeholder="Type your message to all players..."></textarea>
+      </div>
+      <button class="bp" style="width:100%;padding:11px" id="broadcast-btn" onclick="sendBroadcast()">&#128226; Send to All Players</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT BIO & COVER MODAL -->
+<div class="mo" id="edit-bio-mo" onclick="if(event.target===this)closeMo('edit-bio-mo')">
+  <div class="mb"><button class="mc" onclick="closeMo('edit-bio-mo')">&#10005;</button>
+    <h3>&#9999;&#65039; Edit Profile</h3>
+    <div style="display:flex;flex-direction:column;gap:.85rem">
+      <div><label class="lbl">Bio (max 100 chars)</label>
+        <input class="inp" id="bio-inp" maxlength="100" placeholder="e.g. Unbeaten since October 👑">
+      </div>
+      <div><label class="lbl">Cover Photo</label>
+        <div class="ss-box">
+          <input type="file" accept="image/*" onchange="uploadCover(this)">
+          <div style="font-size:1.2rem">&#128247;</div>
+          <div style="font-size:.73rem;color:var(--dim)">Tap to upload cover photo</div>
+        </div>
+      </div>
+      <div class="err" id="bio-err"></div>
+      <button class="bp" style="width:100%;padding:11px" id="cover-save-btn" onclick="saveBio()">&#10003; Save Bio</button>
+    </div>
+  </div>
+</div>
+
+<script src="core.js"></script>
+<script src="news.js"></script>
+<script src="odds.js"></script>
+<script src="swap.js"></script>
+<script src="pages.js"></script>
+<script src="ucl.js"></script>
+<script src="chat.js"></script>
+<script src="admin.js"></script>
+<script src="features.js"></script>
+<script src="referee.js"></script>
+<script src="matchroom.js"></script>
+
+</body>
+</html>

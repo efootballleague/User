@@ -141,14 +141,15 @@ function oddsHtml(homeId, awayId, lid) {
 // ── PREDICTION MODAL ─────────────────────────────────────────
 var _predictTarget = {};
 
-function openPredictModal(homeId, awayId, lid) {
+// Accepts 3 or 4 args: (homeId, awayId, lid) or (homeId, awayId, lid, mid)
+function openPredictModal(homeId, awayId, lid, mid) {
   if(!myProfile){ showLanding(); return; }
   var hp = allPlayers[homeId], ap = allPlayers[awayId];
   if(!hp||!ap) return;
   _predictTarget = { homeId:homeId, awayId:awayId, lid:lid };
 
-  // Check if already predicted
-  var mid = findMatchId(homeId, awayId, lid);
+  // Use provided mid or find it
+  if (!mid) mid = findMatchId(homeId, awayId, lid);
   if(mid) {
     var existing = null;
     db.ref('ef_predictions/'+mid+'/'+myProfile.uid).once('value', function(s){

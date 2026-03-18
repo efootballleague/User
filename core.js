@@ -227,6 +227,7 @@ function goPage(name) {
 
   // Page-specific actions
   if (name === 'leagues')    { renderStd(curLg); }
+  if (name === 'news')       { if(typeof renderNewsAnchor==='function') renderNewsAnchor(); }
   if (name === 'fixtures')   { renderFx(); }
   if (name === 'matchprep')  { renderMatchPrep(); renderMatchRooms(); renderSchedTimeline(); }
   if (name === 'ucl')        { renderUCL(); }
@@ -442,7 +443,7 @@ function renderProfile()         { /* features.js */ }
 function renderMatchRooms()      { /* matchroom.js */ }
 function loadAdmin()             { /* admin.js  */ }
 function loadPMList()            { /* chat.js   */ }
-function loadChat()              { /* chat.js   */ }
+function loadChat() { if(typeof renderMessenger==='function') renderMessenger(); }
 function listenTyping()          { /* chat.js   */ }
 function listenUnread()          { /* chat.js   */ }
 function listenGlobalDMs()       { /* chat.js   */ }
@@ -504,6 +505,10 @@ function startListeners(authTimeout, onResolved) {
     var pg = activePage();
     if (pg === 'fixtures') renderFx();
     if (pg === 'matchprep') { renderMatchPrep(); renderSchedTimeline(); }
+    // Check if any league has just completed all matches
+    if (typeof checkSeasonEnd === 'function') checkSeasonEnd();
+    // Auto-approve any overdue results
+    if (typeof checkPendingAutoApprovals === 'function') checkPendingAutoApprovals();
   });
 
   // Non-critical data — deferred 2s so initial load is fast
@@ -525,6 +530,8 @@ function startListeners(authTimeout, onResolved) {
       uclSettings = s.val() || {};
       if (activePage() === 'ucl') renderUCL();
     });
+    // Start news engine
+    if (typeof initNews === 'function') initNews();
     db.ref(DB.uclPay).on('value', function (s) {
       uclPayments = s.val() || {};
       if (activePage() === 'ucl') renderUCL();

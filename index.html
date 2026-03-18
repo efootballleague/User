@@ -81,10 +81,11 @@ select.inp option{background:#0e0018;color:var(--text)}
 #chat-fab:hover{box-shadow:0 0 16px rgba(0,212,255,.3)}
 #chat-fab svg{width:22px;height:22px;stroke:var(--cyan);fill:none;stroke-width:1.8}
 #fab-badge{position:absolute;top:-5px;right:-5px;background:var(--pink);color:#fff;font-size:.58rem;font-weight:700;border-radius:10px;padding:1px 6px;min-width:18px;text-align:center;display:none;align-items:center;justify-content:center;border:2px solid var(--bg);box-shadow:0 0 6px rgba(255,40,130,.5)}
+@keyframes attPulse{0%,100%{box-shadow:0 0 4px rgba(0,255,133,.6)}50%{box-shadow:0 0 14px rgba(0,255,133,1)}}
 /* DRAWER */
 #drawer-overlay{position:fixed;inset:0;z-index:299;background:rgba(0,0,0,.65);display:none}
 #drawer-overlay.active{display:block}
-#drawer{position:fixed;top:0;left:0;bottom:0;z-index:300;width:270px;background:#0e0018;border-right:1px solid var(--border);transform:translateX(-100%);transition:transform .28s ease;display:flex;flex-direction:column;padding-top:54px;overflow-y:auto}
+#drawer{position:fixed;top:0;left:0;bottom:0;z-index:300;width:270px;background:#12001f;border-right:1px solid rgba(0,212,255,0.2);transform:translateX(-100%);transition:transform .28s ease;display:flex;flex-direction:column;padding-top:54px;overflow-y:auto;box-shadow:4px 0 30px rgba(0,0,0,0.8)}
 #drawer.open{transform:translateX(0)}
 .drawer-profile{padding:1.2rem 1rem .9rem;display:flex;align-items:center;gap:.8rem}
 .drawer-avatar{width:44px;height:44px;border-radius:50%;background:rgba(0,212,255,0.12);border:1.5px solid rgba(0,212,255,0.3);display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:700;color:var(--cyan);overflow:hidden;flex-shrink:0}
@@ -168,6 +169,9 @@ select.inp option{background:#0e0018;color:var(--text)}
 .fx-badge.warn{color:#ff6b00;background:rgba(255,107,0,0.08);border-color:rgba(255,107,0,0.2)}
 .fx-badge.info{color:var(--cyan);background:rgba(0,212,255,0.08);border-color:rgba(0,212,255,0.2)}
 .fx-badge.danger{color:var(--pink);background:rgba(255,40,130,0.08);border-color:rgba(255,40,130,0.2)}
+.fx-badge.ref{color:#a78bfa;background:rgba(167,139,250,0.08);border-color:rgba(167,139,250,0.25)}
+.btn-danger{background:rgba(255,40,130,0.15);border:1.5px solid var(--pink);color:var(--pink);border-radius:8px;padding:.45rem .9rem;font-weight:700;font-size:.78rem;cursor:pointer;font-family:inherit}
+.btn-danger:hover{background:rgba(255,40,130,0.25)}
 .fx-badge.ref{color:var(--green);background:rgba(0,255,133,0.07);border-color:rgba(0,255,133,0.18)}
 .lg-badge{font-size:.56rem;font-weight:700;padding:2px 6px;border-radius:4px;display:inline-block}
 .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.8rem}
@@ -178,6 +182,7 @@ select.inp option{background:#0e0018;color:var(--text)}
 .mstatus{font-size:.62rem;font-weight:700;padding:3px 8px;border-radius:8px;border:1px solid}
 .ms-rdy{color:var(--green);background:rgba(0,255,133,0.08);border-color:rgba(0,255,133,0.25)}
 .ms-pend{color:var(--gold);background:rgba(255,230,0,0.08);border-color:rgba(255,230,0,0.25)}
+.ms-warn{color:var(--pink);background:rgba(255,40,130,0.08);border-color:rgba(255,40,130,0.3)}
 .mcode{font-family:'Orbitron',sans-serif;font-size:.78rem;letter-spacing:2px;background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.2);border-radius:7px;padding:4px 10px;cursor:pointer;display:inline-block}
 /* PREDICTIONS */
 .pred-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:.9rem;margin-bottom:.6rem;position:relative;overflow:hidden}
@@ -454,10 +459,11 @@ select.inp option{background:#0e0018;color:var(--text)}
   </div>
   <div class="drawer-divider"></div>
   <button class="drawer-btn" onclick="closeDrawer();goPage('profile')"><span class="drawer-icon">👤</span> My Profile</button>
+  <button class="drawer-btn" onclick="closeDrawer();goPage('news')"><span class="drawer-icon">📰</span> News</button>
   <button class="drawer-btn" onclick="closeDrawer();goPage('leaderboard')"><span class="drawer-icon">📈</span> Leaderboard</button>
   <button class="drawer-btn" onclick="closeDrawer();goPage('polls')"><span class="drawer-icon">📊</span> Polls<span id="polls-badge" class="drawer-badge hidden"></span></button>
   <button class="drawer-btn" onclick="closeDrawer();openMessenger('dms')"><span class="drawer-icon">💬</span> Messages<span id="pm-badge" class="drawer-badge hidden"></span></button>
-  <button class="drawer-btn" onclick="closeDrawer();goPage('notifications')"><span class="drawer-icon">🔔</span> Notifications<span id="notif-badge" class="drawer-badge hidden"><span id="drawer-notif-badge" class="drawer-badge hidden"></span></button>
+  <button class="drawer-btn" id="drawer-notif-btn" onclick="closeDrawer();goPage('notifications')"><span class="drawer-icon">🔔</span> Notifications<span id="notif-badge" class="drawer-badge hidden"><span id="drawer-notif-badge" class="drawer-badge hidden"></span></button>
   <button class="drawer-btn" id="drawer-ref-btn" style="display:none" onclick="closeDrawer();goPage('referee')"><span class="drawer-icon">🟢</span> Referee Panel<span id="ref-badge" class="drawer-badge hidden"></span></button>
   <button class="drawer-btn" onclick="closeDrawer();goPage('ucl')"><span class="drawer-icon">🏆</span> UCL</button>
   <div class="drawer-divider"></div>
@@ -498,6 +504,8 @@ select.inp option{background:#0e0018;color:var(--text)}
     <div class="section-header" style="margin-top:1.2rem"><div class="section-title c-gold">Top Players</div><div class="section-line gold"></div></div>
     <div class="grid2" id="top-players"><div class="card empty">No players yet.</div></div>
   </div>
+  <!-- NEWS -->
+  <div class="page" id="page-news"><div id="news-anchor-section"><div class="card empty" style="margin-top:1rem">Loading news...</div></div></div>
   <!-- LEAGUES -->
   <div class="page" id="page-leagues">
     <div class="section-header"><div class="section-title c-cyan">Standings</div><div class="section-line"></div></div>
@@ -828,11 +836,13 @@ select.inp option{background:#0e0018;color:var(--text)}
 <div class="modal" id="create-poll-mo" onclick="if(event.target===this)closeMo('create-poll-mo')">
   <div class="modal-box"><button class="modal-close" onclick="closeMo('create-poll-mo')">&#10005;</button>
     <h3 class="modal-title">Create Poll</h3>
+    <div id="admin-poll-indicator" style="display:none;background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.3);border-radius:8px;padding:.4rem .7rem;font-size:.7rem;color:var(--cyan);margin-bottom:.6rem">📢 This poll will be visible to ALL users</div>
     <div class="form-group"><label class="lbl">Question</label><input class="inp" id="poll-question" placeholder="What should we decide?" maxlength="120"></div>
     <div class="form-group"><label class="lbl">Option 1</label><input class="inp" id="poll-opt1" placeholder="Option A" maxlength="60"></div>
     <div class="form-group"><label class="lbl">Option 2</label><input class="inp" id="poll-opt2" placeholder="Option B" maxlength="60"></div>
     <div class="form-group"><label class="lbl">Option 3 (optional)</label><input class="inp" id="poll-opt3" placeholder="Option C" maxlength="60"></div>
     <div class="form-group"><label class="lbl">Option 4 (optional)</label><input class="inp" id="poll-opt4" placeholder="Option D" maxlength="60"></div>
+    <div id="poll-league-wrap" class="form-group" style="font-size:.7rem;color:var(--dim)">Poll visible to your league only</div>
     <div class="errmsg" id="poll-err"></div>
     <button class="btn-primary full-width" onclick="createPoll()">Post Poll</button>
   </div>
@@ -925,6 +935,23 @@ select.inp option{background:#0e0018;color:var(--text)}
     </div>
     <div class="form-group"><label class="lbl">Message</label><textarea class="inp" id="broadcast-msg" rows="3" maxlength="200" placeholder="Type your message..."></textarea></div>
     <button class="btn-primary full-width" onclick="sendBroadcast()">Send to All</button>
+  </div>
+</div>
+
+<!-- USER RESCHEDULE MODAL -->
+<div class="modal" id="user-postpone-mo" onclick="if(event.target===this)closeMo('user-postpone-mo')">
+  <div class="modal-box"><button class="modal-close" onclick="closeMo('user-postpone-mo')">✕</button>
+    <h3 class="modal-title">⏰ Reschedule Match</h3>
+    <div class="form-group">
+      <label class="lbl" id="upost-label">Reschedule (max ±24h from original)</label>
+      <input class="inp" id="upost-time" type="datetime-local">
+    </div>
+    <div style="font-size:.7rem;color:var(--dim);margin-bottom:.6rem">Users can only move a match up to 24 hours earlier or later. Admin can set any time.</div>
+    <div class="errmsg" id="upost-err"></div>
+    <div class="modal-btns">
+      <button class="btn-secondary" onclick="closeMo('user-postpone-mo')">Cancel</button>
+      <button class="btn-primary" onclick="submitUserPostpone()">Confirm Reschedule</button>
+    </div>
   </div>
 </div>
 

@@ -183,62 +183,91 @@ function sendDM() {
 // ── LEAGUE CHAT ───────────────────────────────────────────────
 function renderLeagueChat() {
   var el = $('msng-content'); if (!el) return;
-  if (!myProfile) { el.innerHTML = '<div class="msng-empty">Login to join league chat</div>'; return; }
+  if (!myProfile) {
+    el.innerHTML = '<div class="msng-empty">Login to join league chat</div>';
+    return;
+  }
+  if (!db) {
+    el.innerHTML = '<div class="msng-empty">Connecting...</div>';
+    setTimeout(renderLeagueChat, 1500);
+    return;
+  }
   var lg = LGS[myProfile.league] || {};
+  var muted = typeof isRestricted==='function' && isRestricted(myProfile.uid,'no_chat');
+
   el.innerHTML =
     '<div class="msng-thread-wrap">'
     + '<div class="msng-thread-header">'
-    + '<div class="msng-thread-name">' + lg.f + ' ' + esc(lg.n||'League') + '</div>'
+    + '<div style="display:flex;align-items:center;gap:.4rem">'
+    + '<div style="font-size:1.1rem">' + (lg.f||'🌍') + '</div>'
+    + '<div class="msng-thread-name">' + esc(lg.n||'League Chat') + '</div>'
+    + '</div>'
     + '<div class="msng-online-pill"><span class="online-dot-sm"></span><span id="online-count2">-</span></div>'
     + '</div>'
-    + '<div id="msng-msgs" class="msng-msgs"></div>'
-    + '<div class="msng-inp-row">'
-    + '<input id="msng-inp" type="text" maxlength="400" placeholder="Message league..." onkeydown="if(event.key===\'Enter\')sendLeagueMsg()">'
-    + '<button class="msng-send" onclick="sendLeagueMsg()">&#10148;</button>'
-    + '</div>'
+    + '<div id="msng-msgs" class="msng-msgs"><div class="msng-loading">Loading...</div></div>'
+    + (muted
+      ? '<div style="padding:.7rem 1rem;font-size:.74rem;color:var(--pink);text-align:center;border-top:1px solid var(--border)">You are muted in this chat.</div>'
+      : '<div class="msng-inp-row">'
+        + '<input id="msng-inp" type="text" maxlength="400" placeholder="Message ' + esc(lg.n||'league') + '..." onkeydown="if(event.key==='Enter')sendLeagueMsg()">'
+        + '<button class="msng-send" onclick="sendLeagueMsg()">&#10148;</button>'
+        + '</div>')
     + '</div>';
 
   if (leagueChatOff) { leagueChatOff(); leagueChatOff = null; }
+
   var room    = 'league_' + myProfile.league;
   var ref     = db.ref(DB.chat + '/' + room).limitToLast(80);
   var handler = ref.on('value', function(s) {
     var arr  = Object.values(s.val() || {}).sort(function(a,b) { return a.ts - b.ts; });
     var box  = $('msng-msgs'); if (!box) return;
     var atBot = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
-    var lastUID = '', lastTS = 0, GROUP_GAP = 5*60*1000, html = '';
+    var lastUID='', lastTS=0, GROUP_GAP=5*60*1000, html='';
+    if (!arr.length) {
+      box.innerHTML = '<div class="msng-empty" style="padding:1.5rem">No messages yet. Say hello! 👋</div>';
+      return;
+    }
     arr.forEach(function(m) {
-      if (m.system) { html += '<div class="msng-sys">' + esc(m.text||'') + '</div>'; lastUID=''; return; }
-      var mine     = myProfile && m.uid === myProfile.uid;
+      if (m.system) { html += '<div class="msng-sys">'+esc(m.text||'')+'</div>'; lastUID=''; return; }
+      var mine     = m.uid === myProfile.uid;
       var newGroup = m.uid !== lastUID || (m.ts - lastTS) > GROUP_GAP;
       lastUID = m.uid; lastTS = m.ts;
-      var club = getClub(m.league||myProfile.league, m.club||'');
       if (newGroup && !mine) {
+        var club = getClub(m.league||myProfile.league, m.club||'');
         html += '<div class="msng-sender">'
-          + '<div class="msng-av-sm" style="background:' + (club.color||'#333') + '18;border:1px solid ' + (club.color||'#444') + '44">'
-          + esc((m.username||'?').charAt(0).toUpperCase()) + '</div>'
-          + '<span>' + esc(m.username||'') + '</span></div>';
+          + '<div class="msng-av-sm" style="background:'+(club.color||'#333')+'18;border:1px solid '+(club.color||'#444')+'44;cursor:pointer" onclick="openUserModal(''+(m.uid||'')+'')">'
+          + esc((m.username||'?').charAt(0).toUpperCase())+'</div>'
+          + '<span style="cursor:pointer" onclick="openUserModal(''+(m.uid||'')+'')">'+esc(m.username||'')+'</span>'
+          + '</div>';
       }
-      html += '<div class="msng-msg ' + (mine?'mine':'other') + '">'
-        + '<div class="msng-bubble">' + esc(m.text||'') + '</div>'
-        + '<div class="msng-time">' + fmtTime(m.ts) + '</div>'
+      html += '<div class="msng-msg '+(mine?'mine':'other')+'">'
+        + '<div class="msng-bubble">'+esc(m.text||'')+'</div>'
+        + '<div class="msng-time">'+fmtTime(m.ts)+'</div>'
         + '</div>';
     });
     box.innerHTML = html;
-    if (atBot) box.scrollTop = box.scrollHeight;
+    if (atBot || arr.length <= 5) box.scrollTop = box.scrollHeight;
+  }, function(err) {
+    var box=$('msng-msgs');
+    if (box) box.innerHTML='<div class="msng-empty">Could not load chat. Check connection.</div>';
+    console.error('League chat error:',err);
   });
   leagueChatOff = function() { ref.off('value', handler); };
-  setTimeout(function() { var i = $('msng-inp'); if (i) i.focus(); }, 300);
+  db.ref(DB.online).once('value', function(s) {
+    var e=$('online-count2'); if(e) e.textContent=Object.keys(s.val()||{}).length;
+  });
+  setTimeout(function(){ var i=$('msng-inp'); if(i)i.focus(); }, 300);
 }
 
 function sendLeagueMsg() {
-  if (!myProfile || !db) return;
-  var inp = $('msng-inp'); if (!inp) return;
-  var text = inp.value.trim(); if (!text) return;
-  inp.value = '';
-  db.ref(DB.chat + '/league_' + myProfile.league).push({
+  if (!myProfile||!db) return;
+  if (typeof isRestricted==='function'&&isRestricted(myProfile.uid,'no_chat')) { toast('You are muted.','error'); return; }
+  var inp=$('msng-inp'); if(!inp) return;
+  var text=inp.value.trim(); if(!text) return;
+  inp.value='';
+  db.ref(DB.chat+'/league_'+myProfile.league).push({
     uid:me.uid, username:myProfile.username, club:myProfile.club,
     league:myProfile.league, text:text, ts:Date.now()
-  });
+  }).catch(function(err){ toast('Failed to send.','error'); inp.value=text; console.error(err); });
 }
 
 // ── MATCH ROOMS LIST ──────────────────────────────────────────

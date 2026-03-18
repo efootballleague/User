@@ -144,12 +144,15 @@ function doRegConfirm() {
     .then(function () {
       btn.textContent = '✓ Confirm'; btn.disabled = false;
       toast('Welcome to eFootball Universe! 🎉');
+      var joinedLeague = $('ru-league').value;
       // Reset form
       $('ru-name').value = ''; $('ru-em').value = ''; $('ru-pw').value = '';
       $('ru-country').value = ''; $('ru-league').value = '';
       $('reg-step3').classList.add('hidden');
       $('reg-step1').style.display = '';
       drawnClub = null;
+      // Auto-start league if now full
+      checkLeagueAutoStart(joinedLeague);
     })
     .catch(function (e) {
       var msg = 'Registration failed. Try again.';
@@ -307,7 +310,6 @@ function gsConfirm() {
     btn.textContent = '✓ Join!'; btn.disabled = false;
     closeMo('google-setup-mo');
     toast('Welcome to eFootball Universe! 🎉');
-    // FIX: explicitly enter app — don't wait for onAuthStateChanged re-fire
     myProfile = {
       uid: _gsUser.uid,
       username: $('gs-name').value.trim(),
@@ -325,6 +327,8 @@ function gsConfirm() {
     initRefereeSystem();
     listenMatchRooms();
     initSwap();
+    // Auto-start league if now full (10 players)
+    checkLeagueAutoStart(_gsLeague);
   })
   .catch(function (e) {
     err.textContent = 'Failed to save profile. Try again.';
@@ -394,27 +398,77 @@ function submitReport() {
 }
 
 // ── USER MODAL ────────────────────────────────────────────────
+// ── USER MODAL — full profile view, clickable from anywhere ──
 function openUserModal(uid) {
-  var p = allPlayers[uid];
-  if (!p) return;
+  var p = allPlayers[uid]; if (!p) return;
   var lg   = LGS[p.league] || {};
   var club = getClub(p.league, p.club);
-  var content = $('user-mo-content');
-  if (!content) return;
-  content.innerHTML = '<div style="text-align:center;padding:.5rem 0 1rem">'
-    + '<div style="display:flex;justify-content:center;margin-bottom:.7rem">' + clubBadge(p.club, p.league, 56) + '</div>'
-    + '<div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:1rem">' + esc(p.username) + '</div>'
-    + '<div style="font-size:.72rem;color:var(--dim);margin-top:3px">' + esc(p.country || '') + '</div>'
-    + '<div style="margin-top:.5rem">' + lgBadge(p.league) + '</div>'
-    + '<div style="font-size:.76rem;color:' + (club.color || '#888') + ';margin-top:.3rem">' + esc(p.club) + '</div>'
-    + (p.bio ? '<div style="font-size:.76rem;color:var(--dim);margin-top:.6rem;font-style:italic">"' + esc(p.bio) + '"</div>' : '')
-    + '<div style="font-size:.65rem;color:var(--dim);margin-top:.4rem">Last seen: ' + fmtAgo(p.lastSeen) + '</div>'
-    + '</div>'
-    + '<div style="display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap;padding-top:.5rem;border-top:1px solid var(--border)">'
-    + (myProfile && myProfile.uid !== uid
-        ? '<button class="btn-sm btn-outline" onclick="closeMo(\'user-mo\');openDMWith(\'' + uid + '\',\'' + esc(p.username) + '\')">💬 DM</button>'
-        + '<button class="btn-sm" style="background:rgba(255,40,130,0.12);border:1px solid rgba(255,40,130,0.3);color:var(--pink)" onclick="closeMo(\'user-mo\');openReport(\'' + uid + '\',\'' + esc(p.username) + '\')">🚩 Report</button>'
-        : '')
-    + '</div>';
+  var content = $('user-mo-content'); if (!content) return;
+  var isAdmin = me && me.email === ADMIN_EMAIL;
+  var isSelf  = myProfile && myProfile.uid === uid;
+
+  // Compute stats
+  var ms    = Object.values(allMatches).filter(function(m){ return m.played&&(m.homeId===uid||m.awayId===uid); });
+  var wins  = ms.filter(function(m){ return (m.homeId===uid&&m.hg>m.ag)||(m.awayId===uid&&m.ag>m.hg); }).length;
+  var draws = ms.filter(function(m){ return m.hg===m.ag; }).length;
+  var losses= ms.length-wins-draws;
+  var gf    = ms.reduce(function(a,m){ return a+(m.homeId===uid?m.hg:m.ag); },0);
+  var ga    = ms.reduce(function(a,m){ return a+(m.homeId===uid?m.ag:m.hg); },0);
+  var pen   = allPenalties[uid]?Object.values(allPenalties[uid]).reduce(function(s,x){ return s+(x.pts||0); },0):0;
+  var pts   = Math.max(0,wins*3+draws-pen);
+  var table = computeStd(p.league);
+  var rank  = table.findIndex(function(r){ return r.uid===uid; })+1;
+  var form  = ms.slice(-5).map(function(m){
+    var r=(m.homeId===uid&&m.hg>m.ag)||(m.awayId===uid&&m.ag>m.hg)?'W':m.hg===m.ag?'D':'L';
+    var c=r==='W'?'#00ff88':r==='D'?'#ffe600':'#FF2882';
+    return '<span style="display:inline-block;width:18px;height:18px;border-radius:50%;background:'+c+';color:#000;font-size:.56rem;font-weight:900;text-align:center;line-height:18px;margin:1px">'+r+'</span>';
+  }).join('');
+
+  content.innerHTML =
+    '<div style="text-align:center;padding:.5rem 0 .7rem">'
+    +'<div style="display:flex;justify-content:center;margin-bottom:.5rem">'+clubBadge(p.club,p.league,64)+'</div>'
+    +'<div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:1.05rem">'+esc(p.username)+'</div>'
+    +(rank>0?'<div style="display:inline-block;margin-top:.3rem;font-size:.62rem;font-weight:700;color:var(--gold);background:rgba(255,230,0,0.1);border:1px solid rgba(255,230,0,0.25);border-radius:8px;padding:2px 9px">#'+rank+' '+esc(lg.short||'')+'</div>':'')+'<br>'
+    +'<div style="display:inline-block;margin-top:.25rem">'+lgBadge(p.league)+'</div>'
+    +'<div style="font-size:.74rem;color:'+(club.color||'#888')+';margin-top:.2rem">'+esc(p.club)+'</div>'
+    +'<div style="font-size:.62rem;color:var(--dim);margin-top:2px">'+esc(p.country||'')+' · '+fmtAgo(p.lastSeen)+'</div>'
+    +(p.bio?'<div style="font-size:.72rem;color:var(--dim);margin-top:.4rem;font-style:italic;padding:0 .3rem">&ldquo;'+esc(p.bio)+'&rdquo;</div>':'')
+    +'</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.35rem;margin:.2rem 0 .5rem">'
+    +[[pts,'PTS'],[ms.length,'PLAYED'],[wins,'WINS'],[draws,'DRAWS'],[losses,'LOSSES'],[gf+'-'+ga,'GOALS']].map(function(x){
+        return '<div style="text-align:center;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:.4rem .2rem">'
+          +'<div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:.9rem;color:var(--cyan)">'+x[0]+'</div>'
+          +'<div style="font-size:.52rem;color:var(--dim);margin-top:1px">'+x[1]+'</div></div>';
+      }).join('')
+    +'</div>'
+    +(form?'<div style="text-align:center;margin-bottom:.5rem"><div style="font-size:.55rem;color:var(--dim);margin-bottom:.25rem">FORM</div>'+form+'</div>':'')
+    +(typeof renderBadges==='function'?'<div style="text-align:center;margin-bottom:.5rem">'+renderBadges(uid,26)+'</div>':'')
+    +'<div style="display:flex;gap:.38rem;justify-content:center;flex-wrap:wrap;padding-top:.5rem;border-top:1px solid var(--border)">'
+    +(myProfile&&!isSelf
+      ?'<button class="btn-sm btn-outline" onclick="closeMo(\'user-mo\');openDMWith(\''+uid+'\',\''+esc(p.username)+'\')">💬 DM</button>'
+       +'<button class="btn-sm" style="background:rgba(255,40,130,0.12);border:1px solid rgba(255,40,130,0.3);color:var(--pink)" onclick="closeMo(\'user-mo\');openReport(\''+uid+'\',\''+esc(p.username)+'\')">🚩 Report</button>'
+      :'')
+    +(isSelf?'<button class="btn-sm btn-outline" onclick="closeMo(\'user-mo\');goPage(\'profile\')">Edit Profile</button>':'')
+    +(isAdmin&&!isSelf
+      ?'<button class="btn-sm" style="background:rgba(255,40,130,0.1);border:1px solid rgba(255,40,130,0.3);color:var(--pink)" onclick="closeMo(\'user-mo\');if(typeof openDeductModal===\'function\')openDeductModal(\'\',\''+uid+'\',\''+esc(p.username)+'\')">📉 Deduct</button>'
+       +'<button class="btn-sm" style="background:rgba(255,107,0,0.1);border:1px solid rgba(255,107,0,0.3);color:#ff6b00" onclick="closeMo(\'user-mo\');banUser(\''+uid+'\',\''+esc(p.username)+'\')">Ban</button>'
+      :'')
+    +'</div>';
   openMo('user-mo');
+}
+
+// Called after new player joins — auto-start league if now full
+function checkLeagueAutoStart(lid) {
+  if (!db||!lid) return;
+  setTimeout(function() {
+    var leaguePlayers = Object.values(allPlayers).filter(function(p){ return p.league===lid; });
+    var maxPlayers = (ALL_CLUBS[lid]||[]).length;
+    if (leaguePlayers.length >= maxPlayers) {
+      var hasFixtures = Object.values(allMatches).some(function(m){ return m.league===lid; });
+      if (!hasFixtures && typeof autoScheduleForLeague==='function') {
+        toast('League full! Auto-scheduling ' + (LGS[lid]||{n:lid}).n + '...');
+        setTimeout(function(){ autoScheduleForLeague(lid); }, 1500);
+      }
+    }
+  }, 2000);
 }

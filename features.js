@@ -207,7 +207,7 @@ function renderPolls() {
   var polls = Object.entries(allPolls || {}).sort(function (a, b) { return (b[1].ts || 0) - (a[1].ts || 0); });
 
   var html = '<div class="section-header"><div class="section-title c-cyan">Polls</div><div class="section-line"></div>'
-    + (myProfile ? '<button class="btn-xs" onclick="openMo(\'create-poll-mo\')">+ Create</button>' : '')
+    + (myProfile ? '<button class="btn-xs" onclick="window._adminPollMode=false;var ind=$(\'admin-poll-indicator\');if(ind)ind.style.display=\'none\';var lw=$(\'poll-league-wrap\');if(lw)lw.style.display=\'\';openMo(\'create-poll-mo\')">+ Create</button>' : '')
     + '</div>';
 
   if (!polls.length) {
@@ -250,6 +250,25 @@ function castVote(key, optIndex) {
   if (!myProfile || !db) { showLanding(); return; }
   db.ref(DB.polls + '/' + key + '/votes/' + myProfile.uid).set(optIndex)
     .then(function () { toast('Vote cast!'); renderPolls(); });
+}
+
+function closePoll(key) {
+  if (!db) return;
+  db.ref(DB.polls + '/' + key + '/active').set(false)
+    .then(function () { toast('Poll closed.'); renderPolls(); });
+}
+
+function reopenPoll(key) {
+  if (!db) return;
+  db.ref(DB.polls + '/' + key + '/active').set(true)
+    .then(function () { toast('Poll reopened.'); renderPolls(); });
+}
+
+function deletePoll(key) {
+  if (!confirm('Delete this poll?')) return;
+  if (!db) return;
+  db.ref(DB.polls + '/' + key).remove()
+    .then(function () { toast('Poll deleted.'); renderPolls(); });
 }
 
 function createPoll() {
@@ -341,46 +360,58 @@ function submitPrediction() {
 // ── LEADERBOARD ───────────────────────────────────────────────
 function renderLeaderboard() {
   var pg = $('page-leaderboard'); if (!pg) return;
-  var html = '<div class="section-header"><div class="section-title c-gold">Leaderboard</div><div class="section-line gold"></div></div>';
+  var isAdmin = me && me.email === ADMIN_EMAIL;
 
-  // Overall points table
-  var allP = Object.values(allPlayers);
-  if (!allP.length) { pg.innerHTML = html + '<div class="card empty">No players yet.</div>'; return; }
-
-  var scored = allP.map(function (p) {
-    var ms  = Object.values(allMatches).filter(function (m) { return m.played && (m.homeId === p.uid || m.awayId === p.uid); });
-    var raw = ms.reduce(function (acc, m) {
-      return acc + (m.homeId === p.uid ? (m.hg > m.ag ? 3 : m.hg === m.ag ? 1 : 0) : (m.ag > m.hg ? 3 : m.ag === m.hg ? 1 : 0));
-    }, 0);
-    var pen = allPenalties[p.uid] ? Object.values(allPenalties[p.uid]).reduce(function (s, x) { return s + (x.pts || 0); }, 0) : 0;
-    var gf  = ms.reduce(function (a, m) { return a + (m.homeId === p.uid ? m.hg : m.ag); }, 0);
-    return { p:p, pts:Math.max(0,raw-pen), played:ms.length, gf:gf };
-  }).sort(function (a, b) { return b.pts - a.pts || b.gf - a.gf; });
-
-  html += '<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:1rem">';
-  scored.forEach(function (x, i) {
-    var isMine = myProfile && x.p.uid === myProfile.uid;
-    var medal  = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1) + '.';
-    html += '<div style="display:flex;align-items:center;gap:.6rem;padding:.65rem .9rem;border-bottom:1px solid rgba(255,255,255,0.04);' + (isMine ? 'background:rgba(0,212,255,0.05)' : '') + '">'
-      + '<div style="font-family:Orbitron,sans-serif;font-size:.72rem;min-width:22px;text-align:center">' + medal + '</div>'
-      + clubBadge(x.p.club, x.p.league, 26)
-      + '<div style="flex:1"><div style="font-weight:700;font-size:.82rem">' + esc(x.p.username) + '</div>'
-      + '<div style="font-size:.6rem;color:var(--dim)">' + x.played + ' played · ' + x.gf + ' goals</div></div>'
-      + '<div style="text-align:center"><div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:.9rem;color:var(--gold)">' + x.pts + '</div>'
-      + '<div style="font-size:.52rem;color:var(--dim)">PTS</div></div>'
-      + '</div>';
+  // Build overall leaderboard across all leagues
+  var scored = Object.values(allPlayers).map(function(p) {
+    var ms    = Object.values(allMatches).filter(function(m){ return m.played&&(m.homeId===p.uid||m.awayId===p.uid); });
+    var wins  = ms.filter(function(m){ return (m.homeId===p.uid&&m.hg>m.ag)||(m.awayId===p.uid&&m.ag>m.hg); }).length;
+    var draws = ms.filter(function(m){ return m.hg===m.ag; }).length;
+    var pen   = allPenalties[p.uid]?Object.values(allPenalties[p.uid]).reduce(function(s,x){return s+(x.pts||0);},0):0;
+    var pts   = Math.max(0,wins*3+draws-pen);
+    var gf    = ms.reduce(function(a,m){return a+(m.homeId===p.uid?m.hg:m.ag);},0);
+    var ga    = ms.reduce(function(a,m){return a+(m.homeId===p.uid?m.ag:m.hg);},0);
+    return {p:p,pts:pts,played:ms.length,wins:wins,draws:draws,losses:ms.length-wins-draws,gf:gf,ga:ga};
+  }).sort(function(a,b){
+    if(b.pts!==a.pts) return b.pts-a.pts;
+    return (b.gf-b.ga)-(a.gf-a.ga);
   });
-  html += '</div>';
 
-  // Form chart for current user
-  if (myProfile) {
-    html += '<div class="section-header" style="margin-top:1.2rem"><div class="section-title c-cyan" style="font-size:.68rem">YOUR FORM</div><div class="section-line"></div></div>';
-    html += renderFormChart(myProfile.uid);
+  var medals = ['🥇','🥈','🥉'];
+  var html = '<div class="section-header"><div class="section-title c-gold">🏆 Leaderboard</div><div class="section-line gold"></div></div>';
+  html += '<div style="font-size:.68rem;color:var(--dim);margin-bottom:.7rem">Overall rankings across all leagues</div>';
+
+  if (!scored.length) {
+    html += '<div class="card empty">No players yet.</div>';
+  } else {
+    html += scored.map(function(x,i) {
+      var p=x.p, lg=LGS[p.league]||{};
+      var isSelf = myProfile && p.uid===myProfile.uid;
+      return '<div style="display:flex;align-items:center;gap:.6rem;padding:.7rem .85rem;background:var(--card);'
+        +'border:1px solid '+(isSelf?'rgba(0,212,255,0.35)':i<3?'rgba(255,230,0,0.15)':'var(--border)')+';'
+        +'border-radius:11px;margin-bottom:.38rem;cursor:pointer" onclick="openUserModal(''+p.uid+'')">'
+        +'<div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:'+(i<3?'1.1rem':'.8rem')+';min-width:28px;text-align:center;color:'+(i===0?'#FFE600':i===1?'#C0C0C0':i===2?'#CD7F32':'var(--dim)')+'">'
+        +(i<3?medals[i]:'#'+(i+1))+'</div>'
+        +clubBadge(p.club,p.league,30)
+        +'<div style="flex:1;min-width:0">'
+        +'<div style="font-weight:700;font-size:.84rem;'+(isSelf?'color:var(--cyan)':'')+'">'
+        +esc(p.username)+(isSelf?' ← You':'')+'</div>'
+        +'<div style="font-size:.6rem;color:'+lg.c+';margin-top:1px">'+esc(lg.short||'')+'</div>'
+        +'</div>'
+        +'<div style="text-align:right">'
+        +'<div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:.95rem;color:#FFE600">'+x.pts+'</div>'
+        +'<div style="font-size:.54rem;color:var(--dim)">'+x.played+'G '+x.wins+'W '+x.draws+'D '+x.losses+'L</div>'
+        +'</div></div>';
+    }).join('');
   }
 
+  // My predictions section
+  html += '<div id="my-predictions"></div>';
+  html += '<div id="pred-leaderboard"></div>';
+
   pg.innerHTML = html;
-  renderMyPredictions();
-  renderPredLeaderboard();
+  if (typeof renderMyPredictions==='function') renderMyPredictions();
+  if (typeof renderPredLeaderboard==='function') renderPredLeaderboard();
 }
 
 function renderFormChart(uid) {
@@ -559,7 +590,7 @@ renderPolls = function() {
   playerPolls.sort(function(a,b) { return (b[1].ts||0)-(a[1].ts||0); });
 
   var html = '<div class="section-header"><div class="section-title c-cyan">Polls</div><div class="section-line"></div>'
-    + (myProfile ? '<button class="btn-xs" onclick="openMo(\'create-poll-mo\')">+ Create</button>' : '')
+    + (myProfile ? '<button class="btn-xs" onclick="window._adminPollMode=false;var ind=$(\'admin-poll-indicator\');if(ind)ind.style.display=\'none\';var lw=$(\'poll-league-wrap\');if(lw)lw.style.display=\'\';openMo(\'create-poll-mo\')">+ Create</button>' : '')
     + '</div>';
 
   function renderPoll(key, poll, isAdminPoll) {
@@ -695,52 +726,72 @@ function renderNotifications() {
     pg.innerHTML = '<div class="card empty">Login to view notifications.</div>';
     return;
   }
-
   var showAll = pg.getAttribute('data-show-all') === 'true';
-
   pg.innerHTML = '<div class="section-header">'
-    + '<div class="section-title c-cyan">Notifications</div>'
+    + '<div class="section-title c-cyan">🔔 Notifications</div>'
     + '<div class="section-line"></div>'
     + '<button class="btn-xs" onclick="toggleNotifFilter()">'
-    + (showAll ? 'Unread' : 'All') + '</button>'
+    + (showAll ? 'Unread Only' : 'Show All') + '</button>'
     + '</div>'
     + '<div id="notif-list"><div style="text-align:center;padding:1.5rem;color:var(--dim)">Loading...</div></div>';
 
-  var ref = db.ref(DB.notifs + '/' + me.uid).orderByChild('ts').limitToLast(50);
+  var ref = db.ref(DB.notifs + '/' + me.uid).orderByChild('ts').limitToLast(60);
   ref.once('value', function(s) {
     var all = [];
     s.forEach(function(child) {
-      all.unshift({ key: child.key, data: child.val() });
+      var d = child.val();
+      // Exclude chat/DM notifications — those live in the Messages tab
+      if (d.type === 'dm' || d.type === 'chat' || d.icon === '💬') return;
+      all.unshift({ key: child.key, data: d });
     });
     var list = showAll ? all : all.filter(function(n){ return !n.data.read; });
     var el = $('notif-list'); if (!el) return;
     if (!list.length) {
-      el.innerHTML = '<div class="card empty">' + (showAll ? 'No notifications.' : 'All caught up! 🎉') + '</div>';
+      el.innerHTML = '<div class="card empty">' + (showAll ? 'No notifications yet.' : 'All caught up! 🎉') + '</div>';
       return;
     }
+    // Match code notifications always surface at the top
+    list.sort(function(a, b) {
+      var aCode = (a.data.type === 'room_code' || a.data.type === 'match_code') ? 1 : 0;
+      var bCode = (b.data.type === 'room_code' || b.data.type === 'match_code') ? 1 : 0;
+      if (bCode !== aCode) return bCode - aCode;
+      return (b.data.ts||0) - (a.data.ts||0);
+    });
     el.innerHTML = list.map(function(n) {
       var d = n.data;
-      var iconMap = { match:'⚽', result:'📊', dm:'💬', referee:'🟢', dispute:'⚠️', ucl:'🏆', poll:'📊', system:'📢' };
-      var icon = iconMap[d.type] || '🔔';
-      return '<div style="display:flex;align-items:flex-start;gap:.7rem;padding:.75rem .9rem;background:var(--card);'
-        + 'border:1px solid ' + (d.read ? 'var(--border)' : 'rgba(0,212,255,0.25)') + ';'
-        + 'border-radius:11px;margin-bottom:.4rem;' + (d.read ? 'opacity:.7' : '') + '">'
-        + '<div style="font-size:1.2rem;flex-shrink:0;margin-top:2px">' + icon + '</div>'
+      var isCode = (d.type === 'room_code' || d.type === 'match_code');
+      var iconMap = { match:'⚽', result:'📊', referee:'🟢', dispute:'⚠️',
+                      ucl:'🏆', poll:'📊', system:'📢', warning:'⚠️',
+                      room_code:'🏟️', match_code:'🏟️', deduction:'📉' };
+      var icon = isCode ? '🏟️' : (iconMap[d.type] || d.icon || '🔔');
+      var borderColor = isCode ? 'rgba(0,255,133,0.45)' : (d.read ? 'var(--border)' : 'rgba(0,212,255,0.25)');
+      var bg = isCode ? 'rgba(0,255,133,0.05)' : 'var(--card)';
+      var titleColor = isCode ? 'var(--green)' : (d.read ? 'var(--text)' : 'var(--cyan)');
+      var codeBlock = '';
+      if (isCode && d.code) {
+        codeBlock = '<div style="margin-top:.5rem;background:rgba(0,0,0,0.35);border-radius:8px;padding:.45rem .75rem;display:flex;align-items:center;justify-content:space-between;gap:.5rem">'
+          + '<span style="font-family:Orbitron,sans-serif;font-size:.95rem;font-weight:900;color:var(--green);letter-spacing:3px">' + esc(d.code) + '</span>'
+          + '<button onclick="copyCode('' + esc(d.code) + '')" class="btn-xs" style="color:var(--green);border-color:rgba(0,255,133,0.3);font-size:.6rem">Copy</button>'
+          + '</div>';
+      }
+      return '<div style="display:flex;align-items:flex-start;gap:.7rem;padding:.75rem .9rem;background:' + bg + ';'
+        + 'border:1px solid ' + borderColor + ';border-radius:11px;margin-bottom:.45rem;' + (d.read && !isCode ? 'opacity:.65' : '') + '">'
+        + '<div style="font-size:1.25rem;flex-shrink:0;margin-top:2px">' + icon + '</div>'
         + '<div style="flex:1;min-width:0">'
-        + '<div style="font-weight:700;font-size:.82rem' + (d.read ? '' : ';color:var(--cyan)') + '">' + esc(d.title||'') + '</div>'
+        + '<div style="font-weight:700;font-size:.82rem;color:' + titleColor + '">' + esc(d.title||'') + '</div>'
         + '<div style="font-size:.74rem;color:var(--dim);margin-top:2px">' + esc(d.body||'') + '</div>'
-        + '<div style="font-size:.6rem;color:var(--dim);margin-top:3px">' + fmtAgo(d.ts) + '</div>'
+        + codeBlock
+        + '<div style="font-size:.6rem;color:var(--dim);margin-top:4px">' + fmtAgo(d.ts) + '</div>'
         + '</div>'
-        + (!d.read ? '<div style="width:8px;height:8px;border-radius:50%;background:var(--cyan);flex-shrink:0;margin-top:4px"></div>' : '')
+        + (!d.read ? '<div style="width:9px;height:9px;border-radius:50%;background:' + (isCode ? 'var(--green)' : 'var(--cyan)') + ';flex-shrink:0;margin-top:4px;box-shadow:0 0 6px ' + (isCode ? 'rgba(0,255,133,.5)' : 'rgba(0,212,255,.4)') + '"></div>' : '')
         + '</div>';
     }).join('');
-    // Mark all as read
-    if (!showAll) {
-      list.forEach(function(n) {
-        if (!n.data.read) db.ref(DB.notifs + '/' + me.uid + '/' + n.key + '/read').set(true);
-      });
-    }
+    // Mark all displayed as read
+    list.forEach(function(n) {
+      if (!n.data.read) db.ref(DB.notifs + '/' + me.uid + '/' + n.key + '/read').set(true);
+    });
     setBadge('notif-badge', 0);
+    clearAttentionDot();
   });
 }
 
@@ -751,17 +802,48 @@ function toggleNotifFilter() {
   renderNotifications();
 }
 
+// ── ATTENTION DOT — glowing green dot on drawer notif button ──
+function showAttentionDot() {
+  var btn = document.getElementById('drawer-notif-btn');
+  if (!btn) return;
+  var dot = btn.querySelector('.attention-dot');
+  if (!dot) {
+    dot = document.createElement('span');
+    dot.className = 'attention-dot';
+    dot.style.cssText = 'position:absolute;top:6px;right:6px;width:10px;height:10px;border-radius:50%;'
+      + 'background:var(--green);box-shadow:0 0 8px rgba(0,255,133,.8);animation:attPulse 1.2s ease-in-out infinite;';
+    btn.style.position = 'relative';
+    btn.appendChild(dot);
+  }
+  dot.style.display = 'block';
+}
+function clearAttentionDot() {
+  var dot = document.querySelector('#drawer-notif-btn .attention-dot');
+  if (dot) dot.style.display = 'none';
+}
+
 function listenNotifBadge() {
   if (!myProfile || !db) return;
   db.ref(DB.notifs + '/' + me.uid).orderByChild('read').equalTo(false).on('value', function(s) {
-    var count = Object.keys(s.val() || {}).length;
+    var items = s.val() || {};
+    // Count only non-chat notifications
+    var count = Object.values(items).filter(function(d) {
+      return d.type !== 'dm' && d.type !== 'chat' && d.icon !== '💬';
+    }).length;
+    // Check if any are match codes
+    var hasCode = Object.values(items).some(function(d) {
+      return !d.read && (d.type === 'room_code' || d.type === 'match_code');
+    });
     setBadge('notif-badge', count);
-    // Also update drawer badge
+    // Drawer badge
     var db2 = document.getElementById('drawer-notif-badge');
     if (db2) {
       if (count > 0) { db2.textContent = count > 9 ? '9+' : count; db2.classList.remove('hidden'); }
       else { db2.classList.add('hidden'); }
     }
+    // Attention dot for match codes
+    if (hasCode) showAttentionDot();
+    else clearAttentionDot();
   });
 }
 
@@ -838,8 +920,20 @@ function listenRoomCodes() {
     if (m.roomCode && !m._codeNotified) {
       var hp = allPlayers[m.homeId];
       showRoomCodeBanner(m, hp);
-      // Mark as notified
+      // Save to notifications DB so it shows in the Notifications page
+      db.ref(DB.notifs + '/' + uid).push({
+        title:  '🏟️ Room Code Dropped!',
+        body:   (hp ? hp.username : 'Home team') + ' has dropped the match code. Tap to copy.',
+        type:   'room_code',
+        code:   m.roomCode,
+        matchId: m.id,
+        ts:     Date.now(),
+        read:   false
+      });
+      // Mark as notified on match
       db.ref(DB.matches + '/' + m.id + '/_codeNotified').set(true);
+      // Show attention dot on drawer
+      if (typeof showAttentionDot === 'function') showAttentionDot();
     }
   });
 }

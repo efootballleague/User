@@ -107,7 +107,7 @@ function renderRecentRes() {
     var hp = allPlayers[m.homeId], ap = allPlayers[m.awayId];
     if (!hp || !ap) return '';
     var lg = LGS[m.league] || {};
-    return '<div class="card" style="padding:.85rem;cursor:pointer" onclick="openUserModal(\'' + hp.uid + '\')">'
+    return '<div class="card" style="padding:.85rem">';
       + '<div style="display:flex;justify-content:space-between;margin-bottom:.5rem">'
       + '<span style="font-size:.56rem;font-weight:700;padding:2px 6px;border-radius:4px;background:' + (lg.bg||'') + ';color:' + (lg.c||'#aaa') + '">' + esc(lg.short||'') + '</span>'
       + '<span style="font-size:.6rem;color:var(--dim)">' + fmtDate(m.playedAt) + '</span></div>'
@@ -138,7 +138,7 @@ function renderTopPlayers() {
   }).sort(function (a, b) { return b.pts - a.pts; }).slice(0, 6);
   el.innerHTML = scored.map(function (x, i) {
     var p = x.p, lg = LGS[p.league] || {};
-    return '<div class="card" style="padding:.82rem;display:flex;align-items:center;gap:.65rem;cursor:pointer" onclick="openUserModal(\'' + p.uid + '\')">'
+    return '<div class="card" style="padding:.82rem;display:flex;align-items:center;gap:.65rem">';
       + '<div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:.85rem;color:#FFE600;min-width:18px">#' + (i + 1) + '</div>'
       + clubBadge(p.club, p.league, 32)
       + '<div style="flex:1"><div style="font-weight:700;font-size:.82rem">' + esc(p.username) + '</div>'
@@ -151,70 +151,162 @@ function renderTopPlayers() {
 }
 
 // ── FIXTURES ─────────────────────────────────────────────────
+// ── FIXTURES ─────────────────────────────────────────────────
+// Groups fixtures by MATCH DAY (not calendar date).
+// - Each round of fixtures forms one "Match Day" block.
+// - Postponed matches stay under their ORIGINAL match day label
+//   even if they've been pushed past later match days.
+// - Played results appear at the bottom under "Results".
+// - Odds are shown on every unplayed fixture.
+
 function renderFx() {
   var el = $('fix-list'); if (!el) return;
   var list = Object.values(allMatches);
-  if (curFxFilter !== 'all') list = list.filter(function (m) { return m.league === curFxFilter; });
-  list.sort(function (a, b) {
-    if (!a.played && !b.played) return (a.matchTime || a.createdAt || 0) - (b.matchTime || b.createdAt || 0);
-    if (!a.played) return -1;
-    if (!b.played) return 1;
-    return (b.playedAt || 0) - (a.playedAt || 0);
-  });
+  if (curFxFilter !== 'all') list = list.filter(function(m){ return m.league === curFxFilter; });
   if (!list.length) { el.innerHTML = '<div class="card empty">No fixtures yet.</div>'; return; }
 
-  // Group by date
-  var groups = {}, order = [];
-  list.forEach(function (m) {
-    var key = m.played ? 'Results'
-      : m.matchTime ? new Date(m.matchTime).toLocaleDateString('en-GB', { weekday:'long', day:'2-digit', month:'short' })
-      : 'Unscheduled';
-    if (!groups[key]) { groups[key] = []; order.push(key); }
-    groups[key].push(m);
+  // ── Split into unplayed and played ──
+  var unplayed = list.filter(function(m){ return !m.played; });
+  var played   = list.filter(function(m){ return m.played; });
+
+  // ── Build Match Day groups for UNPLAYED fixtures ──
+  // A "match day" = group of fixtures that share the same matchDay number (set during scheduling).
+  // If matchDay is not set, fall back to grouping by scheduled date.
+  // Postponed fixtures keep their original matchDay so they always appear under it.
+
+  var mdGroups = {}; // { mdKey: [matches] }
+  var mdOrder  = []; // ordered list of mdKeys
+
+  unplayed.forEach(function(m) {
+    var mdKey;
+    if (m.matchDay) {
+      mdKey = 'md_' + m.matchDay;
+    } else if (m.matchTime) {
+      // Group by day
+      var d = new Date(m.matchTime);
+      mdKey = 'date_' + d.getFullYear() + '_' + d.getMonth() + '_' + d.getDate();
+    } else {
+      mdKey = 'unscheduled';
+    }
+    if (!mdGroups[mdKey]) { mdGroups[mdKey] = []; mdOrder.push(mdKey); }
+    mdGroups[mdKey].push(m);
+  });
+
+  // Sort each group by matchTime
+  mdOrder.forEach(function(k) {
+    mdGroups[k].sort(function(a,b){ return (a.matchTime||9e12)-(b.matchTime||9e12); });
+  });
+
+  // Sort mdOrder: numbered match days first (by number), then date groups, then unscheduled last
+  mdOrder.sort(function(a,b) {
+    if (a === 'unscheduled') return 1;
+    if (b === 'unscheduled') return -1;
+    if (a.startsWith('md_') && b.startsWith('md_')) return parseInt(a.slice(3)) - parseInt(b.slice(3));
+    if (a.startsWith('md_')) return -1;
+    if (b.startsWith('md_')) return 1;
+    // both date groups — sort by earliest match in group
+    var at = mdGroups[a][0] ? (mdGroups[a][0].matchTime||9e12) : 9e12;
+    var bt = mdGroups[b][0] ? (mdGroups[b][0].matchTime||9e12) : 9e12;
+    return at - bt;
   });
 
   var html = '';
-  order.forEach(function (dk, gi) {
-    html += '<div class="fx-date-label">' + dk.toUpperCase() + '</div>';
-    groups[dk].forEach(function (m) {
+  var mdNum = 0;
+
+  mdOrder.forEach(function(mdKey) {
+    var matches = mdGroups[mdKey];
+    if (!matches.length) return;
+
+    // Build label
+    var label;
+    if (mdKey.startsWith('md_')) {
+      label = 'MATCH DAY ' + mdKey.slice(3);
+    } else if (mdKey === 'unscheduled') {
+      label = 'UNSCHEDULED';
+    } else {
+      var firstTime = matches[0].matchTime;
+      label = new Date(firstTime).toLocaleDateString('en-GB', { weekday:'long', day:'2-digit', month:'short' }).toUpperCase();
+    }
+
+    // Check if any in this group are postponed past the next match day
+    var hasPostponed = matches.some(function(m){ return m.postponed; });
+
+    html += '<div class="fx-date-label" style="display:flex;align-items:center;gap:.5rem">'
+      + '<span>' + label + '</span>'
+      + (hasPostponed ? '<span style="font-size:.5rem;background:rgba(255,107,0,0.15);color:#ff6b00;border:1px solid rgba(255,107,0,0.3);border-radius:5px;padding:1px 5px">POSTPONED MATCH</span>' : '')
+      + '</div>';
+
+    matches.forEach(function(m) {
       var hp = allPlayers[m.homeId], ap = allPlayers[m.awayId];
       if (!hp || !ap) return;
       var lg     = LGS[m.league] || {};
       var isMine = myProfile && (m.homeId === myProfile.uid || m.awayId === myProfile.uid);
       var isPost = !!m.postponed;
       var isPend = m.pendingResult && !m.played;
-      var timeStr  = m.matchTime ? fmtTime(m.matchTime) : 'TBD';
-      var statusT  = m.played ? 'FT' : isPend ? '⏳ Ref Review' : isPost ? 'POSTPONED' : timeStr;
-      var statusC  = m.played ? '#00ff88' : isPend ? '#00d4ff' : isPost ? '#ff6b00' : 'var(--dim)';
-      var score    = m.played
-        ? '<div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:.92rem;color:#00FF85;letter-spacing:2px">' + m.hg + '-' + m.ag + '</div><div style="font-size:.52rem;color:var(--dim)">FT</div>'
-        : '<div style="font-size:.62rem;color:' + (isPost ? '#ff6b00' : 'var(--dim)') + ';font-weight:700">' + (isPost ? 'PST' : 'vs') + '</div>';
+      var timeStr = m.matchTime ? fmtFull(m.matchTime) : 'TBD';
+      var statusT = isPend ? '⏳ Ref Review' : isPost ? 'POSTPONED' : (m.matchTime ? fmtTime(m.matchTime) : 'TBD');
+      var statusC = isPend ? '#00d4ff' : isPost ? '#ff6b00' : 'var(--dim)';
+      var isAdmin = me && me.email === ADMIN_EMAIL;
 
       html += '<div class="fx-card' + (isMine ? ' fx-mine' : '') + (isPost ? ' fx-post' : '') + '">'
         + '<div class="fx-top">'
         + '<div style="display:flex;align-items:center;gap:.35rem;flex-wrap:wrap">'
-        + '<span class="lg-badge" style="background:' + lg.bg + ';color:' + lg.c + ';border:1px solid ' + lg.c + '44">' + esc(lg.short || '') + '</span>'
+        + '<span class="lg-badge" style="background:' + lg.bg + ';color:' + lg.c + ';border:1px solid ' + lg.c + '44">' + esc(lg.short||'') + '</span>'
         + (isMine ? '<span class="fx-badge mine">YOUR MATCH</span>' : '')
         + (m.awayVerifying && myProfile && m.awayId === myProfile.uid && !m.awayDispute ? '<span class="fx-badge warn">⚠ VERIFY</span>' : '')
         + (isPend ? '<span class="fx-badge info">🟢 REF REVIEW</span>' : '')
         + (m.refStatus === 'rejected' ? '<span class="fx-badge danger">❌ REJECTED</span>' : '')
-        + (m.refereeName ? '<span class="fx-badge ref">Ref: ' + esc(m.refereeName) + '</span>' : '')
+        + (m.refereeName ? '<span style="font-size:.52rem;color:var(--dim);border:1px solid var(--border);border-radius:4px;padding:1px 5px">Ref: ' + esc(m.refereeName) + '</span>' : '')
+        + (isPost ? '<span class="fx-badge warn">PST</span>' : '')
         + '</div>'
         + '<span style="font-size:.6rem;color:' + statusC + ';font-weight:600">' + statusT + '</span>'
         + '</div>'
         + '<div class="fx-teams">'
-        + '<div class="fx-team" onclick="openUserModal(\'' + hp.uid + '\')">' + clubBadge(hp.club, m.league, 24) + '<div class="fx-name">' + esc(hp.username) + '</div></div>'
-        + '<div class="fx-score">' + score + '</div>'
-        + '<div class="fx-team" onclick="openUserModal(\'' + ap.uid + '\')">' + clubBadge(ap.club, m.league, 24) + '<div class="fx-name">' + esc(ap.username) + '</div></div>'
+        + '<div class="fx-team" onclick="openUserModal(\'' + hp.uid + '\')">' + clubBadge(hp.club, m.league, 26) + '<div class="fx-name">' + esc(hp.username) + '</div></div>'
+        + '<div class="fx-score"><div style="font-size:.62rem;color:' + (isPost?'#ff6b00':'var(--dim)') + ';font-weight:700">' + (isPost?'PST':'vs') + '</div></div>'
+        + '<div class="fx-team" onclick="openUserModal(\'' + ap.uid + '\')">' + clubBadge(ap.club, m.league, 26) + '<div class="fx-name">' + esc(ap.username) + '</div></div>'
         + '</div>'
-        + (isMine && !m.played && !isPost
-          ? '<div class="fx-actions"><button class="btn-xs" onclick="requestPostpone(\'' + m.id + '\')">Postpone</button></div>' : '')
-        + ((!myProfile || (myProfile.uid !== m.homeId && myProfile.uid !== m.awayId)) && !m.played
-          ? '<div class="fx-actions"><button class="btn-xs gold" onclick="openPredictModal(\'' + m.homeId + '\',\'' + m.awayId + '\',\'' + m.league + '\',\'' + m.id + '\')">🎯 Predict</button></div>' : '')
+        // ── ODDS (always shown on unplayed matches) ──
+        + (typeof oddsHtml === 'function' && !isPost ? oddsHtml(m.homeId, m.awayId, m.league) : '')
+        // ── ACTIONS ──
+        + '<div class="fx-actions">'
+        + (isMine && !isPost
+          ? '<button class="btn-xs" onclick="openUserPostpone(\'' + m.id + '\')">⏰ Reschedule</button>'
+          : '')
+        + (isAdmin && !isPost
+          ? '<button class="btn-xs" style="color:#ff6b00;border-color:rgba(255,107,0,0.3)" onclick="adminPostponeMatch(\'' + m.id + '\')">Admin Postpone</button>'
+          : '')
+        + (isAdmin && isPost
+          ? '<button class="btn-xs" onclick="undoPostpone(\'' + m.id + '\')">Undo Postpone</button>'
+          : '')
+        + '</div>'
         + '</div>';
     });
   });
-  el.innerHTML = html;
+
+  // ── RESULTS at the bottom ──
+  if (played.length) {
+    played.sort(function(a,b){ return (b.playedAt||0)-(a.playedAt||0); });
+    html += '<div class="fx-date-label">RESULTS</div>';
+    played.forEach(function(m) {
+      var hp = allPlayers[m.homeId], ap = allPlayers[m.awayId];
+      if (!hp || !ap) return;
+      var lg = LGS[m.league] || {};
+      var isMine = myProfile && (m.homeId === myProfile.uid || m.awayId === myProfile.uid);
+      html += '<div class="fx-card' + (isMine ? ' fx-mine' : '') + '">'
+        + '<div class="fx-top">'
+        + '<span class="lg-badge" style="background:' + lg.bg + ';color:' + lg.c + ';border:1px solid ' + lg.c + '44">' + esc(lg.short||'') + '</span>'
+        + '<span style="font-size:.58rem;color:var(--dim)">' + fmtDate(m.playedAt) + '</span>'
+        + '</div>'
+        + '<div class="fx-teams">'
+        + '<div class="fx-team" onclick="openUserModal(\'' + hp.uid + '\')">' + clubBadge(hp.club, m.league, 26) + '<div class="fx-name">' + esc(hp.username) + '</div></div>'
+        + '<div class="fx-score"><div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:.92rem;color:#00FF85;letter-spacing:2px">' + m.hg + '-' + m.ag + '</div><div style="font-size:.48rem;color:var(--dim)">FT</div></div>'
+        + '<div class="fx-team" onclick="openUserModal(\'' + ap.uid + '\')">' + clubBadge(ap.club, m.league, 26) + '<div class="fx-name">' + esc(ap.username) + '</div></div>'
+        + '</div></div>';
+    });
+  }
+
+  el.innerHTML = html || '<div class="card empty">No fixtures yet.</div>';
 }
 
 function filterFx(f, btn) {
@@ -319,33 +411,46 @@ function autoScheduleLeague() {
 // ── SCHEDULED TIMELINE ────────────────────────────────────────
 function renderSchedTimeline() {
   var el = $('sched-timeline'); if (!el) return;
+  var uid = myProfile ? myProfile.uid : null;
   var all = Object.values(allMatches)
-    .filter(function (m) { return !m.played && m.matchTime; })
-    .sort(function (a, b) { return a.matchTime - b.matchTime; });
+    .filter(function(m){ return !m.played && m.matchTime; })
+    .sort(function(a,b){ return a.matchTime - b.matchTime; });
   if (!all.length) { el.innerHTML = '<div class="card empty">No scheduled matches yet.</div>'; return; }
-  var html = '', lastD = '';
-  all.forEach(function (m, i) {
-    var hp = allPlayers[m.homeId], ap = allPlayers[m.awayId]; if (!hp || !ap) return;
-    var lg  = LGS[m.league] || {};
-    var d   = new Date(m.matchTime).toLocaleDateString('en-GB', { weekday:'short', day:'2-digit', month:'short' });
-    var t   = fmtTime(m.matchTime);
-    if (d !== lastD) { lastD = d; html += '<div class="fx-date-label">' + d.toUpperCase() + '</div>'; }
-    var isMine = myProfile && (m.homeId === myProfile.uid || m.awayId === myProfile.uid);
-    html += '<div class="fx-card' + (isMine ? ' fx-mine' : '') + '" style="margin-bottom:.45rem">'
-      + '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.35rem">'
-      + '<div style="display:flex;align-items:center;gap:.55rem">'
-      + '<div style="font-family:Orbitron,sans-serif;font-size:.82rem;font-weight:900;color:#FFE600;min-width:44px">' + t + '</div>'
-      + clubBadge(hp.club, m.league, 22) + '<span style="font-size:.78rem;font-weight:700">' + esc(hp.username) + '</span>'
-      + '<span style="font-size:.68rem;color:var(--dim)">vs</span>'
-      + clubBadge(ap.club, m.league, 22) + '<span style="font-size:.78rem;font-weight:700">' + esc(ap.username) + '</span>'
-      + '</div>'
-      + '<div style="display:flex;gap:.4rem;flex-wrap:wrap">'
-      + '<span class="lg-badge" style="background:' + lg.bg + ';color:' + lg.c + ';border:1px solid ' + lg.c + '44">' + esc(lg.short || '') + '</span>'
-      + (m.refereeName ? '<span class="fx-badge ref">Ref: ' + esc(m.refereeName) + '</span>' : '')
-      + (isMine ? '<span class="fx-badge mine">YOUR MATCH</span>' : '')
-      + '</div></div>'
-      + (m.roomCode ? '<div style="margin-top:.45rem;font-size:.68rem;color:var(--dim)">Code: <span class="mcode" onclick="copyCode(\'' + esc(m.roomCode) + '\')">' + esc(m.roomCode) + '</span></div>' : '')
-      + '</div>';
+
+  // Group by matchDay if set, else by calendar date
+  var groups = {}, order = [];
+  all.forEach(function(m) {
+    var key = m.matchDay ? ('MATCH DAY ' + m.matchDay)
+      : new Date(m.matchTime).toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short'}).toUpperCase();
+    if (!groups[key]) { groups[key] = []; order.push(key); }
+    groups[key].push(m);
+  });
+  order = order.filter(function(k,i){ return order.indexOf(k)===i; });
+
+  var html = '';
+  order.forEach(function(label) {
+    html += '<div class="fx-date-label">' + label + '</div>';
+    groups[label].forEach(function(m) {
+      var hp=allPlayers[m.homeId],ap=allPlayers[m.awayId]; if(!hp||!ap) return;
+      var lg=LGS[m.league]||{};
+      var isMine=uid&&(m.homeId===uid||m.awayId===uid||m.refereeUID===uid);
+      var isRef=uid&&m.refereeUID===uid;
+      html += '<div class="fx-card'+(isMine?' fx-mine':'')+'" style="margin-bottom:.42rem">'
+        +'<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.3rem">'
+        +'<div style="display:flex;align-items:center;gap:.45rem">'
+        +'<div style="font-family:Orbitron,sans-serif;font-size:.78rem;font-weight:900;color:#FFE600;min-width:42px">'+fmtTime(m.matchTime)+'</div>'
+        +clubBadge(hp.club,m.league,20)+'<span style="font-size:.75rem;font-weight:700">'+esc(hp.username)+'</span>'
+        +'<span style="font-size:.62rem;color:var(--dim)">vs</span>'
+        +clubBadge(ap.club,m.league,20)+'<span style="font-size:.75rem;font-weight:700">'+esc(ap.username)+'</span>'
+        +'</div>'
+        +'<div style="display:flex;gap:.3rem;flex-wrap:wrap;align-items:center">'
+        +'<span class="lg-badge" style="background:'+lg.bg+';color:'+lg.c+';border:1px solid '+lg.c+'44">'+esc(lg.short||'')+'</span>'
+        +(isRef?'<span class="fx-badge ref">You Ref</span>':m.refereeName?'<span style="font-size:.52rem;color:var(--dim);border:1px solid var(--border);border-radius:4px;padding:1px 4px">Ref: '+esc(m.refereeName)+'</span>':'')
+        +(isMine&&!isRef?'<span class="fx-badge mine">YOUR MATCH</span>':'')
+        +'</div></div>'
+        +(m.postponed?'<div style="font-size:.62rem;color:#ff6b00;margin-top:.25rem">📅 POSTPONED</div>':'')
+        +'</div>';
+    });
   });
   el.innerHTML = html;
 }
@@ -465,14 +570,98 @@ function submitPrep() {
     .catch(function () { err.textContent = 'Failed. Try again.'; });
 }
 
-function requestPostpone(mid) {
-  if (typeof openPostponeRequest === 'function') openPostponeRequest(mid);
-  else toast('Postpone system loading...', 'error');
+// ── USER RESCHEDULE — can only move match ±24h from original time ──
+function openUserPostpone(mid) {
+  if (!myProfile) { showLanding(); return; }
+  var m = allMatches[mid]; if (!m) return;
+  var isAdmin = me && me.email === ADMIN_EMAIL;
+  if (!isAdmin && m.homeId !== myProfile.uid && m.awayId !== myProfile.uid) { toast('Not your match.', 'error'); return; }
+  // Build a simple time-picker modal via toast alternative
+  var orig = m.matchTime || Date.now();
+  var minTime = new Date(orig - 24*60*60*1000);
+  var maxTime = new Date(orig + 24*60*60*1000);
+  // Store context
+  _postponeMid = mid;
+  _postponeOrig = orig;
+  _postponeIsAdmin = isAdmin;
+  var mo = $('user-postpone-mo');
+  if (!mo) { toast('Reschedule modal missing.', 'error'); return; }
+  var inp = $('upost-time');
+  if (inp) {
+    // Set min/max and default to current matchTime
+    var pad = function(n){ return n<10?'0'+n:n; };
+    var dt = new Date(orig);
+    inp.value = dt.getFullYear()+'-'+pad(dt.getMonth()+1)+'-'+pad(dt.getDate())+'T'+pad(dt.getHours())+':'+pad(dt.getMinutes());
+    if (!isAdmin) {
+      var dtMin = new Date(minTime);
+      var dtMax = new Date(maxTime);
+      inp.min = dtMin.getFullYear()+'-'+pad(dtMin.getMonth()+1)+'-'+pad(dtMin.getDate())+'T'+pad(dtMin.getHours())+':'+pad(dtMin.getMinutes());
+      inp.max = dtMax.getFullYear()+'-'+pad(dtMax.getMonth()+1)+'-'+pad(dtMax.getDate())+'T'+pad(dtMax.getHours())+':'+pad(dtMax.getMinutes());
+    } else {
+      inp.min = ''; inp.max = '';
+    }
+  }
+  var label = $('upost-label');
+  if (label) label.textContent = isAdmin ? 'Admin: Set any new date/time' : 'Reschedule (max ±24h from original)';
+  $('upost-err').textContent = '';
+  openMo('user-postpone-mo');
+}
+
+var _postponeMid = null, _postponeOrig = 0, _postponeIsAdmin = false;
+
+function submitUserPostpone() {
+  var inp = $('upost-time'); if (!inp) return;
+  var err = $('upost-err'); err.textContent = '';
+  var newTime = new Date(inp.value).getTime();
+  if (!newTime || isNaN(newTime)) { err.textContent = 'Pick a valid date/time.'; return; }
+  var mid = _postponeMid; if (!mid) return;
+  var isAdmin = _postponeIsAdmin;
+
+  if (!isAdmin) {
+    // Enforce ±24h
+    var diff = Math.abs(newTime - _postponeOrig);
+    if (diff > 24 * 60 * 60 * 1000) { err.textContent = 'You can only reschedule up to 24 hours earlier or later.'; return; }
+    if (newTime < Date.now()) { err.textContent = 'New time must be in the future.'; return; }
+  }
+
+  var updates = { matchTime: newTime };
+  if (isAdmin && newTime - (_postponeOrig||0) > 24*60*60*1000) {
+    // Admin postponing more than 24h — mark as postponed
+    updates.postponed = true;
+    updates.postponedAt = Date.now();
+    updates.postponedBy = myProfile.uid;
+  } else {
+    updates.postponed = false;
+  }
+
+  db.ref(DB.matches + '/' + mid).update(updates).then(function() {
+    closeMo('user-postpone-mo');
+    toast('Match rescheduled!');
+    renderFx();
+  }).catch(function() { err.textContent = 'Failed. Try again.'; });
+}
+
+// Admin-only: full postpone with reason (any duration)
+function adminPostponeMatch(mid) {
+  if (!me || me.email !== ADMIN_EMAIL) return;
+  _postponeMid = mid;
+  _postponeOrig = (allMatches[mid] && allMatches[mid].matchTime) || Date.now();
+  _postponeIsAdmin = true;
+  openUserPostpone(mid);
 }
 
 function undoPostpone(mid) {
   if (!db || !myProfile) return;
-  db.ref(DB.matches + '/' + mid).update({ postponed:false }).then(function () { toast('Postpone removed.'); });
+  var isAdmin = me && me.email === ADMIN_EMAIL;
+  if (!isAdmin) { toast('Only admin can undo a postponed match.', 'error'); return; }
+  var m = allMatches[mid]; if (!m) return;
+  db.ref(DB.matches + '/' + mid).update({ postponed: false, postponedAt: null }).then(function() {
+    toast('Postpone removed.'); renderFx();
+  });
+}
+
+function requestPostpone(mid) {
+  openUserPostpone(mid);
 }
 
 // ── PREDICT MODAL STUB ────────────────────────────────────────

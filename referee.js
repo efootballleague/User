@@ -385,8 +385,36 @@ function removeRestriction(uid, type) {
 }
 
 // ── CLOUDINARY UPLOAD ─────────────────────────────────────────
-// compressImage and uploadToCloudinary are defined in features.js
-// with aggressive compression (max 900px, quality 0.45)
+function compressImage(file, maxW, quality, cb) {
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var img = new Image();
+    img.onload = function() {
+      var canvas = document.createElement('canvas');
+      var ratio  = Math.min(maxW / img.width, 1);
+      canvas.width  = img.width  * ratio;
+      canvas.height = img.height * ratio;
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(function(blob) { cb(blob || file); }, 'image/jpeg', quality);
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function uploadToCloudinary(file, folder, publicId, onSuccess, onFail) {
+  compressImage(file, 1280, 0.82, function(blob) {
+    var fd = new FormData();
+    fd.append('file',   blob);
+    fd.append('upload_preset', CLOUDINARY_PRESET);
+    fd.append('folder', folder || 'general');
+    if (publicId) fd.append('public_id', publicId);
+    fetch('https://api.cloudinary.com/v1_1/' + CLOUDINARY_CLOUD + '/image/upload', { method:'POST', body:fd })
+      .then(function(r) { return r.json(); })
+      .then(function(d) { if (d.secure_url) onSuccess(d.secure_url); else onFail(d); })
+      .catch(onFail);
+  });
+}
 
 // ── RESULT CELEBRATION ────────────────────────────────────────
 function showResultCelebration(mid, hg, ag, m) {

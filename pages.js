@@ -239,7 +239,6 @@ function loadFxPlayers() {
 
 function addFixture() {
   if (!myProfile) { toast('Login first', 'error'); return; }
-  if (!me || me.email !== ADMIN_EMAIL) { toast('Admin only.', 'error'); return; }
   var lg = $('fix-lg').value, hi = $('fix-home').value, ai = $('fix-away').value;
   if (!lg || !hi || !ai) { toast('Fill all fields', 'error'); return; }
   if (hi === ai) { toast("Can't play yourself", 'error'); return; }

@@ -375,103 +375,28 @@ function submitReport() {
   });
 }
 
-// ── USER MODAL — full bottom sheet ───────────────────────────
+// ── USER MODAL ────────────────────────────────────────────────
 function openUserModal(uid) {
-  var p = allPlayers[uid]; if (!p) return;
-  var club  = getClub(p.league, p.club);
-  var lg    = LGS[p.league] || {};
-  var isMine = myProfile && myProfile.uid === uid;
-
-  // Stats
-  var ms     = Object.values(allMatches).filter(function(m){ return m.played&&(m.homeId===uid||m.awayId===uid); });
-  var wins   = ms.filter(function(m){ return (m.homeId===uid&&m.hg>m.ag)||(m.awayId===uid&&m.ag>m.hg); }).length;
-  var draws  = ms.filter(function(m){ return m.hg===m.ag; }).length;
-  var losses = ms.length - wins - draws;
-  var pen    = allPenalties[uid] ? Object.values(allPenalties[uid]).reduce(function(s,x){ return s+(x.pts||0); },0) : 0;
-  var pts    = Math.max(0, wins*3+draws-pen);
-  var table  = computeStd(p.league);
-  var rank   = table.findIndex(function(r){ return r.uid===uid; })+1;
-  var last5  = ms.slice(-5).map(function(m){
-    var r=(m.homeId===uid&&m.hg>m.ag)||(m.awayId===uid&&m.ag>m.hg)?'w':m.hg===m.ag?'d':'l';
-    return '<span class="fd '+r+'"></span>';
-  }).join('');
-
-  // H2H
-  var h2hHtml = '';
-  if (myProfile && myProfile.uid !== uid) {
-    var h2h = ms.filter(function(m){
-      return (m.homeId===uid&&m.awayId===myProfile.uid)||(m.awayId===uid&&m.homeId===myProfile.uid);
-    });
-    if (h2h.length) {
-      var hw=0,aw=0,hd=0;
-      h2h.forEach(function(m){
-        if(m.hg>m.ag){if(m.homeId===uid)hw++;else aw++;}
-        else if(m.hg<m.ag){if(m.awayId===uid)hw++;else aw++;}
-        else hd++;
-      });
-      h2hHtml = '<div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:.6rem;margin:.5rem 0;text-align:center">'
-        +'<div style="font-size:.6rem;color:var(--dim);margin-bottom:.4rem">HEAD TO HEAD</div>'
-        +'<div style="display:flex;justify-content:space-around">'
-        +'<div><div style="font-family:Orbitron,sans-serif;font-size:1.1rem;font-weight:900;color:var(--cyan)">'+hw+'</div><div style="font-size:.6rem;color:var(--dim)">'+esc(p.username)+'</div></div>'
-        +'<div><div style="font-family:Orbitron,sans-serif;font-size:1.1rem;font-weight:900;color:var(--dim)">'+hd+'</div><div style="font-size:.6rem;color:var(--dim)">Draws</div></div>'
-        +'<div><div style="font-family:Orbitron,sans-serif;font-size:1.1rem;font-weight:900;color:var(--pink)">'+aw+'</div><div style="font-size:.6rem;color:var(--dim)">'+esc(myProfile.username)+'</div></div>'
-        +'</div></div>';
-    }
-  }
-
-  // Match history
-  var histHtml = ms.length ? '<div style="margin-top:.2rem">'
-    +'<div style="font-family:Orbitron,sans-serif;font-size:.58rem;color:var(--dim);letter-spacing:1.5px;margin-bottom:.5rem">RECENT MATCHES</div>'
-    +ms.slice(-5).reverse().map(function(m){
-      var opp  = allPlayers[m.homeId===uid?m.awayId:m.homeId];
-      var myG  = m.homeId===uid?m.hg:m.ag;
-      var oppG = m.homeId===uid?m.ag:m.hg;
-      var res  = myG>oppG?'W':myG===oppG?'D':'L';
-      var rc   = res==='W'?'var(--green)':res==='D'?'var(--gold)':'var(--pink)';
-      return '<div style="display:flex;align-items:center;justify-content:space-between;padding:.38rem 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:.76rem">'
-        +'<span style="color:var(--dim);font-size:.65rem">vs</span>'
-        +'<span style="font-weight:600;flex:1;padding:0 .4rem">'+esc(opp?opp.username:'?')+'</span>'
-        +'<span style="font-family:Orbitron,sans-serif;font-size:.78rem;color:var(--green);margin-right:.5rem">'+myG+'-'+oppG+'</span>'
-        +'<span style="font-weight:700;color:'+rc+';min-width:14px;text-align:center">'+res+'</span>'
-        +'</div>';
-    }).join('')+'</div>' : '';
-
-  var el = $('user-mo-content'); if (!el) return;
-  el.innerHTML =
-    '<div style="background:linear-gradient(135deg,rgba(0,212,255,0.1),rgba(0,255,133,0.06));padding:1.4rem 1rem 1rem;text-align:center">'
-    +'<div style="width:72px;height:72px;border-radius:50%;border:3px solid '+(club.color||'var(--cyan)')+';background:rgba(0,0,0,0.3);margin:0 auto .7rem;overflow:hidden;display:flex;align-items:center;justify-content:center">'
-    +(p.avatar&&p.avatar.startsWith('http')
-      ?'<img src="'+p.avatar+'" style="width:100%;height:100%;object-fit:cover">'
-      :(p.avatar&&p.avatar.length<10?'<span style="font-size:2rem">'+p.avatar+'</span>'
-        :'<span style="font-family:Orbitron,sans-serif;font-size:1.6rem;font-weight:900;color:var(--cyan)">'+(p.username||'?').charAt(0).toUpperCase()+'</span>'))
-    +'</div>'
-    +'<div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:1rem;margin-bottom:.25rem">'+esc(p.username||'')+'</div>'
-    +(rank>0?'<div style="font-size:.65rem;color:var(--gold);margin-bottom:.3rem">#'+rank+' in '+esc(lg.short||'')+'</div>':'')
-    +'<div style="display:flex;align-items:center;justify-content:center;gap:.4rem;flex-wrap:wrap;margin-bottom:.3rem">'
-    +clubBadge(p.club,p.league,18)
-    +'<span style="font-size:.7rem;color:'+(club.color||'#aaa')+'">'+esc(p.club)+'</span>'
-    +'<span style="font-size:.65rem;color:var(--dim)">'+esc(p.country||'')+'</span>'
-    +'</div>'
-    +(p.bio?'<div style="font-size:.72rem;color:var(--dim);font-style:italic">"'+esc(p.bio)+'"</div>':'')
-    +'<div style="font-size:.6rem;color:var(--dim);margin-top:.3rem">'+fmtAgo(p.lastSeen)+'</div>'
-    +'</div>'
-    +'<div style="display:grid;grid-template-columns:repeat(5,1fr);padding:.7rem .8rem;border-bottom:1px solid var(--border)">'
-    +[{v:pts,l:'PTS'},{v:ms.length,l:'P'},{v:wins,l:'W'},{v:draws,l:'D'},{v:losses,l:'L'}].map(function(s){
-      return '<div style="text-align:center"><div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:.88rem;color:var(--cyan)">'+s.v+'</div><div style="font-size:.55rem;color:var(--dim)">'+s.l+'</div></div>';
-    }).join('')+'</div>'
-    +(last5?'<div style="display:flex;align-items:center;gap:.4rem;padding:.5rem .8rem;border-bottom:1px solid var(--border)"><span style="font-size:.62rem;color:var(--dim)">Form</span>'+last5+'</div>':'')
-    +'<div style="padding:.6rem .8rem;border-bottom:1px solid var(--border)">'
-    +'<div style="font-family:Orbitron,sans-serif;font-size:.58rem;color:var(--dim);letter-spacing:1.5px;margin-bottom:.4rem">BADGES</div>'
-    +(typeof renderBadges==='function'?renderBadges(uid,30):'<span style="font-size:.7rem;color:var(--dim)">No badges yet</span>')
-    +'</div>'
-    +(h2hHtml?'<div style="padding:.5rem .8rem;border-bottom:1px solid var(--border)">'+h2hHtml+'</div>':'')
-    +(histHtml?'<div style="padding:.6rem .8rem;border-bottom:1px solid var(--border)">'+histHtml+'</div>':'')
-    +'<div style="display:flex;gap:.5rem;padding:.8rem;flex-wrap:wrap">'
-    +(myProfile&&myProfile.uid!==uid
-      ?'<button class="btn-primary" style="flex:1" onclick="closeMo('user-mo');openDMWith(''+uid+'',''+esc(p.username)+'')">Message</button>'
-       +'<button class="btn-secondary" style="flex:1" onclick="closeMo('user-mo');openReport(''+uid+'',''+esc(p.username)+'')">Report</button>'
-      :(isMine?'<button class="btn-primary" style="flex:1" onclick="closeMo('user-mo');goPage('profile')">My Profile</button>':''))
-    +'</div>';
-
+  var p = allPlayers[uid];
+  if (!p) return;
+  var lg   = LGS[p.league] || {};
+  var club = getClub(p.league, p.club);
+  var content = $('user-mo-content');
+  if (!content) return;
+  content.innerHTML = '<div style="text-align:center;padding:.5rem 0 1rem">'
+    + '<div style="display:flex;justify-content:center;margin-bottom:.7rem">' + clubBadge(p.club, p.league, 56) + '</div>'
+    + '<div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:1rem">' + esc(p.username) + '</div>'
+    + '<div style="font-size:.72rem;color:var(--dim);margin-top:3px">' + esc(p.country || '') + '</div>'
+    + '<div style="margin-top:.5rem">' + lgBadge(p.league) + '</div>'
+    + '<div style="font-size:.76rem;color:' + (club.color || '#888') + ';margin-top:.3rem">' + esc(p.club) + '</div>'
+    + (p.bio ? '<div style="font-size:.76rem;color:var(--dim);margin-top:.6rem;font-style:italic">"' + esc(p.bio) + '"</div>' : '')
+    + '<div style="font-size:.65rem;color:var(--dim);margin-top:.4rem">Last seen: ' + fmtAgo(p.lastSeen) + '</div>'
+    + '</div>'
+    + '<div style="display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap;padding-top:.5rem;border-top:1px solid var(--border)">'
+    + (myProfile && myProfile.uid !== uid
+        ? '<button class="btn-sm btn-outline" onclick="closeMo(\'user-mo\');openDMWith(\'' + uid + '\',\'' + esc(p.username) + '\')">💬 DM</button>'
+        + '<button class="btn-sm" style="background:rgba(255,40,130,0.12);border:1px solid rgba(255,40,130,0.3);color:var(--pink)" onclick="closeMo(\'user-mo\');openReport(\'' + uid + '\',\'' + esc(p.username) + '\')">🚩 Report</button>'
+        : '')
+    + '</div>';
   openMo('user-mo');
 }

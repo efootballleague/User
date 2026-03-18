@@ -291,41 +291,34 @@ select.inp option{background:#0e0018;color:var(--text)}
 .dm-result-row{display:flex;align-items:center;gap:.6rem;padding:.65rem .5rem;cursor:pointer;border-radius:8px;transition:.15s}
 .dm-result-row:hover{background:rgba(0,212,255,0.06)}
 
-.notif-bell-btn{position:relative;background:none;border:none;color:var(--dim);cursor:pointer;padding:.3rem;display:flex;align-items:center;justify-content:center;transition:.2s}
-.notif-bell-btn:hover{color:var(--cyan)}
-#notif-bell-badge{position:absolute;top:-2px;right:-2px;background:var(--pink);color:#fff;font-size:.52rem;font-weight:700;border-radius:8px;padding:1px 4px;min-width:14px;text-align:center;display:flex;align-items:center;justify-content:center;border:1.5px solid var(--bg)}
-
+/* PROFILE */
 .prof-cover{height:110px;background:linear-gradient(135deg,rgba(0,212,255,0.12),rgba(0,255,133,0.06));position:relative;background-size:cover;background-position:center;border-radius:12px 12px 0 0}
 .prof-avatar-wrap{position:absolute;bottom:-28px;left:1rem}
 .prof-avatar{width:56px;height:56px;border-radius:50%;border:3px solid var(--bg);background:rgba(0,212,255,0.12);display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer}
 .prof-info{padding:2rem 1rem .9rem;border-bottom:1px solid var(--border)}
 .prof-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:.4rem;padding:.9rem}
 .prof-stat-box{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:9px;padding:.6rem .4rem;text-align:center}
+/* UCL */
 .ucl-prizes{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin-bottom:1rem}
 .ucl-prize{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:.8rem .5rem;text-align:center}
 .ucl-prize.gold{border-color:rgba(255,230,0,0.3);background:rgba(255,230,0,0.05)}
-.ucl-prize.silver{border-color:rgba(200,200,200,0.2)}
+.ucl-prize.silver{border-color:rgba(200,200,200,0.2);background:rgba(200,200,200,0.04)}
 .ucl-prize.cyan{border-color:rgba(0,212,255,0.25);background:rgba(0,212,255,0.05)}
 .ucl-prize-label{font-size:.58rem;color:var(--dim);margin-bottom:.3rem}
 .ucl-prize-val{font-family:Orbitron,sans-serif;font-weight:900;font-size:.88rem;color:var(--gold)}
 .ucl-fee-box{background:rgba(0,212,255,0.05);border:1px solid rgba(0,212,255,0.15);border-radius:12px;padding:.9rem;margin-bottom:.8rem}
 .ucl-rules{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:.75rem;margin-bottom:.8rem}
+/* ADMIN */
 .admin-tabs{display:flex;gap:.35rem;overflow-x:auto;margin-bottom:.8rem;padding-bottom:2px}
-.atab{padding:.45rem .85rem;border-radius:8px;border:1.5px solid var(--border);background:transparent;color:var(--dim);font-family:"Exo 2",sans-serif;font-size:.74rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:.2s}
+.atab{padding:.45rem .85rem;border-radius:8px;border:1.5px solid var(--border);background:transparent;color:var(--dim);font-family:'Exo 2',sans-serif;font-size:.74rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:.2s}
 .atab.active{background:rgba(0,212,255,0.1);border-color:var(--cyan);color:var(--cyan)}
 .apanel{display:none}.apanel.active{display:block}
 .admin-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:.8rem;margin-bottom:.5rem}
-.admin-card.done{opacity:.6}.admin-card.banned{border-color:rgba(255,40,130,0.3)}
+.admin-card.done{opacity:.6}.admin-card.banned{border-color:rgba(255,40,130,0.3);background:rgba(255,40,130,0.04)}
+/* SWAP */
 .swap-row{display:flex;align-items:center;gap:.6rem;padding:.6rem .5rem;cursor:pointer;border-radius:8px;border:1.5px solid transparent;transition:.2s;margin-bottom:.3rem}
 .swap-row:hover{background:rgba(0,212,255,0.06);border-color:rgba(0,212,255,0.2)}
-.pred-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:.9rem;margin-bottom:.6rem;position:relative;overflow:hidden}
-.pred-card.big-match{border-color:rgba(255,40,40,0.5);box-shadow:0 0 20px rgba(255,40,40,0.15)}
-.pred-card.big-match::before{content:"";position:absolute;inset:0;border-radius:14px;border:2px solid rgba(255,60,60,0.4);animation:bigPulse 2s ease-in-out infinite;pointer-events:none}
-@keyframes bigPulse{0%,100%{box-shadow:inset 0 0 0 0 rgba(255,40,40,0.2)}50%{box-shadow:inset 0 0 20px 2px rgba(255,40,40,0.15)}}
-.big-match-banner{display:flex;align-items:center;gap:.4rem;margin-bottom:.6rem;padding:.35rem .6rem;background:rgba(255,30,30,0.12);border-radius:7px;border:1px solid rgba(255,30,30,0.25)}
-.big-match-pulse{width:8px;height:8px;border-radius:50%;background:#ff3030;flex-shrink:0;animation:dotPulse 1s ease-in-out infinite}
-@keyframes dotPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,48,48,.6)}50%{box-shadow:0 0 0 5px rgba(255,48,48,0)}}
-.big-match-banner span{font-size:.62rem;font-weight:700;color:#ff6060;font-family:Orbitron,sans-serif;letter-spacing:1px}
+
 </style>
 </head>
 <body>
@@ -405,9 +398,8 @@ select.inp option{background:#0e0018;color:var(--text)}
   <button class="drawer-btn" onclick="closeDrawer();goPage('leaderboard')"><span class="drawer-icon">📈</span> Leaderboard</button>
   <button class="drawer-btn" onclick="closeDrawer();goPage('polls')"><span class="drawer-icon">📊</span> Polls<span id="polls-badge" class="drawer-badge hidden"></span></button>
   <button class="drawer-btn" onclick="closeDrawer();openMessenger('dms')"><span class="drawer-icon">💬</span> Messages<span id="pm-badge" class="drawer-badge hidden"></span></button>
-  <button class="drawer-btn" onclick="closeDrawer();goPage('matchprep')"><span class="drawer-icon">🔄</span> Swap Requests<span id="swap-badge" class="drawer-badge hidden"></span></button>
   <button class="drawer-btn" onclick="closeDrawer();goPage('referee')"><span class="drawer-icon">🟢</span> Referee Panel<span id="ref-badge" class="drawer-badge hidden"></span></button>
-  <button class="drawer-btn" onclick="closeDrawer();goPage('ucl')"><span class="drawer-icon">🏆</span> UCL<span id="ucl-badge" class="drawer-badge hidden"></span></button>
+  <button class="drawer-btn" onclick="closeDrawer();goPage('ucl')"><span class="drawer-icon">🏆</span> UCL</button>
   <div class="drawer-divider"></div>
   <button class="drawer-btn danger" id="drawer-admin-btn" onclick="closeDrawer();goPage('admin')" style="display:none"><span class="drawer-icon">🛡</span> Admin Panel</button>
   <button class="drawer-btn danger" id="drawer-signout-btn" onclick="closeDrawer();doLogout()" style="display:none"><span class="drawer-icon">🚪</span> Sign Out</button>
@@ -421,7 +413,6 @@ select.inp option{background:#0e0018;color:var(--text)}
     <span class="topbar-logo-text">eFOOTBALL</span>
   </div>
   <div id="nav-right">
-    <button id="notif-bell" class="notif-bell-btn" onclick="openNotifPanel()" style="display:none"><svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span id="notif-bell-badge" style="display:none"></span></button>
     <button class="btn-sm btn-outline" onclick="lTab('in');showLanding()">Login</button>
     <button class="btn-sm btn-accent" onclick="lTab('up');showLanding()">Join</button>
   </div>
@@ -435,7 +426,6 @@ select.inp option{background:#0e0018;color:var(--text)}
       <div style="flex:1"><div class="home-hero-title"><span class="c-cyan">eFootball</span> <span class="c-green">Universe</span></div><div class="home-hero-sub">Season 2024/25 — <span class="c-green">Live</span></div></div>
       <div id="home-cta"><button class="btn-sm btn-accent" onclick="lTab('up');showLanding()">Join</button></div>
     </div>
-    <div id="season-banner-home"></div>
     <div class="stats-grid">
       <div class="stat-box"><div class="stat-val" id="st-p">-</div><div class="stat-lbl">Players</div></div>
       <div class="stat-box"><div class="stat-val" id="st-m">-</div><div class="stat-lbl">Matches</div></div>
@@ -486,7 +476,7 @@ select.inp option{background:#0e0018;color:var(--text)}
   <!-- MATCH PREP -->
   <div class="page" id="page-matchprep">
     <div id="my-swap-section"></div>
-    <div class="page-header"><div class="section-title c-gold">Match Prep</div><div id="autosched-btn-wrap"></div></div>
+    <div class="page-header"><div class="section-title c-gold">Match Prep</div><button class="btn-sm btn-outline" onclick="autoScheduleLeague()">Auto-Schedule</button></div>
     <div class="section-header"><div class="section-title c-cyan" style="font-size:.68rem">MATCH ROOMS</div><div class="section-line"></div></div>
     <div id="match-rooms-wrap"><div id="match-rooms-list"><div class="card empty">Loading...</div></div><div id="match-room-panel" class="hidden"></div></div>
     <div class="section-header"><div class="section-title c-green" style="font-size:.65rem">UPCOMING SCHEDULED</div></div>
@@ -498,9 +488,6 @@ select.inp option{background:#0e0018;color:var(--text)}
   </div>
   <!-- PREDICTIONS -->
   <div class="page" id="page-predict"><div class="card empty" style="margin-top:1rem">Loading predictions...</div></div>
-  <!-- PREDICTIONS -->
-  <div class="page" id="page-predict"><div class="card empty" style="margin-top:1rem">Loading...</div></div>
-
   <!-- UCL -->
   <div class="page" id="page-ucl"><div class="card empty" style="margin-top:1rem">UCL coming in Batch 3</div></div>
   <!-- REFEREE -->
@@ -532,10 +519,10 @@ select.inp option{background:#0e0018;color:var(--text)}
     <span>Match</span><span class="nb-badge hidden" id="matchroom-badge"></span>
   </button>
   <button class="nb" data-page="predict" onclick="goPage('predict')">
-    <svg viewBox="0 0 24 24" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>Predict</span><span class="nb-badge hidden" id="predict-badge"></span>
+    <svg viewBox="0 0 24 24" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>Predict</span>
   </button>
   <button class="nb" data-page="fixtures" onclick="goPage('fixtures')">
-    <svg viewBox="0 0 24 24" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Fixtures</span><span class="nb-badge hidden" id="fixtures-badge"></span>
+    <svg viewBox="0 0 24 24" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Fixtures</span>
   </button>
 </nav>
 
@@ -654,17 +641,62 @@ select.inp option{background:#0e0018;color:var(--text)}
 <script src="swap.js"></script>
 <script src="ucl.js"></script>
 <script src="admin.js"></script>
-<script src="seeder.js"></script>
+<script>
+  // Wire up goPage for predictions + chat messenger
+  var _coreGoPage = goPage;
+  goPage = function(name) {
+    _coreGoPage(name);
+    if (name === 'chat') renderMessenger();
+    if (name === 'predict') renderPredictions();
+    if (name === 'referee') renderRefPanel();
+    // Show/hide FAB
+    var fab = document.getElementById('chat-fab');
+    if (fab) fab.style.display = (name === 'chat') ? 'none' : (myProfile ? 'flex' : 'none');
+  };
 
+  // Update topbar when logged in — show club badge instead of Login/Join
+  var _coreUpdateNav = updateNav;
+  updateNav = function() {
+    _coreUpdateNav();
+    var e = document.getElementById('nav-right');
+    if (!e) return;
+    if (myProfile && myProfile.username) {
+      var club = getClub(myProfile.league, myProfile.club);
+      var init = myProfile.username.charAt(0).toUpperCase();
+      e.innerHTML = '<button class="topbar-club-btn" onclick="goPage(\'profile\')" title="' + esc(myProfile.username) + '">'
+        + (club && club.logo ? '<img src="' + club.logo + '" onerror="this.outerHTML=\'' + init + '\'">' : init)
+        + '</button>';
+      // Show FAB when logged in
+      var fab = document.getElementById('chat-fab');
+      if (fab && activePage() !== 'chat') fab.style.display = 'flex';
+    }
+  };
+
+  // Stubs for batch 2/3
+  // All features now loaded from their respective files
+  function renderHomeStats(){
+    var ps=Object.keys(allPlayers).length,ms=Object.values(allMatches);
+    var played=ms.filter(function(m){return m.played;}).length;
+    var sp=document.getElementById('st-p'),sm=document.getElementById('st-m'),sf=document.getElementById('st-f');
+    if(sp)sp.textContent=ps; if(sm)sm.textContent=played; if(sf)sf.textContent=ms.length;
+  }
+
+  try { initApp(); } catch(e) {
+    console.error('Init error:',e);
+    hideLoader();
+    var h=document.getElementById('page-home');
+    if(h)h.classList.add('active');
+  }
+</script>
 
 <!-- POSTPONE REQUEST -->
 <div class="modal" id="postpone-req-mo" onclick="if(event.target===this)closeMo('postpone-req-mo')">
   <div class="modal-box"><button class="modal-close" onclick="closeMo('postpone-req-mo')">&#10005;</button>
     <h3 class="modal-title">Request Postpone</h3>
     <input type="hidden" id="ppr-mid">
-    <p style="font-size:.76rem;color:var(--dim);margin-bottom:.7rem">Choose a preferred date and give a reason.</p>
+    <p style="font-size:.76rem;color:var(--dim);margin-bottom:.7rem">Choose a preferred date and give a reason. Admin will decide.</p>
     <div class="form-group"><label class="lbl">Preferred Date & Time</label><input class="inp" id="ppr-date" type="datetime-local"></div>
-    <div class="form-group"><label class="lbl">Reason</label><textarea class="inp" id="ppr-reason" rows="3" maxlength="200" placeholder="e.g. Internet issues..."></textarea></div>
+    <div class="form-group"><label class="lbl">Reason</label><textarea class="inp" id="ppr-reason" rows="3" maxlength="200" placeholder="e.g. Internet issues, travelling..."></textarea></div>
     <div class="errmsg" id="ppr-err"></div>
     <button class="btn-primary full-width" onclick="submitPostponeRequest()">Submit Request</button>
   </div>
@@ -742,7 +774,7 @@ select.inp option{background:#0e0018;color:var(--text)}
     <div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin:1rem 0">
       <div style="flex:1;text-align:center"><div id="predict-home-badge"></div><div id="predict-home-name" style="font-size:.76rem;font-weight:700;margin-top:.3rem"></div></div>
       <div style="text-align:center">
-        <div style="display:flex;align-items:center;gap:.4rem">
+        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem">
           <div style="display:flex;align-items:center;gap:.3rem">
             <button class="step-btn" onclick="predStep('h',-1)">&#8722;</button>
             <span id="pred-hg" style="font-family:Orbitron,sans-serif;font-size:1.4rem;font-weight:900;color:var(--green);min-width:24px;text-align:center">0</span>
@@ -823,75 +855,8 @@ select.inp option{background:#0e0018;color:var(--text)}
   </div>
 </div>
 
-<!-- NOTIFICATION PANEL -->
-<div class="modal" id="notif-panel-mo" onclick="if(event.target===this)closeMo('notif-panel-mo')">
-  <div class="modal-box"><button class="modal-close" onclick="closeMo('notif-panel-mo')">&#10005;</button>
-    <h3 class="modal-title">&#128276; Notifications</h3>
-    <div id="notif-panel-list"><div style="color:var(--dim);text-align:center;padding:1rem;font-size:.78rem">Loading...</div></div>
-  </div>
-</div>
+<!-- SEASON BANNER -->
+<div id="season-banner" style="display:none"></div>
 
-
-<script>
-  // Wire up goPage for predictions + chat messenger
-  var _coreGoPage = goPage;
-  goPage = function(name) {
-    _coreGoPage(name);
-    if (name === 'chat') renderMessenger();
-    if (name === 'predict') renderPredictions();
-    if (name === 'referee') renderRefPanel();
-    // Show/hide FAB
-    var fab = document.getElementById('chat-fab');
-    if (fab) fab.style.display = (name === 'chat') ? 'none' : (myProfile ? 'flex' : 'none');
-  };
-
-  // Update topbar when logged in — show club badge instead of Login/Join
-  var _coreUpdateNav = updateNav;
-  updateNav = function() {
-    _coreUpdateNav();
-    var e = document.getElementById('nav-right');
-    if (!e) return;
-    if (myProfile && myProfile.username) {
-      var club = getClub(myProfile.league, myProfile.club);
-      var init = myProfile.username.charAt(0).toUpperCase();
-      e.innerHTML = '<button class="topbar-club-btn" onclick="goPage(\'profile\')" title="' + esc(myProfile.username) + '">'
-        + (club && club.logo ? '<img src="' + club.logo + '" onerror="this.outerHTML=\'' + init + '\'">' : init)
-        + '</button>';
-      // Show FAB when logged in
-      var fab = document.getElementById('chat-fab');
-      if (fab && activePage() !== 'chat') fab.style.display = 'flex';
-    }
-  };
-
-  // Stubs for batch 2/3
-  function renderMatchRooms() { var el=document.getElementById('match-rooms-list'); if(el)el.innerHTML='<div class="card empty">Open the Messages icon to access match rooms.</div>'; }
-  function renderPolls(){}
-  function renderLeaderboard(){}
-  function renderMyPredictions(){}
-  function renderPredLeaderboard(){}
-  function renderProfile(){ var el=document.getElementById('profile-content'); if(el)el.innerHTML='<div class="card empty" style="margin-top:1rem">Profile coming in Batch 2</div>'; }
-  function renderUCL(){}
-  function renderPollBadge(){}
-  function loadAdmin(){ var el=document.getElementById('page-admin'); if(el)el.innerHTML='<div class="card empty" style="margin-top:1rem">Admin Panel coming in Batch 3</div>'; }
-  function initSwap(){}
-  function listenMatchRooms(){}
-  function acceptSwap(){}
-  function declineSwap(){}
-  function openRestrictModal(){}
-  function _openPredictModal(){ toast('Predictions system coming in Batch 2','error'); }
-  function renderHomeStats(){
-    var ps=Object.keys(allPlayers).length,ms=Object.values(allMatches);
-    var played=ms.filter(function(m){return m.played;}).length;
-    var sp=document.getElementById('st-p'),sm=document.getElementById('st-m'),sf=document.getElementById('st-f');
-    if(sp)sp.textContent=ps; if(sm)sm.textContent=played; if(sf)sf.textContent=ms.length;
-  }
-
-  try { initApp(); } catch(e) {
-    console.error('Init error:',e);
-    hideLoader();
-    var h=document.getElementById('page-home');
-    if(h)h.classList.add('active');
-  }
-</script>
 </body>
 </html>

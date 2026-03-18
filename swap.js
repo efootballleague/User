@@ -18,8 +18,6 @@ function initSwap() {
     var count = Object.keys(incoming).length;
     setBadge('swap-badge', count);
     if (activePage() === 'matchprep') renderMySwapSection();
-    // Update universal badges
-    if (typeof refreshAllBadges === 'function') refreshAllBadges();
   });
 }
 
@@ -121,9 +119,7 @@ function sendSwapRequest() {
 function acceptSwap(key) {
   if (!myProfile || !db) return;
   var req = _swapRequests[key]; if (!req) return;
-  // Auto-accept for seeded test accounts
-  var isSeeded = allPlayers[myProfile.uid] && allPlayers[myProfile.uid].isSeeded;
-  if (!isSeeded && !confirm('Accept swap? Your club will change to ' + req.fromClub + '.')) return;
+  if (!confirm('Accept swap? Your club will change to ' + req.fromClub + '.')) return;
 
   // Swap clubs in database
   var updates = {};

@@ -254,19 +254,13 @@ function castVote(key, optIndex) {
 
 function createPoll() {
   if (!myProfile || !db) return;
-  if (!me || me.email !== ADMIN_EMAIL) { toast('Admin only.', 'error'); return; }
   var q    = $('poll-question').value.trim();
   var opts = [$('poll-opt1').value.trim(), $('poll-opt2').value.trim(), $('poll-opt3').value.trim(), $('poll-opt4').value.trim()].filter(Boolean);
   var err  = $('poll-err'); err.textContent = '';
-  if (!q)              { err.textContent = 'Enter a question.'; return; }
+  if (!q)         { err.textContent = 'Enter a question.'; return; }
   if (opts.length < 2) { err.textContent = 'Need at least 2 options.'; return; }
-  // Admin polls are auto-pinned
-  db.ref(DB.polls).push({ question:q, options:opts, votes:{}, active:true, pinned:true, ts:Date.now(), createdBy:myProfile.uid })
-    .then(function () {
-      closeMo('create-poll-mo');
-      $('poll-question').value=''; $('poll-opt1').value=''; $('poll-opt2').value=''; $('poll-opt3').value=''; $('poll-opt4').value='';
-      toast('Poll created and pinned!'); renderPolls();
-    });
+  db.ref(DB.polls).push({ question:q, options:opts, votes:{}, active:true, ts:Date.now(), createdBy:myProfile.uid })
+    .then(function () { closeMo('create-poll-mo'); toast('Poll created!'); renderPolls(); });
 }
 
 function closePoll(key)  { db.ref(DB.polls + '/' + key + '/active').set(false).then(function () { toast('Poll closed.'); renderPolls(); }); }
@@ -474,47 +468,12 @@ function seasonReset() {
 // ── NOTIFICATIONS LISTENER ───────────────────────────────────
 function listenNotifs() {
   if (!myProfile || !db) return;
-  var ref     = db.ref(DB.notifs + '/' + me.uid).orderByChild('ts').limitToLast(20);
+  var ref     = db.ref(DB.notifs + '/' + me.uid).orderByChild('ts').limitToLast(10);
   var handler = ref.on('child_added', function (s) {
     var n = s.val(); if (!n || n.read) return;
     s.ref.update({ read: true });
     showNotifBanner(n);
-    updateNotifBadge();
   });
-}
-
-function updateNotifBadge() {
-  if (!myProfile || !db) return;
-  db.ref(DB.notifs + '/' + me.uid).orderByChild('read').equalTo(false).once('value', function(s) {
-    var count = Object.keys(s.val() || {}).length;
-    var bell = $('notif-bell-badge');
-    if (bell) { bell.textContent = count > 9 ? '9+' : count; bell.style.display = count > 0 ? 'flex' : 'none'; }
-  });
-}
-
-function openNotifPanel() {
-  if (!myProfile || !db) return;
-  db.ref(DB.notifs + '/' + me.uid).orderByChild('ts').limitToLast(20).once('value', function(s) {
-    var notifs = Object.values(s.val() || {}).sort(function(a,b){ return (b.ts||0)-(a.ts||0); });
-    var el = $('notif-panel-list'); if (!el) return;
-    if (!notifs.length) { el.innerHTML = '<div style="color:var(--dim);font-size:.78rem;text-align:center;padding:1rem">No notifications yet.</div>'; return; }
-    el.innerHTML = notifs.map(function(n) {
-      return '<div style="display:flex;align-items:flex-start;gap:.6rem;padding:.65rem 0;border-bottom:1px solid var(--border)">'
-        + '<div style="font-size:1rem;flex-shrink:0">&#128276;</div>'
-        + '<div style="flex:1"><div style="font-weight:700;font-size:.78rem">'+esc(n.title||'')+'</div>'
-        + '<div style="font-size:.7rem;color:var(--dim)">'+esc(n.body||'')+'</div>'
-        + '<div style="font-size:.6rem;color:var(--dim);margin-top:2px">'+fmtAgo(n.ts)+'</div></div>'
-        + '</div>';
-    }).join('');
-    // Mark all read
-    db.ref(DB.notifs + '/' + me.uid).once('value', function(s2) {
-      var updates = {};
-      Object.keys(s2.val()||{}).forEach(function(k){ updates[k+'/read'] = true; });
-      db.ref(DB.notifs + '/' + me.uid).update(updates);
-    });
-    var bell = $('notif-bell-badge'); if (bell) bell.style.display = 'none';
-  });
-  openMo('notif-panel-mo');
 }
 
 function showNotifBanner(n) {

@@ -364,88 +364,6 @@ function refreshAll() {
   else if (pg === 'polls') renderPolls();
 }
 
-
-// ── UNIVERSAL BADGE REFRESH ───────────────────────────────────
-// Called on every data change — updates every red dot in the app
-function refreshAllBadges() {
-  if (!myProfile) return;
-  var uid = myProfile.uid;
-
-  // ── MATCH button badge ────────────────────────────────────
-  // Counts: your unplayed fixtures + pending results needing action
-  var matchCount = Object.values(allMatches).filter(function(m) {
-    if (m.played) return false;
-    var isMine = m.homeId === uid || m.awayId === uid || m.refereeUID === uid;
-    if (!isMine) return false;
-    // Needs attention: awaiting verification, pending ref review, or you're assigned ref
-    return m.awayVerifying && m.awayId === uid    // away needs to verify
-      || (m.pendingResult && m.refereeUID === uid) // ref needs to review
-      || (m.refStatus === 'rejected' && (m.homeId === uid || m.awayId === uid)); // result rejected
-  }).length;
-  setBadge('matchroom-badge', matchCount);
-
-  // ── FIXTURES button badge ─────────────────────────────────
-  // Counts: your fixtures needing immediate action
-  var fixCount = Object.values(allMatches).filter(function(m) {
-    if (m.played) return false;
-    return (m.awayVerifying && m.awayId === uid && !m.awayDispute)  // must verify
-      || (m.refStatus === 'rejected' && (m.homeId === uid || m.awayId === uid)); // rejected - resubmit
-  }).length;
-  setBadge('fixtures-badge', fixCount);
-
-  // ── PREDICT button badge ──────────────────────────────────
-  // Counts: upcoming fixtures you haven't predicted yet (not your own matches)
-  if (db) {
-    db.ref('ef_predictions/' + uid).once('value', function(s) {
-      var predicted = Object.keys(s.val() || {});
-      var unpredicted = Object.values(allMatches).filter(function(m) {
-        return !m.played
-          && m.homeId !== uid && m.awayId !== uid  // not your match
-          && !predicted.includes(m.id);            // not predicted yet
-      }).length;
-      setBadge('predict-badge', unpredicted > 9 ? 9 : unpredicted);
-    });
-  }
-
-  // ── REFEREE badge ─────────────────────────────────────────
-  var refCount = Object.values(allMatches).filter(function(m) {
-    return !m.played && (
-      (m.refereeUID === uid && m.pendingResult)           // ref duty
-      || (m.awayId === uid && m.awayVerifying && !m.awayDispute) // away verify
-    );
-  }).length;
-  setBadge('ref-badge', refCount);
-
-  // ── POLLS badge ───────────────────────────────────────────
-  var unseenPolls = Object.values(allPolls || {}).filter(function(p) {
-    return p.active && !(p.votes && p.votes[uid]);
-  }).length;
-  setBadge('polls-badge', unseenPolls);
-
-  // ── SWAP badge ────────────────────────────────────────────
-  if (db) {
-    db.ref(DB.swaps).orderByChild('toUID').equalTo(uid).once('value', function(s) {
-      var pending = Object.values(s.val() || {}).filter(function(r) {
-        return r.status === 'pending';
-      }).length;
-      setBadge('swap-badge', pending);
-    });
-  }
-
-  // ── UCL badge ─────────────────────────────────────────────
-  // Show if qualified but not paid
-  var fee = parseFloat(uclSettings.fee) || 0;
-  if (fee > 0) {
-    var seeds = [];
-    UCL_LEAGUES.forEach(function(lid) {
-      computeStd(lid).slice(0, 4).forEach(function(r) { seeds.push(r.uid); });
-    });
-    var isQualified = seeds.includes(uid);
-    var hasPaid = uclPayments[uid] && uclPayments[uid].status === 'confirmed';
-    setBadge('ucl-badge', (isQualified && !hasPaid) ? 1 : 0);
-  }
-}
-
 // ── ONLINE PRESENCE ───────────────────────────────────────────
 function setOnline() {
   if (!myProfile || !db) return;
@@ -514,7 +432,6 @@ function renderRecentRes()       { /* pages.js */ }
 function renderTopPlayers()      { /* pages.js */ }
 function renderMatchPrep()       { /* pages.js */ }
 function renderSchedTimeline()   { /* pages.js */ }
-function renderPredictions()     { /* pages.js  */ }
 function renderUCL()             { /* ucl.js    */ }
 function renderPolls()           { /* features.js */ }
 function renderLeaderboard()     { /* features.js */ }
@@ -628,8 +545,16 @@ function startListeners(authTimeout, onResolved) {
         var data = s.val();
 
         if (!data || !data.username) {
-          hideLoader();
-          showLanding();
+          // New Google user who needs to complete profile
+          if (user.providerData && user.providerData[0] && user.providerData[0].providerId === 'google.com') {
+            hideLoader();
+            if (typeof openGoogleSetup === 'function') openGoogleSetup(user);
+            else showLanding();
+          } else {
+            // Email user with no profile — show landing
+            hideLoader();
+            showLanding();
+          }
           return;
         }
 

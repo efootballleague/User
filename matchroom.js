@@ -294,7 +294,49 @@ function openPostponeRequest(mid) {
     if (typeof adminPostponeMatch === 'function') adminPostponeMatch(mid);
   } else {
     if (typeof openUserPostpone === 'function') openUserPostpone(mid);
+    else {
+      // Fallback to the postpone request modal
+      var inp = $('ppr-mid'); if (inp) inp.value = mid;
+      var err = $('ppr-err'); if (err) err.textContent = '';
+      var dateInp = $('ppr-date'); if (dateInp) dateInp.value = '';
+      var reason = $('ppr-reason'); if (reason) reason.value = '';
+      openMo('postpone-req-mo');
+    }
   }
+}
+
+// ── SUBMIT POSTPONE REQUEST — saves a request for admin to approve ──
+function submitPostponeRequest() {
+  var mid    = $('ppr-mid') ? $('ppr-mid').value : '';
+  var date   = $('ppr-date') ? $('ppr-date').value : '';
+  var reason = $('ppr-reason') ? $('ppr-reason').value.trim() : '';
+  var err    = $('ppr-err');
+  if (err) err.textContent = '';
+
+  if (!mid)    { if (err) err.textContent = 'No match selected.'; return; }
+  if (!reason) { if (err) err.textContent = 'Please give a reason.'; return; }
+  if (!myProfile || !db) { if (err) err.textContent = 'You must be logged in.'; return; }
+
+  var btn = document.querySelector('#postpone-req-mo .btn-primary');
+  if (btn) { btn.textContent = 'Sending...'; btn.disabled = true; }
+
+  var updates = {
+    postponeReq:     true,
+    postponeReqBy:   myProfile.uid,
+    postponeReqAt:   Date.now(),
+    postponeReqNote: reason
+  };
+  if (date) updates.postponeReqDate = new Date(date).getTime();
+
+  db.ref(DB.matches + '/' + mid).update(updates).then(function() {
+    closeMo('postpone-req-mo');
+    toast('Postpone request sent to admin.');
+    if (btn) { btn.textContent = 'Submit Request'; btn.disabled = false; }
+    renderMatchRooms();
+  }).catch(function() {
+    if (err) err.textContent = 'Failed. Try again.';
+    if (btn) { btn.textContent = 'Submit Request'; btn.disabled = false; }
+  });
 }
 
 function approvePostpone(mid) {

@@ -341,7 +341,59 @@ function notifyBothPlayers(mid, msg) {
   sendNotif(m.awayId,{title:'Match Update',body:msg,icon:'result',type:'result'});
 }
 
-// ── AUTO-APPROVE (defined in matchroom.js, stub here for safety) ──
+// ── AUTO-APPROVE CHECKER — called on matches load ────────────
+// checkPendingAutoApprovals is defined in matchroom.js — single source of truth
+
+// ── LISTEN REF DUTIES — keeps badge updated live ─────────────
+function listenRefDuties() {
+  if (!myProfile || !db) return;
+  db.ref(DB.matches).orderByChild('refereeUID').equalTo(myProfile.uid).on('value', function() {
+    if (activePage() === 'referee') renderRefPanel();
+    var uid = myProfile.uid;
+    var count = Object.values(allMatches).filter(function(m) {
+      return (m.refereeUID===uid || m.homeId===uid || m.awayId===uid)
+        && (m.awayVerifying || m.awayDispute || m.pendingResult)
+        && !_isSettled(m);
+    }).length;
+    setBadge('ref-badge', count);
+  });
+}
+
+function _isSettled(m) {
+  return m.played && !m.pendingResult && !m.awayVerifying && !m.awayDispute;
+}
+
+// ── ADMIN FORCE RESULT ───────────────────────────────────────
+function adminForceResult(mid) {
+  if (!me || me.email !== ADMIN_EMAIL) return;
+  var m = allMatches[mid]; if (!m) return;
+  var hgStr = prompt('Home goals:', m.hg || m.pendingHg || 0);
+  if (hgStr === null) return;
+  var agStr = prompt('Away goals:', m.ag || m.pendingAg || 0);
+  if (agStr === null) return;
+  var hg = parseInt(hgStr), ag = parseInt(agStr);
+  if (isNaN(hg) || isNaN(ag)) { toast('Invalid scores.', 'error'); return; }
+  db.ref(DB.matches + '/' + mid).update({
+    played:        true,
+    hg:            hg,
+    ag:            ag,
+    playedAt:      Date.now(),
+    pendingResult: false,
+    awayVerifying: false,
+    awayDispute:   false,
+    refStatus:     'admin_forced',
+    forcedBy:      me.uid,
+    forcedAt:      Date.now()
+  }).then(function() {
+    toast('Result forced: ' + hg + '-' + ag);
+    renderRefPanel();
+    renderMatchRooms();
+    notifyBothPlayers(mid, 'Admin set result: ' + hg + '-' + ag + '.');
+    if (typeof checkSeasonEnd === 'function') checkSeasonEnd();
+  }).catch(function() { toast('Failed. Try again.', 'error'); });
+}
+
+
 if (typeof scheduleAutoClose === 'undefined') {
   function scheduleAutoClose(mid,deadline){ var d=deadline-Date.now(); if(d<0){runAutoClose(mid);return;} setTimeout(function(){runAutoClose(mid);},Math.min(d,2147483647)); }
   function runAutoClose(mid){ if(!db)return; db.ref(DB.matches+'/'+mid).once('value',function(s){ var m=s.val();if(!m||m.awayDispute)return; if(m.played&&!m.pendingResult)return; db.ref(DB.matches+'/'+mid).update({played:true,hg:m.hg||m.pendingHg||0,ag:m.ag||m.pendingAg||0,playedAt:Date.now(),pendingResult:false,awayVerifying:false,refStatus:'auto_approved'}).then(function(){ notifyBothPlayers(mid,'Result auto-approved after 48h.'); if(typeof checkSeasonEnd==='function')checkSeasonEnd(); }); }); }

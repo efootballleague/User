@@ -124,37 +124,56 @@ function doRegConfirm() {
     return;
   }
 
+  var profileData = {
+    uid:      '',  // filled in below
+    username: u,
+    email:    em,
+    country:  c,
+    league:   l,
+    club:     drawnClub,
+    avatar:   '',
+    bio:      '',
+    joinedAt: Date.now(),
+    lastSeen: Date.now(),
+    banned:   false
+  };
+
   auth.createUserWithEmailAndPassword(em, pw)
     .then(function (cred) {
       var uid = cred.user.uid;
-      return db.ref(DB.players + '/' + uid).set({
-        uid:      uid,
-        username: u,
-        email:    em,
-        country:  c,
-        league:   l,
-        club:     drawnClub,
-        avatar:   '',
-        bio:      '',
-        joinedAt: Date.now(),
-        lastSeen: Date.now(),
-        banned:   false
-      });
+      profileData.uid = uid;
+      // ── KEY FIX ──────────────────────────────────────────────
+      // Set myProfile and me BEFORE the DB write so that when
+      // onAuthStateChanged fires during createUser it finds a valid
+      // profile and does not redirect back to the landing page.
+      me        = cred.user;
+      myProfile = profileData;
+      // ─────────────────────────────────────────────────────────
+      return db.ref(DB.players + '/' + uid).set(profileData);
     })
     .then(function () {
+      var joinedLeague = l;
       btn.textContent = '✓ Confirm'; btn.disabled = false;
-      toast('Welcome to eFootball Universe! 🎉');
-      var joinedLeague = $('ru-league').value;
       // Reset form
       $('ru-name').value = ''; $('ru-em').value = ''; $('ru-pw').value = '';
       $('ru-country').value = ''; $('ru-league').value = '';
       $('reg-step3').classList.add('hidden');
       $('reg-step1').style.display = '';
       drawnClub = null;
+      // Enter app immediately — profile already set above
+      enterApp();
+      setOnline();
+      listenUnread();
+      listenGlobalDMs();
+      initRefereeSystem();
+      listenMatchRooms();
+      initSwap();
+      toast('Welcome to eFootball Universe! 🎉');
       // Auto-start league if now full
       checkLeagueAutoStart(joinedLeague);
     })
     .catch(function (e) {
+      myProfile = null; me = null;
       var msg = 'Registration failed. Try again.';
       if (e.code === 'auth/email-already-in-use') msg = 'Email already registered. Try signing in.';
       if (e.code === 'auth/invalid-email')        msg = 'Invalid email address.';

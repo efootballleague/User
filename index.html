@@ -60,7 +60,7 @@ select.inp option{background:#0e0018;color:var(--text)}
 #topbar{position:fixed;top:0;left:0;right:0;z-index:200;height:54px;padding:0 1rem;background:rgba(10,0,16,0.95);backdrop-filter:blur(14px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;transition:box-shadow .2s}
 #topbar.scrolled{box-shadow:0 2px 20px rgba(0,0,0,.6)}
 #hamburger{width:38px;height:38px;background:none;border:none;cursor:pointer;display:flex;flex-direction:column;justify-content:center;gap:5px;padding:6px;flex-shrink:0}
-#hamburger span{display:block;height:2px;background:var(--text);border-radius:2px;transition:.3s}
+#hamburger span{display:block;width:100%;height:2.5px;background:var(--cyan);border-radius:2px;transition:.3s}
 #hamburger.open span:nth-child(1){transform:translateY(7px) rotate(45deg)}
 #hamburger.open span:nth-child(2){opacity:0}
 #hamburger.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
@@ -108,7 +108,7 @@ select.inp option{background:#0e0018;color:var(--text)}
 .nb-center-ring svg{stroke:#000;width:22px;height:22px}
 .nb-badge{position:absolute;top:5px;right:calc(50% - 18px);background:var(--pink);color:#fff;font-size:.52rem;font-weight:700;border-radius:9px;padding:1px 4px;min-width:15px;text-align:center}
 /* TOAST */
-#toast{position:fixed;bottom:calc(70px + var(--safe-bottom));left:50%;transform:translateX(-50%) translateY(8px);background:rgba(0,212,255,0.12);border:1.5px solid var(--cyan);color:var(--cyan);padding:.55rem 1.2rem;border-radius:10px;font-size:.8rem;font-weight:600;display:none;z-index:9998;white-space:nowrap;transition:opacity .3s,transform .3s;pointer-events:none}
+#toast{position:fixed;bottom:calc(70px + var(--safe-bottom));left:50%;transform:translateX(-50%) translateY(8px);background:rgba(0,212,255,0.12);border:1.5px solid var(--cyan);color:var(--cyan);padding:.55rem 1.2rem;border-radius:10px;font-size:.8rem;font-weight:600;display:none;z-index:9998;white-space:normal;word-break:break-word;text-align:center;max-width:calc(100vw - 2rem);width:max-content;transition:opacity .3s,transform .3s;pointer-events:none}
 /* NOTIF */
 #notif-wrap{position:fixed;top:62px;right:.8rem;z-index:500;display:flex;flex-direction:column;gap:.4rem;max-width:290px;pointer-events:none}
 .notif-banner{background:#0e0018;border:1px solid rgba(0,212,255,0.2);border-radius:12px;padding:.65rem .85rem;display:flex;align-items:flex-start;gap:.55rem;box-shadow:0 4px 20px rgba(0,0,0,.6);animation:nSlide .3s ease;pointer-events:all}
@@ -382,6 +382,18 @@ select.inp option{background:#0e0018;color:var(--text)}
 
 /* Section headers less margin */
 .section-header { margin: .9rem 0 .55rem; }
+
+/* NEWS button style — used by news.js */
+.bs{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:var(--text);border-radius:8px;cursor:pointer;font-family:'Exo 2',sans-serif;font-weight:600;font-size:.78rem;padding:7px 14px;transition:.15s}
+.bs:hover{background:rgba(0,212,255,0.1);border-color:rgba(0,212,255,0.3);color:var(--cyan)}
+
+/* Username chip in topbar */
+.uchip{font-size:.76rem;font-weight:700;color:var(--cyan);cursor:pointer;padding:.3rem .6rem;border-radius:8px;background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.2);transition:.15s}
+.uchip:hover{background:rgba(0,212,255,0.15)}
+
+/* News animations */
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes scalein{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
 
 </style>
 </head>
@@ -716,15 +728,16 @@ select.inp option{background:#0e0018;color:var(--text)}
 <script src="odds.js"></script>
 <script src="news.js"></script>
 <script>
-  // Wire up goPage for predictions + chat messenger
+  // Extend goPage to handle pages not in core.js routing
   var _coreGoPage = goPage;
   goPage = function(name) {
     _coreGoPage(name);
-    if (name === 'chat') renderMessenger();
-    if (name === 'predict') renderPredictions();
-    if (name === 'referee') renderRefPanel();
+    // These pages are NOT handled in core.js goPage so add them here
+    if (name === 'chat')          renderMessenger();
+    if (name === 'predict')       renderPredictions();
     if (name === 'notifications') renderNotifications();
-    // Show/hide FAB
+    // referee and profile ARE already handled in core.js — don't call again
+    // Show/hide chat FAB
     var fab = document.getElementById('chat-fab');
     if (fab) fab.style.display = (name === 'chat') ? 'none' : (myProfile ? 'flex' : 'none');
   };
@@ -747,14 +760,7 @@ select.inp option{background:#0e0018;color:var(--text)}
     }
   };
 
-  // Stubs for batch 2/3
-  // All features now loaded from their respective files
-  function renderHomeStats(){
-    var ps=Object.keys(allPlayers).length,ms=Object.values(allMatches);
-    var played=ms.filter(function(m){return m.played;}).length;
-    var sp=document.getElementById('st-p'),sm=document.getElementById('st-m'),sf=document.getElementById('st-f');
-    if(sp)sp.textContent=ps; if(sm)sm.textContent=played; if(sf)sf.textContent=ms.length;
-  }
+  // renderHomeStats is defined in pages.js — no stub needed here
 
   try { 
     initApp(); 

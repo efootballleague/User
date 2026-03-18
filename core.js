@@ -192,11 +192,9 @@ function hideLanding() {
 function enterApp() {
   hideLoader();
   hideLanding();
-  // Always activate home page
   document.querySelectorAll('.page').forEach(function (p) { p.classList.remove('active'); });
   var home = $('page-home');
   if (home) home.classList.add('active');
-  // Sync bottom nav
   document.querySelectorAll('.nb').forEach(function (b) { b.classList.remove('active'); });
   var homeBtn = document.querySelector('.nb[data-page="home"]');
   if (homeBtn) homeBtn.classList.add('active');
@@ -205,6 +203,8 @@ function enterApp() {
   renderHomeStats();
   renderRecentRes();
   renderTopPlayers();
+  // Render featured news strip on home page if news is already ready
+  if (typeof renderNewsFeatured === 'function') renderNewsFeatured();
 }
 
 // ── NAVIGATION ────────────────────────────────────────────────
@@ -357,12 +357,15 @@ function debouncedRefresh() {
 function refreshAll() {
   renderHomeStats();
   var pg = activePage();
-  if (pg === 'home')     { renderRecentRes(); renderTopPlayers(); }
+  if (pg === 'home')     { renderRecentRes(); renderTopPlayers(); if(typeof renderNewsFeatured==='function') renderNewsFeatured(); }
   else if (pg === 'leagues')  renderStd(curLg);
   else if (pg === 'fixtures') renderFx();
   else if (pg === 'matchprep') { renderMatchPrep(); renderSchedTimeline(); }
   else if (pg === 'ucl')   renderUCL();
   else if (pg === 'polls') renderPolls();
+  else if (pg === 'news')  { if(typeof renderNewsAnchor==='function') renderNewsAnchor(); }
+  // Regenerate news stories whenever match/player data changes
+  if (typeof refreshNews === 'function') refreshNews();
 }
 
 // ── ONLINE PRESENCE ───────────────────────────────────────────
@@ -447,10 +450,15 @@ function loadChat() { if(typeof renderMessenger==='function') renderMessenger();
 function listenTyping()          { /* chat.js   */ }
 function listenUnread()          { /* chat.js   */ }
 function listenGlobalDMs()       { /* chat.js   */ }
-function initRefereeSystem()     { /* referee.js */ }
+function initRefereeSystem() {
+  if (!myProfile || !db) return;
+  // Start listening for referee duties and auto-approvals
+  if (typeof listenRefDuties === 'function') listenRefDuties();
+  if (typeof checkPendingAutoApprovals === 'function') checkPendingAutoApprovals();
+}
 function listenMatchRooms()      { /* matchroom.js */ }
 function initSwap()              { /* swap.js   */ }
-function checkPendingAutoApprovals() { /* referee.js */ }
+function checkPendingAutoApprovals() { /* matchroom.js */ }
 function listenRefDuties()       { /* referee.js */ }
 function openGoogleSetup(user)   { /* auth.js   */ }
 function doLogout()              { /* auth.js   */ }

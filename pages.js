@@ -107,7 +107,7 @@ function renderRecentRes() {
     var hp = allPlayers[m.homeId], ap = allPlayers[m.awayId];
     if (!hp || !ap) return '';
     var lg = LGS[m.league] || {};
-    return '<div class="card" style="padding:.85rem">';
+    return '<div class="card" style="padding:.85rem">'
       + '<div style="display:flex;justify-content:space-between;margin-bottom:.5rem">'
       + '<span style="font-size:.56rem;font-weight:700;padding:2px 6px;border-radius:4px;background:' + (lg.bg||'') + ';color:' + (lg.c||'#aaa') + '">' + esc(lg.short||'') + '</span>'
       + '<span style="font-size:.6rem;color:var(--dim)">' + fmtDate(m.playedAt) + '</span></div>'
@@ -138,7 +138,7 @@ function renderTopPlayers() {
   }).sort(function (a, b) { return b.pts - a.pts; }).slice(0, 6);
   el.innerHTML = scored.map(function (x, i) {
     var p = x.p, lg = LGS[p.league] || {};
-    return '<div class="card" style="padding:.82rem;display:flex;align-items:center;gap:.65rem">';
+    return '<div class="card" style="padding:.82rem;display:flex;align-items:center;gap:.65rem">'
       + '<div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:.85rem;color:#FFE600;min-width:18px">#' + (i + 1) + '</div>'
       + clubBadge(p.club, p.league, 32)
       + '<div style="flex:1"><div style="font-weight:700;font-size:.82rem">' + esc(p.username) + '</div>'
@@ -668,7 +668,10 @@ function requestPostpone(mid) {
 // Full implementation in features.js
 function openPredictModal(hid, aid, lid, mid) {
   if (typeof _openPredictModal === 'function') _openPredictModal(hid, aid, lid, mid);
-  else toast('Predictions loading...', 'error');
+  else if (typeof openPredictModal !== 'undefined') {
+    // odds.js not yet loaded — try again shortly
+    setTimeout(function() { if(typeof _openPredictModal==='function') _openPredictModal(hid,aid,lid,mid); }, 500);
+  }
 }
 
 // ── OPEN DM WITH ──────────────────────────────────────────────
@@ -729,7 +732,7 @@ function renderPredictions() {
       + '<div class="pred-team">'+clubBadge(ap.club,m.league,30)+'<div class="pred-name">'+esc(ap.username)+'</div><div style="font-size:.6rem;color:var(--dim)">#'+aPos+'</div></div>'
       + '</div>'
       + (myProfile
-        ? '<button class="btn-xs gold" style="width:100%;padding:.45rem;margin-top:.5rem" onclick="_openPredictModal(\''+m.homeId+'\',\''+m.awayId+'\',\''+m.league+'\',\''+m.id+'\')">🎯 Predict Score</button>'
+        ? '<button class="btn-xs gold" style="width:100%;padding:.45rem;margin-top:.5rem" onclick="openPredictModal(\''+m.homeId+'\',\''+m.awayId+'\',\''+m.league+'\',\''+m.id+'\')">🎯 Predict Score</button>'
         : '<div style="font-size:.7rem;color:var(--dim);text-align:center;margin-top:.5rem">Login to predict</div>')
       + '</div>';
   });

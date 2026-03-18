@@ -4,7 +4,69 @@
 // article view — like a proper news app. Every situation has
 // multiple phrase variations so nothing repeats.
 // ============================================================
-var NEWS_ANCHOR={name:'Fabrizio Romano',role:'eFootball Universe Correspondent',avatar:'https://pbs.twimg.com/profile_images/1592531920777842690/pGMu4FFC_400x400.jpg'};
+var NEWS_ANCHOR = {
+  name:   'Fabrizio Romano',
+  role:   'eFootball Universe Correspondent',
+  avatar: 'https://pbs.twimg.com/profile_images/1592531920777842690/pGMu4FFC_400x400.jpg',
+  bio:    'The most trusted name in football transfers, now covering eFootball Universe. Known worldwide for his iconic "Here We Go!" announcement, Fabrizio brings his legendary nose for news to your virtual league — breaking results, tracking form, and exposing every drama before anyone else. Here we go! ✅'
+};
+
+function openAnchorBio() {
+  var a = NEWS_ANCHOR;
+  // Build a modal-style overlay inline
+  var existing = document.getElementById('anchor-bio-overlay');
+  if (existing) { existing.remove(); return; }
+  var div = document.createElement('div');
+  div.id = 'anchor-bio-overlay';
+  div.onclick = function(e) { if (e.target === div) div.remove(); };
+  div.style.cssText = 'position:fixed;inset:0;z-index:900;background:rgba(0,0,0,0.75);display:flex;align-items:flex-end;justify-content:center;padding:0;animation:fadeInBio .2s ease';
+  div.innerHTML =
+    '<div style="background:#0e0018;border:1px solid rgba(0,212,255,0.25);border-radius:20px 20px 0 0;'
+    + 'width:100%;max-width:480px;padding:1.4rem 1.4rem 2.2rem;animation:slideUpBio .25s ease;position:relative">'
+    // Close button
+    + '<button onclick="document.getElementById(\'anchor-bio-overlay\').remove()" '
+    + 'style="position:absolute;top:.8rem;right:.8rem;background:rgba(255,255,255,0.06);border:none;'
+    + 'border-radius:50%;width:28px;height:28px;color:#666;font-size:.9rem;cursor:pointer;'
+    + 'display:flex;align-items:center;justify-content:center">✕</button>'
+    // Avatar + name
+    + '<div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem">'
+    + '<div style="position:relative;flex-shrink:0">'
+    + '<img src="' + a.avatar + '" crossorigin '
+    + 'onerror="this.src=\'https://ui-avatars.com/api/?name=FR&background=00D4FF&color=100018&bold=true\'" '
+    + 'style="width:68px;height:68px;border-radius:50%;object-fit:cover;'
+    + 'border:2.5px solid #00D4FF;box-shadow:0 0 20px rgba(0,212,255,0.45)">'
+    + '<div style="position:absolute;bottom:2px;right:2px;width:14px;height:14px;'
+    + 'border-radius:50%;background:#00FF85;border:2px solid #0e0018"></div>'
+    + '</div>'
+    + '<div>'
+    + '<div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:1rem;color:#fff">' + a.name + '</div>'
+    + '<div style="font-size:.68rem;color:#00D4FF;margin-top:2px">' + a.role + '</div>'
+    + '<div style="display:inline-flex;align-items:center;gap:.3rem;margin-top:.4rem;'
+    + 'background:rgba(0,255,133,0.1);border:1px solid rgba(0,255,133,0.3);'
+    + 'border-radius:20px;padding:2px 8px">'
+    + '<div style="width:7px;height:7px;border-radius:50%;background:#00FF85"></div>'
+    + '<span style="font-size:.58rem;font-weight:700;color:#00FF85">LIVE COVERAGE</span>'
+    + '</div>'
+    + '</div></div>'
+    // Bio text
+    + '<div style="font-size:.8rem;color:#ccc;line-height:1.75;padding:.9rem;'
+    + 'background:rgba(0,212,255,0.04);border:1px solid rgba(0,212,255,0.1);'
+    + 'border-radius:12px">' + a.bio + '</div>'
+    // Here We Go tag
+    + '<div style="text-align:center;margin-top:.9rem;font-family:Orbitron,sans-serif;'
+    + 'font-size:.75rem;font-weight:900;color:#00D4FF;letter-spacing:2px">HERE WE GO! ✅</div>'
+    + '</div>';
+
+  // Add keyframe styles once
+  if (!document.getElementById('anchor-bio-styles')) {
+    var s = document.createElement('style');
+    s.id = 'anchor-bio-styles';
+    s.textContent = '@keyframes fadeInBio{from{opacity:0}to{opacity:1}}'
+      + '@keyframes slideUpBio{from{transform:translateY(100%)}to{transform:translateY(0)}}';
+    document.head.appendChild(s);
+  }
+  document.body.appendChild(div);
+}
 var _newsCache=[],_newsGenerated=0,_newsInited=false,_openStory=null;
 
 // ── SEED-BASED VARIATION PICKER ─────────────────────────────
@@ -218,10 +280,18 @@ var V={
 
 // ── INIT ─────────────────────────────────────────────────────
 function initNews(){
-  if(_newsInited)return;_newsInited=true;
-  db.ref('ef_matches').on('value',function(){setTimeout(generateAllNews,600);});
-  db.ref('ef_penalties').on('value',function(){setTimeout(generateAllNews,600);});
-  setTimeout(generateAllNews,2000);
+  if(_newsInited)return; _newsInited=true;
+  // Don't attach our own DB listeners — core.js already listens to
+  // ef_matches and ef_penalties and calls debouncedRefresh which will
+  // trigger refreshAll → renderNewsAnchor on the home/news pages.
+  // We just need one initial generation once data has loaded.
+  setTimeout(generateAllNews, 1500);
+}
+
+// Called by core.js refreshAll whenever data changes
+function refreshNews(){
+  if(!_newsInited) return;
+  generateAllNews();
 }
 
 function generateAllNews(){
@@ -348,9 +418,12 @@ function renderNewsAnchor(){
 
   // Anchor header
   var html='<div style="background:linear-gradient(135deg,rgba(0,212,255,0.07),rgba(0,255,133,0.04));border:1px solid rgba(0,212,255,0.2);border-radius:16px;padding:1rem 1.1rem;margin-bottom:1rem;display:flex;align-items:center;gap:.9rem">'
-    +'<div style="position:relative;flex-shrink:0"><img src="'+a.avatar+'" crossorigin onerror="this.src=\'https://ui-avatars.com/api/?name=FR&background=00D4FF&color=100018&bold=true\'" style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:2.5px solid #00D4FF;box-shadow:0 0 20px rgba(0,212,255,0.4)">'
-    +'<div style="position:absolute;bottom:1px;right:1px;width:13px;height:13px;border-radius:50%;background:#00FF85;border:2px solid var(--dark)"></div></div>'
-    +'<div style="flex:1;min-width:0"><div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:.88rem;color:#fff">'+a.name+'</div>'
+    +'<div style="position:relative;flex-shrink:0;cursor:pointer" onclick="openAnchorBio()" title="About '+a.name+'">'
+    +'<img src="'+a.avatar+'" crossorigin onerror="this.src=\'https://ui-avatars.com/api/?name=FR&background=00D4FF&color=100018&bold=true\'" style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:2.5px solid #00D4FF;box-shadow:0 0 20px rgba(0,212,255,0.4);transition:transform .2s" onmouseover="this.style.transform=\'scale(1.08)\'" onmouseout="this.style.transform=\'\'">'
+    +'<div style="position:absolute;bottom:1px;right:1px;width:13px;height:13px;border-radius:50%;background:#00FF85;border:2px solid var(--dark)"></div>'
+    +'<div style="position:absolute;inset:0;border-radius:50%;background:rgba(0,212,255,0.15);opacity:0;transition:opacity .2s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0"></div>'
+    +'</div>'
+    +'<div style="flex:1;min-width:0"><div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:.88rem;color:#fff;cursor:pointer" onclick="openAnchorBio()">'+a.name+'</div>'
     +'<div style="font-size:.62rem;color:#00D4FF;margin-top:1px">'+a.role+'</div>'
     +'<div style="font-size:.57rem;color:var(--dim);margin-top:2px">Updated '+fmtAgo(_newsGenerated)+'</div></div>'
     +'<div style="text-align:right;flex-shrink:0"><div style="font-family:Orbitron,sans-serif;font-size:.56rem;color:#00FF85;font-weight:700;letter-spacing:1px">LIVE</div>'
@@ -436,10 +509,10 @@ function openNewsStory(idx){
       }
       return btns?'<div style="display:flex;gap:.45rem;margin-top:.8rem;flex-wrap:wrap">'+btns+'</div>':'';
     })()
-    // Byline
-    +'<div style="display:flex;align-items:center;gap:.55rem;margin-top:.7rem;padding-top:.65rem;border-top:1px solid rgba(255,255,255,0.07)">'
-    +'<img src="'+a.avatar+'" crossorigin onerror="this.style.display=\'none\'" style="width:24px;height:24px;border-radius:50%;object-fit:cover;border:1.5px solid rgba(0,212,255,0.3)">'
-    +'<div><div style="font-size:.72rem;font-weight:700;color:#00D4FF">'+a.name+'</div>'
+    // Byline — clickable to open bio
+    +'<div style="display:flex;align-items:center;gap:.55rem;margin-top:.7rem;padding-top:.65rem;border-top:1px solid rgba(255,255,255,0.07);cursor:pointer" onclick="openAnchorBio()">'
+    +'<img src="'+a.avatar+'" crossorigin onerror="this.style.display=\'none\'" style="width:28px;height:28px;border-radius:50%;object-fit:cover;border:1.5px solid rgba(0,212,255,0.4)">'
+    +'<div><div style="font-size:.72rem;font-weight:700;color:#00D4FF">'+a.name+' <span style="font-size:.58rem;color:var(--dim);font-weight:400">· tap for bio</span></div>'
     +'<div style="font-size:.58rem;color:var(--dim)">'+a.role+' · '+fmtAgo(_newsGenerated)+'</div></div>'
     +'</div></div>'
     // Next/Prev navigation

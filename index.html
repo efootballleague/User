@@ -457,7 +457,7 @@ select.inp option{background:#0e0018;color:var(--text)}
   <button class="drawer-btn" onclick="closeDrawer();goPage('leaderboard')"><span class="drawer-icon">📈</span> Leaderboard</button>
   <button class="drawer-btn" onclick="closeDrawer();goPage('polls')"><span class="drawer-icon">📊</span> Polls<span id="polls-badge" class="drawer-badge hidden"></span></button>
   <button class="drawer-btn" onclick="closeDrawer();openMessenger('dms')"><span class="drawer-icon">💬</span> Messages<span id="pm-badge" class="drawer-badge hidden"></span></button>
-  <button class="drawer-btn" onclick="closeDrawer();goPage('notifications')"><span class="drawer-icon">🔔</span> Notifications<span id="notif-badge" class="drawer-badge hidden"></span></button>
+  <button class="drawer-btn" onclick="closeDrawer();goPage('notifications')"><span class="drawer-icon">🔔</span> Notifications<span id="notif-badge" class="drawer-badge hidden"><span id="drawer-notif-badge" class="drawer-badge hidden"></span></button>
   <button class="drawer-btn" id="drawer-ref-btn" style="display:none" onclick="closeDrawer();goPage('referee')"><span class="drawer-icon">🟢</span> Referee Panel<span id="ref-badge" class="drawer-badge hidden"></span></button>
   <button class="drawer-btn" onclick="closeDrawer();goPage('ucl')"><span class="drawer-icon">🏆</span> UCL</button>
   <div class="drawer-divider"></div>
@@ -490,8 +490,9 @@ select.inp option{background:#0e0018;color:var(--text)}
       <div class="stat-box"><div class="stat-val" id="st-p">-</div><div class="stat-lbl">Players</div></div>
       <div class="stat-box"><div class="stat-val" id="st-m">-</div><div class="stat-lbl">Matches</div></div>
       <div class="stat-box"><div class="stat-val" id="st-f">-</div><div class="stat-lbl">Fixtures</div></div>
-      <div class="stat-box"><div class="stat-val">4</div><div class="stat-lbl">Leagues</div></div>
+      <div class="stat-box"><div class="stat-val" id="online-count">-</div><div class="stat-lbl">Online</div></div>
     </div>
+    <div id="news-featured" style="margin-bottom:.8rem"></div>
     <div class="section-header"><div class="section-title c-green">Recent Results</div><div class="section-line green"></div></div>
     <div class="grid2" id="recent-res"><div class="card empty">No results yet.</div></div>
     <div class="section-header" style="margin-top:1.2rem"><div class="section-title c-gold">Top Players</div><div class="section-line gold"></div></div>
@@ -704,6 +705,8 @@ select.inp option{background:#0e0018;color:var(--text)}
 <script src="swap.js"></script>
 <script src="ucl.js"></script>
 <script src="admin.js"></script>
+<script src="odds.js"></script>
+<script src="news.js"></script>
 <script>
   // Wire up goPage for predictions + chat messenger
   var _coreGoPage = goPage;
@@ -839,6 +842,7 @@ select.inp option{background:#0e0018;color:var(--text)}
 <div class="modal" id="predict-mo" onclick="if(event.target===this)closeMo('predict-mo')">
   <div class="modal-box"><button class="modal-close" onclick="closeMo('predict-mo')">&#10005;</button>
     <h3 class="modal-title">Predict Score</h3>
+    <div id="predict-league-badge" style="margin-bottom:.6rem;text-align:center"></div>
     <div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin:1rem 0">
       <div style="flex:1;text-align:center"><div id="predict-home-badge"></div><div id="predict-home-name" style="font-size:.76rem;font-weight:700;margin-top:.3rem"></div></div>
       <div style="text-align:center">
@@ -857,6 +861,7 @@ select.inp option{background:#0e0018;color:var(--text)}
             <button class="step-btn add" onclick="predStep('a',1)">&#43;</button>
           </div>
         </div>
+        <div id="predict-odds-row" style="margin-top:.4rem;font-size:.65rem;color:var(--dim);text-align:center"></div>
       </div>
       <div style="flex:1;text-align:center"><div id="predict-away-badge"></div><div id="predict-away-name" style="font-size:.76rem;font-weight:700;margin-top:.3rem"></div></div>
     </div>

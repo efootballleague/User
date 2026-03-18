@@ -1,157 +1,248 @@
 // ============================================================
-// ADMIN PANEL
+// ADMIN.JS — Reports, Users, Matches, Penalties, Season
 // ============================================================
-function loadAdmin(){
-  if(!me||me.email!==ADMIN_EMAIL){$('page-admin').innerHTML='<div style="text-align:center;padding:2.5rem;color:var(--dim)">Admin access only.</div>';return;}
-  loadAdminReports();loadAdminUsers();loadAdminMatches();renderPenaltyLog();renderAdminSeason();
+
+function loadAdmin() {
+  var pg = $('page-admin'); if (!pg) return;
+  if (!me || me.email !== ADMIN_EMAIL) {
+    pg.innerHTML = '<div class="card empty" style="margin-top:1rem">Admin access only.</div>'; return;
+  }
+  pg.innerHTML =
+    '<div class="section-header"><div class="section-title c-cyan">Admin Panel</div><div class="section-line"></div></div>'
+    + '<div class="admin-tabs">'
+    + '<button class="atab active" onclick="aTab(\'reports\',this)">Reports</button>'
+    + '<button class="atab" onclick="aTab(\'users\',this)">Users</button>'
+    + '<button class="atab" onclick="aTab(\'matches\',this)">Matches</button>'
+    + '<button class="atab" onclick="aTab(\'penalties\',this)">Penalties</button>'
+    + '<button class="atab" onclick="aTab(\'season\',this)">Season</button>'
+    + '</div>'
+    + '<div class="apanel active" id="ap-reports"><div id="rep-list"><div class="msng-loading">Loading...</div></div></div>'
+    + '<div class="apanel" id="ap-users"><div id="admin-users-list"></div></div>'
+    + '<div class="apanel" id="ap-matches"><div id="admin-matches-list"></div></div>'
+    + '<div class="apanel" id="ap-penalties"><div id="pen-list"></div></div>'
+    + '<div class="apanel" id="ap-season"></div>';
+
+  loadAdminReports();
 }
-function aTab(name,btn){
-  document.querySelectorAll('.atab').forEach(function(b){b.classList.remove('on');});
-  document.querySelectorAll('.apanel').forEach(function(p){p.classList.remove('on');});
-  if(btn)btn.classList.add('on');
-  var panel=$('ap-'+name);if(panel)panel.classList.add('on');
-  if(name==='season')renderAdminSeason();
+
+function aTab(name, btn) {
+  document.querySelectorAll('.atab').forEach(function (b) { b.classList.remove('active'); });
+  document.querySelectorAll('.apanel').forEach(function (p) { p.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
+  var panel = $('ap-' + name); if (panel) panel.classList.add('active');
+  if (name === 'reports')   loadAdminReports();
+  if (name === 'users')     loadAdminUsers();
+  if (name === 'matches')   loadAdminMatches();
+  if (name === 'penalties') renderPenaltyLog();
+  if (name === 'season')    renderAdminSeason();
 }
-function renderAdminSeason(){
-  var el=$('ap-season');if(!el)return;
-  el.innerHTML=adminSeasonControls()
-    +'<div style="margin-top:1rem;padding:1rem;background:rgba(255,0,110,0.05);border:1px solid rgba(255,0,110,0.15);border-radius:12px">'
-    +'<div style="font-family:Orbitron,sans-serif;font-size:.65rem;color:#FF2882;letter-spacing:1.5px;margin-bottom:.7rem">DANGER ZONE</div>'
-    +'<button class="bd" style="font-size:.74rem;padding:7px 14px;background:rgba(139,0,0,0.25)" onclick="seasonReset()">&#9888; Reset All Match Data</button>'
-    +'<div style="font-size:.63rem;color:var(--dim);margin-top:.4rem">Clears all results. Player accounts stay.</div>'
-    +'</div>';
-}
-function loadAdminReports(){
-  if(!db)return;
-  db.ref('ef_reports').orderByChild('ts').limitToLast(50).on('value',function(s){
-    var reps=Object.entries(s.val()||{}).sort(function(a,b){return(b[1].ts||0)-(a[1].ts||0);});
-    var rc=$('rep-count');if(rc)rc.textContent=reps.length+' reports';
-    var rl=$('rep-list');if(!rl)return;
-    if(!reps.length){rl.innerHTML='<div style="color:var(--dim);padding:.9rem;text-align:center">No reports yet.</div>';return;}
-    rl.innerHTML=reps.map(function(kv){
-      var key=kv[0],r=kv[1];
-      var done=r.status==='resolved';
-      var isFraud=r.reason==='Match result fraud';
-      return'<div class="rep-card'+(done?' done':'')+'" style="'+(isFraud&&!done?'border-left-color:#ff6600;':'')+'">'
-        +'<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.45rem;margin-bottom:.45rem">'
-        +(isFraud?'<span style="background:rgba(255,102,0,0.14);color:#ff6600;font-size:.58rem;font-weight:700;padding:2px 6px;border-radius:9px;border:1px solid rgba(255,102,0,0.28);margin-right:5px">FRAUD</span>':'')
-        +'<span style="font-weight:700;color:#00D4FF">'+esc(r.reportedName)+'</span> reported by <span style="font-weight:700">'+esc(r.reporterName)+'</span>'
-        +'<span style="font-size:.6rem;color:var(--dim)">'+fmtFull(r.ts)+'</span></div>'
-        +'<div style="font-size:.78rem;margin-bottom:.38rem"><strong>Reason:</strong> '+esc(r.reason)+'</div>'
-        +(r.details?'<div style="font-size:.73rem;color:var(--dim);margin-bottom:.45rem">'+esc(r.details)+'</div>':'')
-        +(done?'<span style="font-size:.63rem;color:#00FF85">Resolved</span>'
-          +(r.type==='result_review'||r.type==='result_rejected'?'<div style="margin-top:.45rem"><div style="font-size:.68rem;color:#FFE600;margin-bottom:.35rem">Score: '+esc(r.hg||'?')+' – '+esc(r.ag||'?')+'</div>'+(r.screenshot?'<div onclick="revealShot(this)" data-src="'+esc(r.screenshot)+'" style="display:flex;align-items:center;gap:.5rem;background:rgba(0,212,255,0.06);border:1px solid rgba(0,212,255,0.2);border-radius:8px;padding:.5rem .75rem;cursor:pointer;margin-top:.35rem"><span style="font-size:.8rem">👁</span><span style="font-size:.7rem;color:#00D4FF;font-weight:700">Tap to view screenshot</span></div>':'')+'</div>':'')
-          :'<div style="display:flex;gap:.45rem;flex-wrap:wrap;margin-top:.45rem">'
-          +'<button class="bg" style="font-size:.65rem;padding:4px 9px" onclick="resolveReport(\''+key+'\')">Resolve</button>'
-          +(isFraud?'<button class="bp" style="font-size:.65rem;padding:4px 9px;background:linear-gradient(135deg,#FF2882,#cc0044)" onclick="openDeductModal(\''+key+'\',\''+esc(r.reportedUID)+'\',\''+esc(r.reportedName)+'\')">Deduct Points</button>':'')
-          +'<button class="bd" style="font-size:.65rem;padding:4px 9px" onclick="banUser(\''+esc(r.reportedUID)+'\',\''+esc(r.reportedName)+'\')">Ban</button>'
-          +'<button class="bs" style="font-size:.65rem;padding:4px 9px" onclick="deleteReport(\''+key+'\')">Delete</button></div>')
-        +'</div>';
+
+// ── REPORTS ───────────────────────────────────────────────────
+function loadAdminReports() {
+  var el = $('rep-list'); if (!el || !db) return;
+  db.ref(DB.reports).orderByChild('ts').limitToLast(50).once('value', function (s) {
+    var reps = Object.entries(s.val() || {}).sort(function (a, b) { return (b[1].ts || 0) - (a[1].ts || 0); });
+    if (!reps.length) { el.innerHTML = '<div class="card empty">No reports yet.</div>'; return; }
+    el.innerHTML = reps.map(function (kv) {
+      var key = kv[0], r = kv[1];
+      var done    = r.status === 'resolved';
+      var isFraud = r.reason === 'Match result fraud';
+      return '<div class="admin-card' + (done ? ' done' : '') + '" style="' + (isFraud && !done ? 'border-left:3px solid #ff6600;' : '') + '">'
+        + '<div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:.35rem;margin-bottom:.35rem">'
+        + (isFraud ? '<span class="fx-badge warn">FRAUD</span>' : '')
+        + '<span style="font-weight:700;color:var(--cyan)">' + esc(r.reportedName || '') + '</span>'
+        + '<span style="font-size:.65rem;color:var(--dim)">reported by ' + esc(r.reporterName || '') + '</span>'
+        + '<span style="font-size:.6rem;color:var(--dim)">' + fmtFull(r.ts) + '</span>'
+        + '</div>'
+        + '<div style="font-size:.76rem;margin-bottom:.35rem"><strong>Reason:</strong> ' + esc(r.reason || '') + '</div>'
+        + (r.details ? '<div style="font-size:.72rem;color:var(--dim);margin-bottom:.4rem">' + esc(r.details) + '</div>' : '')
+        + (!done ? '<div style="display:flex;gap:.4rem;flex-wrap:wrap">'
+          + '<button class="btn-xs" onclick="resolveReport(\'' + key + '\')">Resolve</button>'
+          + '<button class="btn-xs gold" onclick="openDeductModal(\'' + key + '\',\'' + r.reportedUID + '\',\'' + esc(r.reportedName || '') + '\')">Deduct Pts</button>'
+          + '<button class="btn-xs" style="color:var(--pink);border-color:rgba(255,40,130,0.3)" onclick="banUser(\'' + r.reportedUID + '\',\'' + esc(r.reportedName || '') + '\')">Ban</button>'
+          + '<button class="btn-xs" style="color:var(--dim)" onclick="deleteReport(\'' + key + '\')">Delete</button>'
+          + '</div>' : '<div style="font-size:.68rem;color:var(--green)">Resolved</div>')
+        + '</div>';
     }).join('');
   });
 }
-function loadAdminUsers(){
-  var list=$('admin-users-list');if(!list)return;
-  var ps=Object.values(allPlayers);
-  if(!ps.length){list.innerHTML='<div style="color:var(--dim);padding:.9rem;text-align:center">No users.</div>';return;}
-  list.innerHTML=ps.sort(function(a,b){return(b.joinedAt||0)-(a.joinedAt||0);}).map(function(p){
-    var lg=LGS[p.league]||{};
-    return'<div class="urow">'
-      +clubBadge(p.club,28)
-      +'<div style="flex:1"><div style="font-weight:700;font-size:.82rem">'+esc(p.username)+(p.banned?'<span style="color:#FF2882;font-size:.58rem;margin-left:4px">BANNED</span>':'')+'</div>'
-      +'<div style="font-size:.63rem;color:var(--dim)">'+esc(p.club)+' - '+esc(lg.n||'')+' - <span style="color:'+lsColor(p.lastSeen||0)+'">'+fmtAgo(p.lastSeen||0)+'</span></div></div>'
-      +'<div style="display:flex;gap:.35rem">'
-      +'<button class="bs" style="font-size:.63rem;padding:3px 8px" onclick="openDMWith(\''+p.uid+'\',\''+esc(p.username)+'\')">DM</button>'
-      +(p.banned?'<button class="bg" style="font-size:.63rem;padding:3px 8px" onclick="unbanUser(\''+p.uid+'\',\''+esc(p.username)+'\')">Unban</button>':'<button class="bd" style="font-size:.63rem;padding:3px 8px" onclick="banUser(\''+p.uid+'\',\''+esc(p.username)+'\')">Ban</button>')
-      +'<button class="bd" style="font-size:.63rem;padding:3px 8px;background:rgba(139,0,0,0.2);color:#ff4444" onclick="removeUser(\''+p.uid+'\',\''+esc(p.username)+'\')">Remove</button>'
-      +'</div></div>';
-  }).join('');
+
+function resolveReport(key) { db.ref(DB.reports + '/' + key).update({ status:'resolved', resolvedAt:Date.now() }).then(function () { toast('Resolved.'); loadAdminReports(); }); }
+function deleteReport(key)  { if (!confirm('Delete report?')) return; db.ref(DB.reports + '/' + key).remove().then(function () { toast('Deleted.'); loadAdminReports(); }); }
+function banUser(uid, name) {
+  if (!confirm('Ban ' + name + '? They will not be able to play.')) return;
+  db.ref(DB.players + '/' + uid).update({ banned:true }).then(function () { toast(name + ' banned.'); loadAdminUsers(); });
 }
-function loadAdminMatches(){
-  var list=$('admin-matches-list');if(!list)return;
-  var ms=Object.values(allMatches).sort(function(a,b){return(b.createdAt||0)-(a.createdAt||0);}).slice(0,30);
-  if(!ms.length){list.innerHTML='<div style="color:var(--dim);padding:.9rem;text-align:center">No matches.</div>';return;}
-  list.innerHTML=ms.map(function(m){
-    var hp=allPlayers[m.homeId],ap=allPlayers[m.awayId];if(!hp||!ap)return'';
-    var lg=LGS[m.league]||{};
-    return'<div class="urow" style="flex-wrap:wrap;gap:.45rem">'
-      +'<span style="font-size:.58rem;font-weight:700;padding:2px 6px;border-radius:4px;background:'+(lg.bg||'')+';color:'+(lg.c||'#aaa')+'">'+esc(lg.n||'')+'</span>'
-      +'<div style="flex:1;min-width:160px"><strong>'+esc(hp.username)+'</strong> vs <strong>'+esc(ap.username)+'</strong></div>'
-      +'<div>'+(m.played?'<span style="color:#00FF85;font-weight:700;font-family:Orbitron,sans-serif">'+m.hg+' - '+m.ag+'</span>':'<span style="color:var(--dim)">Pending</span>')+'</div>'
-      +'<button class="bd" style="font-size:.63rem;padding:3px 8px" onclick="if(confirm(\'Delete this match?\'))db.ref(\'ef_matches/'+m.id+'\').remove()">Delete</button>'
-      +'</div>';
-  }).join('');
-}
-function resolveReport(key){db.ref('ef_reports/'+key).update({status:'resolved',resolvedAt:Date.now()}).then(function(){toast('Report resolved.');}).catch(function(){toast('Failed','error');});}
-function deleteReport(key){if(!confirm('Delete this report?'))return;db.ref('ef_reports/'+key).remove().then(function(){toast('Report deleted.');}).catch(function(){toast('Failed','error');});}
-function banUser(uid,name){if(!confirm('Ban '+name+'?'))return;db.ref('ef_players/'+uid).update({banned:true}).then(function(){toast(name+' banned.');}).catch(function(){toast('Failed','error');});}
-function unbanUser(uid,name){db.ref('ef_players/'+uid).update({banned:false}).then(function(){toast(name+' unbanned.');}).catch(function(){toast('Failed','error');});}
-function removeUser(uid,name){
-  if(!me||me.email!==ADMIN_EMAIL){toast('Admin only','error');return;}
-  if(!confirm('PERMANENTLY remove '+name+'? Cannot be undone!'))return;
-  var updates={};
-  updates['ef_players/'+uid]=null;updates['ef_penalties/'+uid]=null;updates['ef_ucl_payments/'+uid]=null;
-  Object.keys(allMatches).forEach(function(mid){var m=allMatches[mid];if(m.homeId===uid||m.awayId===uid)updates['ef_matches/'+mid]=null;});
-  db.ref().update(updates).then(function(){toast('User removed.');}).catch(function(){toast('Failed','error');});
+function unbanUser(uid, name) {
+  db.ref(DB.players + '/' + uid).update({ banned:false }).then(function () { toast(name + ' unbanned.'); loadAdminUsers(); });
 }
 
-// ============================================================
-// POINT DEDUCTIONS
-// ============================================================
-function openDeductModal(repKey,uid,name){
-  $('ded-rep-key').value=repKey;$('ded-uid').value=uid;$('ded-name').value=name;
-  $('ded-player').textContent=name;$('ded-pts').value='3';$('ded-note').value='';$('ded-err').textContent='';
-  openMo('deduct-mo');
-}
-function applyDeduction(){
-  var repKey=$('ded-rep-key').value,uid=$('ded-uid').value,name=$('ded-name').value;
-  var pts=parseInt($('ded-pts').value),note=$('ded-note').value.trim();
-  var err=$('ded-err');err.textContent='';
-  if(!uid){err.textContent='No player.';return;}
-  if(isNaN(pts)||pts<1){err.textContent='Enter valid points.';return;}
-  if(!note){err.textContent='Add a reason.';return;}
-  var btn=$('ded-btn');btn.textContent='Applying...';btn.disabled=true;
-  var penKey=db.ref('ef_penalties/'+uid).push().key;
-  var updates={};
-  updates['ef_penalties/'+uid+'/'+penKey]={pts:pts,reason:'Match result fraud',note:note,reportKey:repKey,appliedAt:Date.now(),playerName:name};
-  updates['ef_reports/'+repKey+'/status']='resolved';
-  updates['ef_reports/'+repKey+'/resolvedBy']='deduction';
-  updates['ef_reports/'+repKey+'/deductedPts']=pts;
-  db.ref().update(updates)
-    .then(function(){
-      if(allPlayers[uid]&&myProfile){
-        var dk=dmKey(myProfile.uid,uid);
-        db.ref('ef_dm/'+dk).push({from:myProfile.uid,fromName:'Admin',text:'PENALTY: '+pts+' point(s) deducted. Reason: '+note+'. Reply to appeal.',ts:Date.now(),system:true});
-        db.ref('ef_dm_meta/'+dk).update({lastMsg:'Penalty: -'+pts+' pts',lastTs:Date.now(),['participants/'+myProfile.uid]:true,['participants/'+uid]:true});
-        db.ref('ef_dm_unread/'+uid+'/'+dk).transaction(function(v){return(v||0)+1;});
-      }
-      btn.textContent='Apply Deduction';btn.disabled=false;
-      closeMo('deduct-mo');toast('-'+pts+' pts deducted from '+name);
-    })
-    .catch(function(e){err.textContent='Failed: '+e.message;btn.textContent='Apply Deduction';btn.disabled=false;});
-}
-function renderPenaltyLog(){
-  var el=$('pen-list');if(!el)return;
-  var all=[];
-  Object.entries(allPenalties).forEach(function(kv){
-    var uid=kv[0];
-    Object.entries(kv[1]||{}).forEach(function(pk){all.push(Object.assign({},pk[1],{uid:uid,penKey:pk[0]}));});
-  });
-  all.sort(function(a,b){return(b.appliedAt||0)-(a.appliedAt||0);});
-  var pc=$('pen-count');if(pc)pc.textContent=all.length+' record(s)';
-  if(!all.length){el.innerHTML='<div style="color:var(--dim);padding:.9rem;text-align:center">No penalties yet.</div>';return;}
-  el.innerHTML=all.map(function(p){
-    return'<div class="pen-row">'
-      +'<div style="flex:1"><div style="font-weight:700;font-size:.82rem">'+esc(p.playerName||'Unknown')+'</div>'
-      +'<div style="font-size:.68rem;color:var(--dim)">'+esc(p.reason)+' - '+fmtFull(p.appliedAt)+'</div>'
-      +'<div style="font-size:.65rem;color:#aaa;margin-top:1px">'+esc(p.note||'')+'</div></div>'
-      +'<div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:.95rem;color:#FF2882">-'+p.pts+'pts</div>'
-      +'<button class="bs" style="font-size:.63rem;padding:3px 8px" onclick="revokePenalty(\''+p.uid+'\',\''+p.penKey+'\')">Revoke</button>'
-      +'</div>';
+// ── USERS ─────────────────────────────────────────────────────
+function loadAdminUsers() {
+  var el = $('admin-users-list'); if (!el) return;
+  var players = Object.values(allPlayers).sort(function (a, b) { return (a.username || '').localeCompare(b.username || ''); });
+  if (!players.length) { el.innerHTML = '<div class="card empty">No players yet.</div>'; return; }
+  el.innerHTML = players.map(function (p) {
+    var lg = LGS[p.league] || {};
+    return '<div class="admin-card' + (p.banned ? ' banned' : '') + '">'
+      + '<div style="display:flex;align-items:center;gap:.55rem;margin-bottom:.4rem">'
+      + clubBadge(p.club, p.league, 28)
+      + '<div style="flex:1"><div style="font-weight:700;font-size:.82rem">' + esc(p.username || '') + (p.banned ? ' <span style="color:var(--pink);font-size:.65rem">[BANNED]</span>' : '') + '</div>'
+      + '<div style="font-size:.62rem;color:' + lg.c + '">' + esc(lg.short || '') + ' · ' + esc(p.club || '') + '</div>'
+      + '<div style="font-size:.6rem;color:var(--dim)">' + esc(p.email || '') + ' · ' + esc(p.country || '') + '</div>'
+      + '</div></div>'
+      + '<div style="display:flex;gap:.35rem;flex-wrap:wrap">'
+      + (p.banned
+        ? '<button class="btn-xs" onclick="unbanUser(\'' + p.uid + '\',\'' + esc(p.username) + '\')">Unban</button>'
+        : '<button class="btn-xs" style="color:var(--pink);border-color:rgba(255,40,130,0.3)" onclick="banUser(\'' + p.uid + '\',\'' + esc(p.username) + '\')">Ban</button>')
+      + '<button class="btn-xs gold" onclick="openDeductModal(\'\',\'' + p.uid + '\',\'' + esc(p.username) + '\')">Deduct Pts</button>'
+      + '<button class="btn-xs" onclick="openRestrictModal(\'' + p.uid + '\',\'' + esc(p.username) + '\')">Restrict</button>'
+      + '<button class="btn-xs" style="color:var(--pink);border-color:rgba(255,40,130,0.3)" onclick="removeUser(\'' + p.uid + '\',\'' + esc(p.username) + '\')">Remove</button>'
+      + '</div></div>';
   }).join('');
 }
-function revokePenalty(uid,penKey){
-  if(!confirm('Revoke this penalty?'))return;
-  db.ref('ef_penalties/'+uid+'/'+penKey).remove().then(function(){toast('Penalty revoked.');}).catch(function(){toast('Failed','error');});
+
+function removeUser(uid, name) {
+  if (!confirm('Permanently remove ' + name + '? This cannot be undone.')) return;
+  db.ref(DB.players + '/' + uid).remove().then(function () { toast(name + ' removed.'); });
 }
-function revealShot(el){var s=el.getAttribute('data-src');if(!s)return;var w=document.createElement('div');w.innerHTML='<a href="'+s+'" target="_blank"><img src="'+s+'" loading="lazy" style="width:100%;max-height:200px;object-fit:contain;border-radius:9px;border:1px solid rgba(0,212,255,0.2);margin-top:.35rem"></a>';el.parentNode.replaceChild(w,el);}
+
+// ── MATCHES ───────────────────────────────────────────────────
+function loadAdminMatches() {
+  var el = $('admin-matches-list'); if (!el) return;
+  var ms = Object.values(allMatches).sort(function (a, b) { return (b.createdAt || 0) - (a.createdAt || 0); }).slice(0, 30);
+  if (!ms.length) { el.innerHTML = '<div class="card empty">No matches yet.</div>'; return; }
+  el.innerHTML = ms.map(function (m) {
+    var hp = allPlayers[m.homeId], ap = allPlayers[m.awayId]; if (!hp || !ap) return '';
+    var lg = LGS[m.league] || {};
+    return '<div class="admin-card">'
+      + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.35rem">'
+      + '<div style="font-size:.78rem;font-weight:700">' + esc(hp.username) + ' vs ' + esc(ap.username) + '</div>'
+      + '<span class="lg-badge" style="background:' + lg.bg + ';color:' + lg.c + ';border:1px solid ' + lg.c + '44">' + esc(lg.short || '') + '</span>'
+      + '</div>'
+      + (m.played ? '<div style="font-family:Orbitron,sans-serif;font-size:.88rem;font-weight:900;color:var(--green)">' + m.hg + '-' + m.ag + ' FT</div>' : '<div style="font-size:.7rem;color:var(--dim)">' + (m.matchTime ? fmtFull(m.matchTime) : 'Unscheduled') + '</div>')
+      + (m.pendingResult && !m.played ? '<div style="font-size:.7rem;color:var(--gold);margin-top:.25rem">Pending referee review</div>' : '')
+      + (m.played ? '' : '<div style="display:flex;gap:.35rem;margin-top:.4rem">'
+        + '<button class="btn-xs" onclick="adminApproveResult(\'' + m.id + '\')">Approve</button>'
+        + '<button class="btn-xs" style="color:var(--pink);border-color:rgba(255,40,130,0.3)" onclick="adminDeleteMatch(\'' + m.id + '\')">Delete</button>'
+        + '</div>')
+      + '</div>';
+  }).join('');
+}
+
+function adminApproveResult(mid) {
+  var m = allMatches[mid]; if (!m || !db) return;
+  if (!m.pendingResult) { toast('No pending result to approve.', 'error'); return; }
+  db.ref(DB.matches + '/' + mid).update({
+    played:true, hg:m.pendingHg||0, ag:m.pendingAg||0,
+    playedAt:Date.now(), pendingResult:false, refStatus:'admin_approved'
+  }).then(function () { toast('Result approved!'); loadAdminMatches(); });
+}
+
+function adminDeleteMatch(mid) {
+  if (!confirm('Delete this fixture?')) return;
+  db.ref(DB.matches + '/' + mid).remove().then(function () { toast('Match deleted.'); loadAdminMatches(); });
+}
+
+// ── POINT DEDUCTIONS ──────────────────────────────────────────
+function openDeductModal(repKey, uid, name) {
+  $('ded-rep-key').value = repKey || '';
+  $('ded-uid').value     = uid;
+  $('ded-name').value    = name;
+  $('ded-player').textContent = name;
+  $('ded-pts').value     = '3';
+  $('ded-note').value    = '';
+  $('ded-err').textContent = '';
+  openMo('deduct-mo');
+}
+
+function applyDeduction() {
+  var uid  = $('ded-uid').value;
+  var name = $('ded-name').value;
+  var pts  = parseInt($('ded-pts').value);
+  var note = $('ded-note').value.trim();
+  var err  = $('ded-err'); err.textContent = '';
+  if (!uid)    { err.textContent = 'No player selected.'; return; }
+  if (isNaN(pts) || pts < 1) { err.textContent = 'Enter a valid number.'; return; }
+  if (!note)   { err.textContent = 'Give a reason.'; return; }
+  if (!db)     return;
+
+  var btn = $('ded-btn'); btn.textContent = 'Applying...'; btn.disabled = true;
+  db.ref(DB.penalties + '/' + uid).push({ pts:pts, reason:note, by:myProfile.uid, at:Date.now() })
+    .then(function () {
+      // Resolve linked report if any
+      var repKey = $('ded-rep-key').value;
+      if (repKey) db.ref(DB.reports + '/' + repKey).update({ status:'resolved' });
+      closeMo('deduct-mo');
+      toast(pts + ' points deducted from ' + name);
+      sendNotif(uid, { title:'Point Deduction', body:pts + ' points deducted: ' + note, icon:'warning' });
+      btn.textContent = 'Apply Deduction'; btn.disabled = false;
+      renderPenaltyLog();
+    }).catch(function () {
+      err.textContent = 'Failed. Try again.';
+      btn.textContent = 'Apply Deduction'; btn.disabled = false;
+    });
+}
+
+function renderPenaltyLog() {
+  var el = $('pen-list'); if (!el) return;
+  var all = [];
+  Object.entries(allPenalties || {}).forEach(function (kv) {
+    var uid = kv[0];
+    var p   = allPlayers[uid];
+    Object.entries(kv[1] || {}).forEach(function (pv) {
+      all.push(Object.assign({ uid:uid, pname:(p?p.username:uid), key:pv[0] }, pv[1]));
+    });
+  });
+  all.sort(function (a, b) { return (b.at || 0) - (a.at || 0); });
+  if (!all.length) { el.innerHTML = '<div class="card empty">No penalties issued yet.</div>'; return; }
+  el.innerHTML = all.map(function (pen) {
+    return '<div class="admin-card">'
+      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem">'
+      + '<span style="font-weight:700;color:var(--pink)">' + esc(pen.pname) + '</span>'
+      + '<span style="font-family:Orbitron,sans-serif;font-size:.82rem;color:var(--pink)">-' + pen.pts + ' pts</span>'
+      + '</div>'
+      + '<div style="font-size:.72rem;color:var(--dim);margin-bottom:.3rem">' + esc(pen.reason || '') + '</div>'
+      + '<div style="display:flex;justify-content:space-between;align-items:center">'
+      + '<span style="font-size:.62rem;color:var(--dim)">' + fmtFull(pen.at) + '</span>'
+      + '<button class="btn-xs" onclick="revokePenalty(\'' + pen.uid + '\',\'' + pen.key + '\')">Revoke</button>'
+      + '</div></div>';
+  }).join('');
+}
+
+function revokePenalty(uid, key) {
+  if (!confirm('Revoke this penalty?')) return;
+  db.ref(DB.penalties + '/' + uid + '/' + key).remove()
+    .then(function () { toast('Penalty revoked.'); renderPenaltyLog(); });
+}
+
+// ── SEASON ────────────────────────────────────────────────────
+function renderAdminSeason() {
+  var el = $('ap-season'); if (!el) return;
+  el.innerHTML = adminSeasonControls()
+    + '<div style="background:rgba(255,0,110,0.05);border:1px solid rgba(255,0,110,0.15);border-radius:12px;padding:.9rem;margin-top:.8rem">'
+    + '<div style="font-family:Orbitron,sans-serif;font-size:.62rem;color:var(--pink);letter-spacing:1.5px;margin-bottom:.6rem">DANGER ZONE</div>'
+    + '<button class="btn-danger" style="font-size:.74rem;padding:7px 14px" onclick="seasonReset()">Reset All Match Data</button>'
+    + '<div style="font-size:.63rem;color:var(--dim);margin-top:.4rem">Clears all results. Player accounts stay.</div>'
+    + '</div>'
+    + '<div style="margin-top:.9rem"><button class="btn-primary" onclick="openMo(\'broadcast-mo\')">Send Broadcast</button></div>';
+}
+
+// ── RESTRICT PLAYER ───────────────────────────────────────────
+function openRestrictModal(uid, name) {
+  var el = $('restrict-modal-content'); if (!el) return;
+  var p  = allPlayers[uid] || {};
+  var rs = p.restrictions || {};
+  el.innerHTML = '<div style="font-weight:700;color:var(--cyan);margin-bottom:.7rem">' + esc(name) + '</div>'
+    + ['no_submit', 'no_dispute', 'no_chat'].map(function (type) {
+      var active = rs[type] && (!rs[type].until || Date.now() < rs[type].until);
+      return '<div style="display:flex;align-items:center;justify-content:space-between;padding:.4rem 0;border-bottom:1px solid var(--border)">'
+        + '<div><div style="font-size:.78rem;font-weight:600">' + esc(type.replace('_', ' ')) + '</div>'
+        + '<div style="font-size:.62rem;color:var(--dim)">' + (active ? 'Active' : 'Not restricted') + '</div></div>'
+        + (active
+          ? '<button class="btn-xs" onclick="removeRestriction(\'' + uid + '\',\'' + type + '\');openRestrictModal(\'' + uid + '\',\'' + esc(name) + '\')">Remove</button>'
+          : '<button class="btn-xs gold" onclick="applyRestriction(\'' + uid + '\',\'' + type + '\',7);toast(\'' + type + ' restricted for 7 days\');openRestrictModal(\'' + uid + '\',\'' + esc(name) + '\')">7 days</button>')
+        + '</div>';
+    }).join('');
+  openMo('restrict-mo');
+}

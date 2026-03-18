@@ -3,700 +3,895 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <title>eFootball Universe</title>
-<link rel="icon" href="https://i.ibb.co/MDGqDxPS/grok-1773616908832-2.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="preload" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600;700;800&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600;700;800&display=swap" rel="stylesheet"></noscript>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0a0010;--card:#110820;--cyan:#00D4FF;--green:#00FF85;--gold:#FFE600;--pink:#FF2882;--dim:#666;--text:#e8e8f0;--border:rgba(255,255,255,0.07);--safe-bottom:env(safe-area-inset-bottom,0px)}
+body{background:var(--bg);color:var(--text);font-family:'Exo 2',sans-serif;font-size:15px;min-height:100vh;overflow-x:hidden}
+/* LOADER */
+#loader{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.2rem;transition:opacity .4s}
+.loader-logo{width:72px;height:72px;border-radius:50%;border:2px solid rgba(0,212,255,0.3);animation:lpulse 1.4s ease-in-out infinite;display:flex;align-items:center;justify-content:center;font-size:2rem}
+.loader-bar{width:140px;height:3px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden}
+.loader-bar-fill{height:100%;width:40%;background:var(--cyan);border-radius:2px;animation:lslide 1.2s ease-in-out infinite}
+.loader-text{font-family:'Orbitron',sans-serif;font-size:.65rem;color:var(--dim);letter-spacing:3px}
+@keyframes lpulse{0%,100%{box-shadow:0 0 0 0 rgba(0,212,255,.4)}50%{box-shadow:0 0 0 14px rgba(0,212,255,0)}}
+@keyframes lslide{0%{transform:translateX(-100%)}100%{transform:translateX(350%)}}
+/* LANDING */
+#landing{position:fixed;inset:0;z-index:999;background:var(--bg);display:flex;align-items:center;justify-content:center;overflow-y:auto}
+#landing.landing-hidden{display:none!important}#landing.landing-visible{display:flex}
+.landing-inner{width:100%;max-width:400px;padding:2rem 1.5rem 5rem;display:flex;flex-direction:column;align-items:center;gap:1rem}
+.landing-logo{width:72px;height:72px;border-radius:50%;border:2px solid rgba(0,212,255,0.3)}
+.landing-title{font-family:'Orbitron',sans-serif;font-weight:900;font-size:1.6rem;color:var(--cyan)}
+.landing-sub{font-family:'Orbitron',sans-serif;font-size:.8rem;color:var(--green);letter-spacing:4px}
+.landing-tag{font-size:.7rem;color:var(--dim);letter-spacing:2px}
+.landing-tabs{display:flex;gap:.5rem;width:100%;margin-top:.5rem}
+.ltab{flex:1;padding:.55rem 1.2rem;border-radius:8px;border:1.5px solid var(--border);background:transparent;color:var(--dim);font-family:'Exo 2',sans-serif;font-size:.82rem;font-weight:700;cursor:pointer;transition:.2s}
+.ltab.active{background:rgba(0,212,255,0.12);border-color:var(--cyan);color:var(--cyan)}
+.lpanel{display:none;width:100%;flex-direction:column;gap:.75rem}.lpanel.active{display:flex}
+.lbl{font-size:.72rem;color:var(--dim);font-weight:600;display:block;margin-bottom:4px}
+.inp{width:100%;padding:.65rem .85rem;border-radius:10px;background:rgba(255,255,255,0.05);border:1.5px solid var(--border);color:var(--text);font-family:'Exo 2',sans-serif;font-size:.88rem;outline:none;transition:.2s}
+.inp:focus{border-color:var(--cyan);background:rgba(0,212,255,0.06)}
+select.inp option{background:#0e0018;color:var(--text)}
+.btn-primary{width:100%;padding:.7rem;border-radius:10px;border:none;background:linear-gradient(135deg,#00D4FF,#0099cc);color:#000;font-family:'Orbitron',sans-serif;font-size:.78rem;font-weight:700;cursor:pointer;letter-spacing:1px;transition:.2s}
+.btn-primary:hover{opacity:.9}.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+.btn-google{width:100%;padding:.65rem;border-radius:10px;border:1.5px solid var(--border);background:rgba(255,255,255,0.04);color:var(--text);font-size:.82rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:.6rem;transition:.2s}
+.btn-google:hover{background:rgba(255,255,255,0.08)}
+.or-line{text-align:center;color:var(--dim);font-size:.72rem;position:relative}
+.or-line::before,.or-line::after{content:'';position:absolute;top:50%;width:42%;height:1px;background:var(--border)}
+.or-line::before{left:0}.or-line::after{right:0}
+.errmsg{font-size:.74rem;color:var(--pink);min-height:1rem}
+.landing-guest{font-size:.76rem;color:var(--dim);cursor:pointer;margin-top:.5rem;transition:.2s}
+.landing-guest:hover{color:var(--cyan)}
+.club-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.5rem;max-height:280px;overflow-y:auto}
+.club-opt{background:rgba(255,255,255,0.04);border:1.5px solid var(--border);border-radius:10px;padding:.7rem .5rem;text-align:center;cursor:pointer;transition:.2s}
+.club-opt:hover,.club-opt.selected{border-color:var(--cyan);background:rgba(0,212,255,0.08)}
+.club-opt.taken{opacity:.4;cursor:not-allowed}
+.club-opt-badge img{width:36px;height:36px;object-fit:contain}
+.club-opt-name{font-size:.7rem;font-weight:700;margin-top:.3rem}
+.club-opt-status{font-size:.6rem;color:var(--green);margin-top:2px}
+.club-opt.taken .club-opt-status{color:var(--pink)}
+.club-confirm-inner{text-align:center;padding:1rem;background:rgba(0,212,255,0.05);border:1px solid rgba(0,212,255,0.15);border-radius:12px}
+.hidden{display:none!important}
+/* TOPBAR */
+#topbar{position:fixed;top:0;left:0;right:0;z-index:200;height:54px;padding:0 1rem;background:rgba(10,0,16,0.95);backdrop-filter:blur(14px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;transition:box-shadow .2s}
+#topbar.scrolled{box-shadow:0 2px 20px rgba(0,0,0,.6)}
+#hamburger{width:38px;height:38px;background:none;border:none;cursor:pointer;display:flex;flex-direction:column;justify-content:center;gap:5px;padding:6px;flex-shrink:0}
+#hamburger span{display:block;height:2px;background:var(--text);border-radius:2px;transition:.3s}
+#hamburger.open span:nth-child(1){transform:translateY(7px) rotate(45deg)}
+#hamburger.open span:nth-child(2){opacity:0}
+#hamburger.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
+.topbar-logo{display:flex;align-items:center;gap:.5rem;cursor:pointer;flex:1;justify-content:center}
+.topbar-logo-img{width:28px;height:28px;border-radius:50%}
+.topbar-logo-text{font-family:'Orbitron',sans-serif;font-weight:900;font-size:.82rem;color:var(--cyan)}
+#nav-right{display:flex;align-items:center;gap:.4rem;flex-shrink:0}
+.btn-sm{padding:.4rem .75rem;border-radius:7px;font-size:.72rem;font-weight:700;font-family:'Exo 2',sans-serif;cursor:pointer;border:none;transition:.2s}
+.btn-outline{background:transparent;border:1.5px solid var(--border);color:var(--text)}
+.btn-outline:hover{border-color:var(--cyan);color:var(--cyan)}
+.btn-accent{background:linear-gradient(135deg,#00FF85,#00cc6a);color:#000}
+/* Club badge topbar button */
+.topbar-club-btn{width:34px;height:34px;border-radius:50%;border:2px solid rgba(0,212,255,0.35);background:rgba(0,212,255,0.08);cursor:pointer;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:800;color:var(--cyan);transition:.2s;padding:2px}
+.topbar-club-btn:hover{border-color:var(--cyan);box-shadow:0 0 10px rgba(0,212,255,.3)}
+.topbar-club-btn img{width:100%;height:100%;object-fit:contain}
+/* FLOATING CHAT FAB */
+#chat-fab{position:fixed;top:64px;right:12px;z-index:190;width:44px;height:44px;border-radius:50%;background:rgba(10,0,16,0.92);border:1.5px solid rgba(0,212,255,0.35);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 14px rgba(0,0,0,.5);transition:box-shadow .2s;touch-action:none;user-select:none}
+#chat-fab:hover{box-shadow:0 0 16px rgba(0,212,255,.3)}
+#chat-fab svg{width:22px;height:22px;stroke:var(--cyan);fill:none;stroke-width:1.8}
+#fab-badge{position:absolute;top:-5px;right:-5px;background:var(--pink);color:#fff;font-size:.58rem;font-weight:700;border-radius:10px;padding:1px 6px;min-width:18px;text-align:center;display:none;align-items:center;justify-content:center;border:2px solid var(--bg);box-shadow:0 0 6px rgba(255,40,130,.5)}
+/* DRAWER */
+#drawer-overlay{position:fixed;inset:0;z-index:299;background:rgba(0,0,0,.65);display:none}
+#drawer-overlay.active{display:block}
+#drawer{position:fixed;top:0;left:0;bottom:0;z-index:300;width:270px;background:#0e0018;border-right:1px solid var(--border);transform:translateX(-100%);transition:transform .28s ease;display:flex;flex-direction:column;padding-top:54px;overflow-y:auto}
+#drawer.open{transform:translateX(0)}
+.drawer-profile{padding:1.2rem 1rem .9rem;display:flex;align-items:center;gap:.8rem}
+.drawer-avatar{width:44px;height:44px;border-radius:50%;background:rgba(0,212,255,0.12);border:1.5px solid rgba(0,212,255,0.3);display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:700;color:var(--cyan);overflow:hidden;flex-shrink:0}
+.drawer-name{font-weight:700;font-size:.9rem}.drawer-club-lg{font-size:.68rem;color:var(--dim);margin-top:2px}
+.drawer-divider{height:1px;background:var(--border);margin:.3rem 0}
+.drawer-btn{display:flex;align-items:center;gap:.75rem;width:100%;padding:.8rem 1rem;background:none;border:none;color:var(--text);font-size:.84rem;font-family:'Exo 2',sans-serif;font-weight:600;cursor:pointer;text-align:left;transition:.15s}
+.drawer-btn:hover{background:rgba(255,255,255,0.05);color:var(--cyan)}
+.drawer-btn.danger{color:var(--pink)}.drawer-btn.danger:hover{background:rgba(255,40,130,0.08)}
+.drawer-icon{font-size:1.05rem;width:22px;text-align:center}
+.drawer-badge{margin-left:auto;background:var(--pink);color:#fff;font-size:.6rem;font-weight:700;border-radius:9px;padding:1px 6px;min-width:18px;text-align:center}
+/* APP */
+#app{padding-top:54px;padding-bottom:calc(62px + var(--safe-bottom));min-height:100vh}
+.page{display:none;padding:.9rem .9rem 1rem}.page.active{display:block}
+/* BOTTOM NAV */
+#botnav{position:fixed;bottom:0;left:0;right:0;z-index:150;height:calc(60px + var(--safe-bottom));padding-bottom:var(--safe-bottom);background:rgba(10,0,16,0.97);backdrop-filter:blur(14px);border-top:1px solid var(--border);display:flex;align-items:center}
+.nb{flex:1;height:100%;background:none;border:none;color:var(--dim);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;font-size:.56rem;font-family:'Exo 2',sans-serif;font-weight:600;transition:.15s;position:relative;padding-bottom:2px}
+.nb svg{width:19px;height:19px;stroke:currentColor;fill:none;transition:.15s}
+.nb.active{color:var(--cyan)}.nb.active svg{filter:drop-shadow(0 0 4px rgba(0,212,255,.5))}
+.nb-center-ring{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#00D4FF,#00FF85);display:flex;align-items:center;justify-content:center;box-shadow:0 0 14px rgba(0,212,255,.35)}
+.nb-center-ring svg{stroke:#000;width:22px;height:22px}
+.nb-badge{position:absolute;top:5px;right:calc(50% - 18px);background:var(--pink);color:#fff;font-size:.52rem;font-weight:700;border-radius:9px;padding:1px 4px;min-width:15px;text-align:center}
+/* TOAST */
+#toast{position:fixed;bottom:calc(70px + var(--safe-bottom));left:50%;transform:translateX(-50%) translateY(8px);background:rgba(0,212,255,0.12);border:1.5px solid var(--cyan);color:var(--cyan);padding:.55rem 1.2rem;border-radius:10px;font-size:.8rem;font-weight:600;display:none;z-index:9998;white-space:nowrap;transition:opacity .3s,transform .3s;pointer-events:none}
+/* NOTIF */
+#notif-wrap{position:fixed;top:62px;right:.8rem;z-index:500;display:flex;flex-direction:column;gap:.4rem;max-width:290px;pointer-events:none}
+.notif-banner{background:#0e0018;border:1px solid rgba(0,212,255,0.2);border-radius:12px;padding:.65rem .85rem;display:flex;align-items:flex-start;gap:.55rem;box-shadow:0 4px 20px rgba(0,0,0,.6);animation:nSlide .3s ease;pointer-events:all}
+@keyframes nSlide{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+.notif-icon{font-size:1.1rem;flex-shrink:0}.notif-title{font-weight:700;font-size:.78rem}.notif-msg{font-size:.7rem;color:var(--dim);margin-top:2px}
+.notif-close{margin-left:auto;background:none;border:none;color:var(--dim);cursor:pointer;font-size:.85rem;flex-shrink:0;padding:0 0 0 .35rem}
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.card.empty{padding:1.5rem;text-align:center;color:var(--dim);font-size:.82rem}
+/* HOME */
+.home-hero{background:linear-gradient(135deg,rgba(0,212,255,0.08),rgba(0,255,133,0.05));border:1px solid rgba(0,212,255,0.15);border-radius:16px;padding:1.2rem;display:flex;align-items:center;gap:1rem;margin-bottom:1.2rem}
+.home-hero-img{width:54px;height:54px;border-radius:50%;border:2px solid rgba(0,212,255,0.3)}
+.home-hero-title{font-family:'Orbitron',sans-serif;font-size:1.1rem;font-weight:900}
+.home-hero-sub{font-size:.72rem;color:var(--dim);margin-top:3px}
+.c-cyan{color:var(--cyan)}.c-green{color:var(--green)}.c-gold{color:var(--gold)}.c-pink{color:var(--pink)}
+.section-header{display:flex;align-items:center;gap:.6rem;margin:1.2rem 0 .65rem}
+.section-title{font-family:'Orbitron',sans-serif;font-size:.72rem;font-weight:700;letter-spacing:1.5px}
+.section-line{flex:1;height:1px;background:linear-gradient(90deg,rgba(0,212,255,0.3),transparent)}
+.section-line.green{background:linear-gradient(90deg,rgba(0,255,133,0.3),transparent)}
+.section-line.gold{background:linear-gradient(90deg,rgba(255,230,0,0.3),transparent)}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;margin:1rem 0}
+.stat-box{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:.75rem .4rem;text-align:center}
+.stat-val{font-family:'Orbitron',sans-serif;font-size:1.1rem;font-weight:900;color:var(--cyan)}
+.stat-lbl{font-size:.58rem;color:var(--dim);margin-top:2px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+.btn-xs{padding:.3rem .65rem;border-radius:6px;font-size:.64rem;font-weight:700;background:transparent;border:1px solid var(--border);color:var(--dim);cursor:pointer;font-family:'Exo 2',sans-serif}
+.btn-xs:hover{color:var(--cyan);border-color:var(--cyan)}
+.btn-xs.gold{border-color:rgba(255,230,0,0.3);color:var(--gold)}
+/* LEAGUES */
+.lg-tabs{display:flex;gap:.4rem;margin-bottom:.8rem;overflow-x:auto;padding-bottom:2px}
+.lgtab{padding:.45rem .9rem;border-radius:8px;border:1.5px solid var(--border);background:transparent;color:var(--dim);font-family:'Exo 2',sans-serif;font-size:.76rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:.2s}
+.lgtab.active{background:rgba(0,212,255,0.1)}
+.table-wrap{overflow-x:auto}
+.standings-table{width:100%;border-collapse:collapse;font-size:.75rem}
+.standings-table th{padding:.5rem .4rem;text-align:center;font-family:'Orbitron',sans-serif;font-size:.55rem;color:var(--dim);letter-spacing:1px;border-bottom:1px solid var(--border)}
+.standings-table td{padding:.5rem .4rem;text-align:center;border-bottom:1px solid rgba(255,255,255,0.04)}
+.standings-table tr:hover td{background:rgba(255,255,255,0.03)}
+.fd{display:inline-block;width:8px;height:8px;border-radius:50%;margin:0 1px}
+.fd.w{background:#00ff88}.fd.d{background:#ffe600}.fd.l{background:#FF2882}
+.deduct-badge{font-size:.55rem;color:var(--pink);background:rgba(255,40,130,0.12);border:1px solid rgba(255,40,130,0.25);border-radius:5px;padding:1px 4px;margin-left:3px}
+.legend{display:flex;gap:1rem;font-size:.65rem;color:var(--dim);margin-top:.7rem;flex-wrap:wrap}
+/* FIXTURES */
+.filter-tabs{display:flex;gap:.4rem;margin-bottom:.8rem;overflow-x:auto;padding-bottom:2px}
+.ftab{padding:.4rem .8rem;border-radius:8px;border:1.5px solid var(--border);background:transparent;color:var(--dim);font-size:.74rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:.2s}
+.ftab.active{background:rgba(0,212,255,0.1);border-color:var(--cyan);color:var(--cyan)}
+.fx-date-label{font-family:'Orbitron',sans-serif;font-size:.6rem;color:var(--dim);letter-spacing:2px;padding:.38rem 0;margin:.7rem 0 .35rem}
+.fx-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:.85rem;margin-bottom:.45rem}
+.fx-card.fx-mine{border-color:rgba(255,230,0,0.28)}
+.fx-card.fx-post{opacity:.75}
+.fx-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;flex-wrap:wrap;gap:.28rem}
+.fx-teams{display:flex;align-items:center;justify-content:space-between;gap:.38rem}
+.fx-team{flex:1;text-align:center;cursor:pointer}
+.fx-name{font-size:.73rem;font-weight:700;margin-top:2px}
+.fx-score{background:rgba(0,0,0,0.4);border-radius:7px;padding:5px 9px;text-align:center;min-width:50px}
+.fx-actions{display:flex;gap:.35rem;margin-top:.5rem;padding-top:.5rem;border-top:1px solid rgba(255,255,255,0.04)}
+.fx-badge{font-size:.54rem;font-weight:700;border-radius:8px;padding:1px 5px;border:1px solid}
+.fx-badge.mine{color:var(--gold);background:rgba(255,230,0,0.08);border-color:rgba(255,230,0,0.2)}
+.fx-badge.warn{color:#ff6b00;background:rgba(255,107,0,0.08);border-color:rgba(255,107,0,0.2)}
+.fx-badge.info{color:var(--cyan);background:rgba(0,212,255,0.08);border-color:rgba(0,212,255,0.2)}
+.fx-badge.danger{color:var(--pink);background:rgba(255,40,130,0.08);border-color:rgba(255,40,130,0.2)}
+.fx-badge.ref{color:var(--green);background:rgba(0,255,133,0.07);border-color:rgba(0,255,133,0.18)}
+.lg-badge{font-size:.56rem;font-weight:700;padding:2px 6px;border-radius:4px;display:inline-block}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.8rem}
+/* MATCH PREP */
+.mcard{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:.9rem;margin-bottom:.6rem}
+.mcard-top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.45rem;margin-bottom:.65rem}
+.mcard-btns{display:flex;gap:.45rem;margin-top:.65rem;flex-wrap:wrap}
+.mstatus{font-size:.62rem;font-weight:700;padding:3px 8px;border-radius:8px;border:1px solid}
+.ms-rdy{color:var(--green);background:rgba(0,255,133,0.08);border-color:rgba(0,255,133,0.25)}
+.ms-pend{color:var(--gold);background:rgba(255,230,0,0.08);border-color:rgba(255,230,0,0.25)}
+.mcode{font-family:'Orbitron',sans-serif;font-size:.78rem;letter-spacing:2px;background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.2);border-radius:7px;padding:4px 10px;cursor:pointer;display:inline-block}
+/* PREDICTIONS */
+.pred-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:.9rem;margin-bottom:.6rem;position:relative;overflow:hidden}
+.pred-card.big-match{border-color:rgba(255,40,40,0.5);box-shadow:0 0 20px rgba(255,40,40,0.15),0 0 40px rgba(255,40,40,0.05)}
+.pred-card.big-match::before{content:'';position:absolute;inset:0;border-radius:14px;border:2px solid rgba(255,60,60,0.4);animation:bigPulse 2s ease-in-out infinite;pointer-events:none}
+@keyframes bigPulse{0%,100%{box-shadow:inset 0 0 0 0 rgba(255,40,40,0.2)}50%{box-shadow:inset 0 0 20px 2px rgba(255,40,40,0.15)}}
+.big-match-banner{display:flex;align-items:center;gap:.4rem;margin-bottom:.6rem;padding:.35rem .6rem;background:rgba(255,30,30,0.12);border-radius:7px;border:1px solid rgba(255,30,30,0.25)}
+.big-match-pulse{width:8px;height:8px;border-radius:50%;background:#ff3030;flex-shrink:0;animation:dotPulse 1s ease-in-out infinite}
+@keyframes dotPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,48,48,.6)}50%{box-shadow:0 0 0 5px rgba(255,48,48,0)}}
+.big-match-banner span{font-size:.62rem;font-weight:700;color:#ff6060;font-family:'Orbitron',sans-serif;letter-spacing:1px}
+.pred-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem;flex-wrap:wrap;gap:.3rem}
+.pred-teams{display:flex;align-items:center;justify-content:space-between;gap:.5rem}
+.pred-team{flex:1;text-align:center}
+.pred-name{font-size:.72rem;font-weight:700;margin-top:3px}
+.pred-vs{font-size:.7rem;color:var(--dim);font-weight:600}
+/* MESSENGER */
+.msng-wrap{display:flex;flex-direction:column;height:calc(100vh - 54px - 62px - var(--safe-bottom));overflow:hidden}
+.msng-header{display:flex;align-items:center;gap:.6rem;padding:.6rem .9rem;border-bottom:1px solid var(--border);flex-shrink:0}
+.msng-back{background:none;border:none;color:var(--cyan);font-size:1.3rem;cursor:pointer;padding:.2rem .4rem;line-height:1}
+.msng-title{flex:1;font-family:'Orbitron',sans-serif;font-size:.82rem;font-weight:700;color:var(--cyan)}
+.msng-new{background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.25);border-radius:7px;color:var(--cyan);font-size:1rem;cursor:pointer;width:30px;height:30px;display:flex;align-items:center;justify-content:center}
+.msng-tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0}
+.msng-tab{flex:1;padding:.55rem;background:none;border:none;color:var(--dim);font-size:.72rem;font-weight:700;font-family:'Exo 2',sans-serif;cursor:pointer;border-bottom:2px solid transparent;transition:.2s}
+.msng-tab.active{color:var(--cyan);border-bottom-color:var(--cyan)}
+.msng-content{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.msng-list-wrap{flex:1;overflow-y:auto}
+.msng-conv-row{display:flex;align-items:center;gap:.75rem;padding:.8rem 1rem;cursor:pointer;border-bottom:1px solid var(--border);transition:.15s}
+.msng-conv-row:hover{background:rgba(0,212,255,0.05)}
+.msng-av{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:700;flex-shrink:0;position:relative;overflow:hidden}
+.msng-av-dot{position:absolute;bottom:1px;right:1px;width:10px;height:10px;border-radius:50%;background:var(--green);border:2px solid var(--bg)}
+.msng-conv-info{flex:1;min-width:0}
+.msng-conv-name{font-size:.85rem;font-weight:700;margin-bottom:2px}
+.msng-conv-last{font-size:.72rem;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.msng-conv-last.unread{color:var(--text);font-weight:600}
+.msng-conv-meta{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+.msng-conv-time{font-size:.62rem;color:var(--dim)}
+.msng-unread-dot{width:10px;height:10px;border-radius:50%;background:var(--cyan)}
+.msng-room-row{display:flex;align-items:center;gap:.6rem;padding:.8rem 1rem;cursor:pointer;border-bottom:1px solid var(--border);transition:.15s}
+.msng-room-row:hover{background:rgba(0,212,255,0.05)}
+.msng-room-info{flex:1;min-width:0}
+.msng-room-name{font-size:.8rem;font-weight:700;margin-bottom:3px}
+.msng-room-meta{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap}
+.msng-thread-wrap{display:flex;flex-direction:column;height:100%;overflow:hidden}
+.msng-thread-header{display:flex;align-items:center;gap:.5rem;padding:.55rem .8rem;border-bottom:1px solid var(--border);flex-shrink:0;background:rgba(10,0,16,0.8)}
+.msng-back-sm{background:none;border:none;color:var(--cyan);font-size:1.2rem;cursor:pointer;padding:.1rem .3rem;flex-shrink:0;line-height:1}
+.msng-thread-name{flex:1;font-weight:700;font-size:.84rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.msng-view-btn{background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.2);border-radius:7px;color:var(--cyan);font-size:.9rem;cursor:pointer;width:28px;height:28px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.msng-online-pill{display:flex;align-items:center;gap:.3rem;font-size:.65rem;color:var(--dim)}
+.online-dot-sm{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 5px var(--green)}
+/* MESSAGES */
+.msng-msgs{flex:1;overflow-y:auto;padding:.6rem .8rem;display:flex;flex-direction:column;gap:3px;-webkit-overflow-scrolling:touch}
+.msng-msg{display:flex;flex-direction:column;margin-bottom:2px}
+.msng-msg.mine{align-items:flex-end}.msng-msg.other{align-items:flex-start}
+.msng-bubble{max-width:78vw;padding:.5rem .75rem;border-radius:16px;font-size:.84rem;line-height:1.4;word-break:break-word}
+.msng-msg.other .msng-bubble{background:rgba(255,255,255,0.08);border-bottom-left-radius:4px}
+.msng-msg.mine .msng-bubble{background:linear-gradient(135deg,rgba(0,212,255,0.28),rgba(0,150,200,0.22));border-bottom-right-radius:4px}
+.msng-time{font-size:.58rem;color:var(--dim);margin-top:2px;padding:0 3px}
+.msng-sys{text-align:center;font-size:.64rem;color:var(--dim);padding:.35rem;margin:.3rem 0;font-style:italic}
+.msng-sender{display:flex;align-items:center;gap:.35rem;margin:4px 0 2px;font-size:.64rem;color:var(--dim)}
+.msng-av-sm{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.52rem;font-weight:700;flex-shrink:0}
+.msng-empty{color:var(--dim);font-size:.8rem;text-align:center;padding:2.5rem 1rem;line-height:1.6}
+.msng-loading{color:var(--dim);font-size:.76rem;text-align:center;padding:1.5rem}
+/* MESSAGE INPUT — always pinned to bottom */
+.msng-inp-row{display:flex;align-items:center;gap:.4rem;padding:.55rem .8rem;border-top:1px solid var(--border);background:var(--bg);flex-shrink:0;padding-bottom:calc(.55rem + var(--safe-bottom))}
+#msng-inp{flex:1;padding:.55rem .85rem;background:rgba(255,255,255,0.07);border:1.5px solid var(--border);border-radius:22px;color:var(--text);font-family:'Exo 2',sans-serif;font-size:.86rem;outline:none;-webkit-appearance:none}
+#msng-inp:focus{border-color:var(--cyan);background:rgba(0,212,255,0.06)}
+.msng-send{background:linear-gradient(135deg,var(--cyan),#0099cc);border:none;border-radius:50%;width:38px;height:38px;color:#000;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+/* RESULT CELEBRATION */
+#result-celebration{position:fixed;inset:0;z-index:900;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center}
+#result-celebration.hidden{display:none}
+.celeb-inner{background:var(--card);border:1px solid rgba(0,212,255,0.2);border-radius:20px;padding:2rem;text-align:center;max-width:300px;width:90%}
+.celeb-score{font-family:'Orbitron',sans-serif;font-size:2.5rem;font-weight:900;color:var(--green);margin-bottom:.4rem}
+.celeb-teams{font-size:.8rem;color:var(--dim);margin-bottom:.6rem}
+.celeb-winner{font-size:1rem;font-weight:700;color:var(--gold)}
+/* SCORE SUBMIT */
+.score-panel{margin-bottom:.6rem}
+.score-box{display:flex;align-items:center;justify-content:center;gap:1rem;margin:1rem 0}
+.score-team{text-align:center}.score-team-name{font-size:.76rem;font-weight:700;margin-bottom:.4rem}
+.score-stepper{display:flex;align-items:center;gap:.5rem}
+.score-num{font-family:'Orbitron',sans-serif;font-size:1.6rem;font-weight:900;color:var(--green);min-width:32px;text-align:center}
+.score-vs{font-family:'Orbitron',sans-serif;font-size:1rem;color:var(--dim)}
+.step-btn{width:30px;height:30px;border-radius:50%;border:1.5px solid var(--border);background:transparent;color:var(--text);font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.2s}
+.step-btn:hover{border-color:var(--cyan);color:var(--cyan)}
+.step-btn.add{border-color:var(--green);color:var(--green)}
+.honesty-check{display:flex;align-items:flex-start;gap:.5rem;font-size:.74rem;color:var(--dim);cursor:pointer;line-height:1.4;margin:.5rem 0}
+.honesty-check input{margin-top:2px;flex-shrink:0}
+.full-width{width:100%}
+/* MODALS */
+.modal{position:fixed;inset:0;z-index:800;background:rgba(0,0,0,.75);display:none;align-items:flex-end;justify-content:center;padding:0}
+.modal.active{display:flex}
+.modal-box{background:#0e0018;border:1px solid var(--border);border-radius:20px 20px 0 0;padding:1.4rem 1.4rem calc(1.4rem + var(--safe-bottom));width:100%;max-width:480px;max-height:90vh;overflow-y:auto;position:relative;animation:slideUp .25s ease}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-box.wide{max-width:480px}
+.modal-close{position:absolute;top:.8rem;right:.8rem;background:rgba(255,255,255,0.06);border:none;border-radius:50%;width:28px;height:28px;color:var(--dim);font-size:.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.modal-title{font-family:'Orbitron',sans-serif;font-weight:700;font-size:.85rem;margin-bottom:1rem;color:var(--cyan)}
+.modal-btns{display:flex;gap:.5rem;margin-top:.8rem}
+.form-group{display:flex;flex-direction:column;gap:4px;margin-bottom:.6rem}
+.form-row{display:flex;gap:.5rem;flex-wrap:wrap}
+.form-row .form-group{flex:1;min-width:120px}
+.btn-secondary{flex:1;padding:.65rem;border-radius:10px;border:1.5px solid var(--border);background:transparent;color:var(--text);font-size:.82rem;cursor:pointer;transition:.2s;font-family:'Exo 2',sans-serif}
+.btn-secondary:hover{border-color:var(--cyan);color:var(--cyan)}
+.btn-danger{flex:1;padding:.65rem;border-radius:10px;border:1px solid rgba(255,40,130,0.3);background:rgba(255,40,130,0.12);color:var(--pink);font-size:.82rem;cursor:pointer;font-family:'Exo 2',sans-serif;transition:.2s}
+.league-pick-grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-top:.4rem}
+.league-pick-opt{display:flex;align-items:center;gap:.5rem;padding:.6rem .7rem;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;transition:.2s}
+.league-pick-opt:hover,.league-pick-opt.selected{border-color:var(--cyan);background:rgba(0,212,255,0.08)}
+.league-pick-opt img{width:28px;height:28px;object-fit:contain}
+.upload-label{display:flex;align-items:center;gap:.5rem;padding:.65rem .85rem;border-radius:10px;border:1.5px dashed var(--border);cursor:pointer;font-size:.8rem;color:var(--dim);transition:.2s}
+.upload-label:hover{border-color:var(--cyan);color:var(--cyan)}
+.ss-preview{width:100%;max-height:160px;object-fit:contain;border-radius:8px;margin-top:.5rem;border:1px solid var(--border)}
+.report-who{font-weight:700;color:var(--cyan);font-size:.88rem;padding:.4rem 0}
+.dm-result-row{display:flex;align-items:center;gap:.6rem;padding:.65rem .5rem;cursor:pointer;border-radius:8px;transition:.15s}
+.dm-result-row:hover{background:rgba(0,212,255,0.06)}
 
-<!-- Styles -->
-<link rel="stylesheet" href="style.css">
+.notif-bell-btn{position:relative;background:none;border:none;color:var(--dim);cursor:pointer;padding:.3rem;display:flex;align-items:center;justify-content:center;transition:.2s}
+.notif-bell-btn:hover{color:var(--cyan)}
+#notif-bell-badge{position:absolute;top:-2px;right:-2px;background:var(--pink);color:#fff;font-size:.52rem;font-weight:700;border-radius:8px;padding:1px 4px;min-width:14px;text-align:center;display:flex;align-items:center;justify-content:center;border:1.5px solid var(--bg)}
 
-<!-- Firebase SDKs — loaded by core.js dynamically, no blocking -->
+.prof-cover{height:110px;background:linear-gradient(135deg,rgba(0,212,255,0.12),rgba(0,255,133,0.06));position:relative;background-size:cover;background-position:center;border-radius:12px 12px 0 0}
+.prof-avatar-wrap{position:absolute;bottom:-28px;left:1rem}
+.prof-avatar{width:56px;height:56px;border-radius:50%;border:3px solid var(--bg);background:rgba(0,212,255,0.12);display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer}
+.prof-info{padding:2rem 1rem .9rem;border-bottom:1px solid var(--border)}
+.prof-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:.4rem;padding:.9rem}
+.prof-stat-box{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:9px;padding:.6rem .4rem;text-align:center}
+.ucl-prizes{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin-bottom:1rem}
+.ucl-prize{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:.8rem .5rem;text-align:center}
+.ucl-prize.gold{border-color:rgba(255,230,0,0.3);background:rgba(255,230,0,0.05)}
+.ucl-prize.silver{border-color:rgba(200,200,200,0.2)}
+.ucl-prize.cyan{border-color:rgba(0,212,255,0.25);background:rgba(0,212,255,0.05)}
+.ucl-prize-label{font-size:.58rem;color:var(--dim);margin-bottom:.3rem}
+.ucl-prize-val{font-family:Orbitron,sans-serif;font-weight:900;font-size:.88rem;color:var(--gold)}
+.ucl-fee-box{background:rgba(0,212,255,0.05);border:1px solid rgba(0,212,255,0.15);border-radius:12px;padding:.9rem;margin-bottom:.8rem}
+.ucl-rules{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:.75rem;margin-bottom:.8rem}
+.admin-tabs{display:flex;gap:.35rem;overflow-x:auto;margin-bottom:.8rem;padding-bottom:2px}
+.atab{padding:.45rem .85rem;border-radius:8px;border:1.5px solid var(--border);background:transparent;color:var(--dim);font-family:"Exo 2",sans-serif;font-size:.74rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:.2s}
+.atab.active{background:rgba(0,212,255,0.1);border-color:var(--cyan);color:var(--cyan)}
+.apanel{display:none}.apanel.active{display:block}
+.admin-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:.8rem;margin-bottom:.5rem}
+.admin-card.done{opacity:.6}.admin-card.banned{border-color:rgba(255,40,130,0.3)}
+.swap-row{display:flex;align-items:center;gap:.6rem;padding:.6rem .5rem;cursor:pointer;border-radius:8px;border:1.5px solid transparent;transition:.2s;margin-bottom:.3rem}
+.swap-row:hover{background:rgba(0,212,255,0.06);border-color:rgba(0,212,255,0.2)}
+.pred-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:.9rem;margin-bottom:.6rem;position:relative;overflow:hidden}
+.pred-card.big-match{border-color:rgba(255,40,40,0.5);box-shadow:0 0 20px rgba(255,40,40,0.15)}
+.pred-card.big-match::before{content:"";position:absolute;inset:0;border-radius:14px;border:2px solid rgba(255,60,60,0.4);animation:bigPulse 2s ease-in-out infinite;pointer-events:none}
+@keyframes bigPulse{0%,100%{box-shadow:inset 0 0 0 0 rgba(255,40,40,0.2)}50%{box-shadow:inset 0 0 20px 2px rgba(255,40,40,0.15)}}
+.big-match-banner{display:flex;align-items:center;gap:.4rem;margin-bottom:.6rem;padding:.35rem .6rem;background:rgba(255,30,30,0.12);border-radius:7px;border:1px solid rgba(255,30,30,0.25)}
+.big-match-pulse{width:8px;height:8px;border-radius:50%;background:#ff3030;flex-shrink:0;animation:dotPulse 1s ease-in-out infinite}
+@keyframes dotPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,48,48,.6)}50%{box-shadow:0 0 0 5px rgba(255,48,48,0)}}
+.big-match-banner span{font-size:.62rem;font-weight:700;color:#ff6060;font-family:Orbitron,sans-serif;letter-spacing:1px}
+</style>
 </head>
 <body>
 
-<!-- LOADING SCREEN -->
-<div id="loading-screen">
-  <img src="https://i.ibb.co/MDGqDxPS/grok-1773616908832-2.jpg" alt="logo">
-  <div id="loading-bar"><div id="loading-bar-inner"></div></div>
-  <p>Loading...</p>
+<div id="loader">
+  <div class="loader-logo">⚽</div>
+  <div class="loader-bar"><div class="loader-bar-fill"></div></div>
+  <div class="loader-text">LOADING...</div>
 </div>
 
-<!-- LANDING -->
-<div id="landing">
-  <div id="landing-inner">
-    <img src="https://i.ibb.co/MDGqDxPS/grok-1773616908832-2.jpg" id="l-logo" alt="logo">
-    <div id="l-brand">eFOOTBALL<br><span id="l-sub">UNIVERSE</span></div>
-    <div id="l-tag">Register &middot; Compete &middot; Dominate</div>
-    <div id="l-tabs">
-      <button class="l-tab on" onclick="lTab('in')">&#9889; Sign In</button>
-      <button class="l-tab" onclick="lTab('up')">&#127918; Create Account</button>
+<div id="landing" class="landing-hidden">
+  <div class="landing-inner">
+    <img src="https://i.ibb.co/MDGqDxPS/grok-1773616908832-2.jpg" class="landing-logo" alt="logo" onerror="this.style.display='none'">
+    <div class="landing-title">eFOOTBALL</div>
+    <div class="landing-sub">UNIVERSE</div>
+    <div class="landing-tag">Register · Compete · Dominate</div>
+    <div class="landing-tabs">
+      <button class="ltab active" onclick="lTab('in')">Sign In</button>
+      <button class="ltab" onclick="lTab('up')">Join</button>
     </div>
-    <!-- SIGN IN -->
-    <div id="l-in" class="l-panel on">
-      <div class="lf"><label class="lbl">Email</label>
-        <input class="inp" id="li-em" type="email" placeholder="your@email.com" autocomplete="email">
-      </div>
-      <div class="lf"><label class="lbl">Password</label>
-        <input class="inp" id="li-pw" type="password" placeholder="&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;" autocomplete="current-password" onkeydown="if(event.key==='Enter')doSignIn()">
-      </div>
+    <div id="l-in" class="lpanel active">
+      <div><label class="lbl">Email</label><input class="inp" id="li-em" type="email" placeholder="your@email.com" autocomplete="email"></div>
+      <div><label class="lbl">Password</label><input class="inp" id="li-pw" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doSignIn()"></div>
       <div class="errmsg" id="li-err"></div>
-      <button class="btn-p" id="li-btn" onclick="doSignIn()">&#9889; Sign In</button>
+      <button class="btn-primary" id="li-btn" onclick="doSignIn()">Sign In</button>
+      <div class="or-line"><span>or</span></div>
+      <button class="btn-google" onclick="doGoogleSignIn()"><img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" height="18" alt="G"> Continue with Google</button>
     </div>
-    <!-- REGISTER -->
-    <div id="l-up" class="l-panel">
-      <div id="l-s1">
-        <div class="lf"><label class="lbl">Username</label><input class="inp" id="ru-name" placeholder="YourGamertag" autocomplete="username"></div>
-        <div class="lf"><label class="lbl">Email</label><input class="inp" id="ru-em" type="email" placeholder="your@email.com" autocomplete="email"></div>
-        <div class="lf"><label class="lbl">Password (min 8)</label><input class="inp" id="ru-pw" type="password" placeholder="&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;" autocomplete="new-password"></div>
-        <div class="lf"><label class="lbl">Country</label>
-          <select class="inp" id="ru-country">
-            <option value="">&#8212; Select &#8212;</option>
-            <option>Nigeria</option><option>Ghana</option><option>Kenya</option><option>South Africa</option>
-            <option>United Kingdom</option><option>United States</option><option>Germany</option>
-            <option>France</option><option>Spain</option><option>Italy</option><option>Brazil</option>
-            <option>Portugal</option><option>Other</option>
-          </select>
-        </div>
-        <div class="lf"><label class="lbl">League</label>
-          <select class="inp" id="ru-league">
-            <option value="">&#8212; Select &#8212;</option>
-            <option value="epl">&#127988;&#65039; Premier League</option>
-            <option value="laliga">&#127988;&#65039; La Liga</option>
-            <option value="seriea">&#127988;&#65039; Serie A</option>
-            <option value="ligue1">&#127988;&#65039; Ligue 1</option>
-          </select>
-        </div>
+    <div id="l-up" class="lpanel">
+      <div id="reg-step1">
+        <div><label class="lbl">Username</label><input class="inp" id="ru-name" placeholder="YourGamertag" maxlength="20" autocomplete="username"></div>
+        <div><label class="lbl">Email</label><input class="inp" id="ru-em" type="email" placeholder="your@email.com" autocomplete="email"></div>
+        <div><label class="lbl">Password (min 8)</label><input class="inp" id="ru-pw" type="password" placeholder="••••••••" autocomplete="new-password"></div>
+        <div><label class="lbl">Country</label><select class="inp" id="ru-country"><option value="">— Select —</option><option>Nigeria</option><option>Ghana</option><option>Kenya</option><option>South Africa</option><option>United Kingdom</option><option>United States</option><option>Germany</option><option>France</option><option>Spain</option><option>Italy</option><option>Brazil</option><option>Portugal</option><option>Other</option></select></div>
+        <div><label class="lbl">League</label><select class="inp" id="ru-league"><option value="">— Select —</option><option value="epl">Premier League</option><option value="laliga">La Liga</option><option value="seriea">Serie A</option><option value="ligue1">Ligue 1</option></select></div>
         <div class="errmsg" id="ru-err"></div>
-        <button class="btn-p" id="ru-btn" onclick="doRegStep1()">&#127920; Draw My Club!</button>
+        <button class="btn-primary" id="ru-btn" onclick="doRegStep1()">Pick My Club</button>
+        <div class="or-line"><span>or</span></div>
+        <button class="btn-google" onclick="doGoogleSignIn()"><img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" height="18" alt="G"> Continue with Google</button>
       </div>
-      <!-- Club picker step -->
-      <div id="l-s-picker" style="display:none">
-        <div id="l-club-picker"></div>
-        <button class="btn-s" style="margin-top:.6rem" onclick="regBack()">&#8592; Back</button>
+      <div id="reg-step2" class="hidden">
+        <div style="font-family:Orbitron,sans-serif;font-size:.72rem;color:var(--cyan);margin-bottom:.4rem">Choose Your Club</div>
+        <div id="club-grid" class="club-grid"></div>
+        <div class="errmsg" id="ru-err2"></div>
+        <button class="btn-secondary" style="margin-top:.5rem" onclick="regBack()">Back</button>
       </div>
-
-      <div id="l-s2" style="display:none;text-align:center">
-        <p style="color:var(--dim);font-size:.8rem;margin-bottom:.8rem">Your club has been drawn...</p>
-        <div id="l-club-box">
-          <div id="l-club-badge" style="margin:0 auto .5rem;display:flex;justify-content:center"></div>
-          <div id="l-club-name"></div>
-          <div id="l-club-lg"></div>
-        </div>
-        <div class="errmsg" id="ru-err2" style="margin-top:.5rem"></div>
-        <div style="display:flex;gap:.6rem;justify-content:center;margin-top:.8rem">
-          <button class="btn-s" style="width:auto;padding:10px 18px" onclick="regBack()">&#8617; Redraw</button>
-          <button class="btn-p" style="width:auto;padding:10px 20px" id="ru-confirm" onclick="doRegConfirm()">&#10003; Confirm</button>
+      <div id="reg-step3" class="hidden">
+        <div id="club-confirm-box"></div>
+        <div class="errmsg" id="ru-err3"></div>
+        <div style="display:flex;gap:.5rem;margin-top:.5rem">
+          <button class="btn-secondary" onclick="regBackToGrid()">Change</button>
+          <button class="btn-primary" id="ru-confirm" onclick="doRegConfirm()">Confirm</button>
         </div>
       </div>
     </div>
-    <div id="l-guest" onclick="enterApp()">Already browsing? <span>View as guest &#8594;</span></div>
+    <div class="landing-guest" onclick="enterApp()">Browse as guest</div>
   </div>
 </div>
 
 <div id="toast"></div>
-
-<div id="news-ticker-bar">
-  <div class="news-ticker-label">BREAKING</div>
-  <div style="overflow:hidden;flex:1"><div class="news-ticker-track" id="news-ticker-track"><span class="news-ticker-item"><span class="news-ticker-dot"></span>Loading news...</span></div></div>
-</div>
-<div id="season-banner" style="display:none;background:rgba(255,230,0,0.07);border-bottom:1px solid rgba(255,230,0,0.18);font-family:Orbitron,sans-serif;letter-spacing:1px"></div>
 <div id="notif-wrap"></div>
 
-<!-- TOP BAR -->
+<!-- FLOATING CHAT ICON -->
+<div id="chat-fab" style="display:none">
+  <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+  <div id="fab-badge"></div>
+</div>
+
+<div id="drawer-overlay" onclick="closeDrawer()"></div>
+<div id="drawer">
+  <div class="drawer-profile">
+    <div id="drawer-avatar" class="drawer-avatar">?</div>
+    <div><div id="drawer-name" class="drawer-name">Guest</div><div id="drawer-club-lg" class="drawer-club-lg"></div></div>
+  </div>
+  <div class="drawer-divider"></div>
+  <button class="drawer-btn" onclick="closeDrawer();goPage('profile')"><span class="drawer-icon">👤</span> My Profile</button>
+  <button class="drawer-btn" onclick="closeDrawer();goPage('leaderboard')"><span class="drawer-icon">📈</span> Leaderboard</button>
+  <button class="drawer-btn" onclick="closeDrawer();goPage('polls')"><span class="drawer-icon">📊</span> Polls<span id="polls-badge" class="drawer-badge hidden"></span></button>
+  <button class="drawer-btn" onclick="closeDrawer();openMessenger('dms')"><span class="drawer-icon">💬</span> Messages<span id="pm-badge" class="drawer-badge hidden"></span></button>
+  <button class="drawer-btn" onclick="closeDrawer();goPage('matchprep')"><span class="drawer-icon">🔄</span> Swap Requests<span id="swap-badge" class="drawer-badge hidden"></span></button>
+  <button class="drawer-btn" onclick="closeDrawer();goPage('referee')"><span class="drawer-icon">🟢</span> Referee Panel<span id="ref-badge" class="drawer-badge hidden"></span></button>
+  <button class="drawer-btn" onclick="closeDrawer();goPage('ucl')"><span class="drawer-icon">🏆</span> UCL<span id="ucl-badge" class="drawer-badge hidden"></span></button>
+  <div class="drawer-divider"></div>
+  <button class="drawer-btn danger" id="drawer-admin-btn" onclick="closeDrawer();goPage('admin')" style="display:none"><span class="drawer-icon">🛡</span> Admin Panel</button>
+  <button class="drawer-btn danger" id="drawer-signout-btn" onclick="closeDrawer();doLogout()" style="display:none"><span class="drawer-icon">🚪</span> Sign Out</button>
+  <button class="drawer-btn" id="drawer-login-btn" onclick="closeDrawer();lTab('in');showLanding()"><span class="drawer-icon">🔑</span> Login / Join</button>
+</div>
+
 <div id="topbar">
-  <div class="nav-logo" onclick="go('home')">
-    <img src="https://i.ibb.co/MDGqDxPS/grok-1773616908832-2.jpg" alt="logo">
-    <span>eFOOTBALL</span>
+  <button id="hamburger" onclick="openDrawer()"><span></span><span></span><span></span></button>
+  <div class="topbar-logo" onclick="goPage('home')">
+    <img src="https://i.ibb.co/MDGqDxPS/grok-1773616908832-2.jpg" alt="logo" class="topbar-logo-img" onerror="this.style.display='none'">
+    <span class="topbar-logo-text">eFOOTBALL</span>
   </div>
   <div id="nav-right">
-    <button class="bsm bsm-s" onclick="lTab('in');showLanding()">Login</button>
-    <button class="bsm bsm-p" onclick="lTab('up');showLanding()">Join</button>
+    <button id="notif-bell" class="notif-bell-btn" onclick="openNotifPanel()" style="display:none"><svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span id="notif-bell-badge" style="display:none"></span></button>
+    <button class="btn-sm btn-outline" onclick="lTab('in');showLanding()">Login</button>
+    <button class="btn-sm btn-accent" onclick="lTab('up');showLanding()">Join</button>
   </div>
 </div>
 
-<!-- BOTTOM NAV — 5 items, clean and tappable -->
-<div id="botnav">
-  <button class="nb on" onclick="go('home',this)">
-    <svg class="nb-svg" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-    <span class="nb-label">Home</span>
-  </button>
-  <button class="nb" onclick="go('leagues',this)">
-    <svg class="nb-svg" viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-    <span class="nb-label">Leagues</span>
-  </button>
-  <button class="nb nb-center" onclick="go('matchprep',this)">
-    <div class="nb-center-icon">
-      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+<div id="app">
+  <!-- HOME -->
+  <div class="page active" id="page-home">
+    <div class="home-hero">
+      <img src="https://i.ibb.co/MDGqDxPS/grok-1773616908832-2.jpg" class="home-hero-img" alt="logo" onerror="this.style.display='none'">
+      <div style="flex:1"><div class="home-hero-title"><span class="c-cyan">eFootball</span> <span class="c-green">Universe</span></div><div class="home-hero-sub">Season 2024/25 — <span class="c-green">Live</span></div></div>
+      <div id="home-cta"><button class="btn-sm btn-accent" onclick="lTab('up');showLanding()">Join</button></div>
     </div>
-    <span class="nb-label">Match</span>
-    <span class="nbadge" id="matchroom-badge"></span>
-  </button>
-  <button class="nb" onclick="go('chat',this)" id="chat-nb">
-    <svg class="nb-svg" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-    <span class="nb-label">Chat</span>
-    <span class="nbadge" id="chat-badge"></span>
-  </button>
-  <button class="nb" onclick="go('fixtures',this)">
-    <svg class="nb-svg" viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-    <span class="nb-label">Fixtures</span>
-  </button>
-</div>
-<!-- Badge IDs used by notification system -->
-<span id="polls-badge" style="display:none"></span>
-<span id="ref-badge" style="display:none"></span>
-<span id="pm-badge" style="display:none"></span>
-
-<!-- PAGES -->
-<div class="page on" id="page-home">
-  <!-- Compact hero -->
-  <div style="display:flex;align-items:center;gap:.9rem;padding:.8rem 0 1.2rem">
-    <img src="https://i.ibb.co/MDGqDxPS/grok-1773616908832-2.jpg" loading="lazy" style="width:54px;height:54px;border-radius:14px;object-fit:cover;border:2px solid rgba(0,212,255,0.5);box-shadow:0 0 18px rgba(0,212,255,0.3);flex-shrink:0">
-    <div style="flex:1;min-width:0">
-      <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:1.1rem;line-height:1.2">
-        <span style="color:#00D4FF">eFootball</span> <span style="color:#00FF85">Universe</span>
-      </div>
-      <div style="font-size:.65rem;color:var(--dim);margin-top:2px">⚡ Season 2024/25 — <span style="color:#00FF85">Live</span></div>
+    <div id="season-banner-home"></div>
+    <div class="stats-grid">
+      <div class="stat-box"><div class="stat-val" id="st-p">-</div><div class="stat-lbl">Players</div></div>
+      <div class="stat-box"><div class="stat-val" id="st-m">-</div><div class="stat-lbl">Matches</div></div>
+      <div class="stat-box"><div class="stat-val" id="st-f">-</div><div class="stat-lbl">Fixtures</div></div>
+      <div class="stat-box"><div class="stat-val">4</div><div class="stat-lbl">Leagues</div></div>
     </div>
-    <div id="home-cta">
-      <button class="btn-p" style="font-size:.75rem;padding:8px 16px;width:auto" onclick="lTab('up');showLanding()">Join</button>
+    <div class="section-header"><div class="section-title c-green">Recent Results</div><div class="section-line green"></div></div>
+    <div class="grid2" id="recent-res"><div class="card empty">No results yet.</div></div>
+    <div class="section-header" style="margin-top:1.2rem"><div class="section-title c-gold">Top Players</div><div class="section-line gold"></div></div>
+    <div class="grid2" id="top-players"><div class="card empty">No players yet.</div></div>
+  </div>
+  <!-- LEAGUES -->
+  <div class="page" id="page-leagues">
+    <div class="section-header"><div class="section-title c-cyan">Standings</div><div class="section-line"></div></div>
+    <div class="lg-tabs" id="lg-tabs">
+      <button class="lgtab active" data-lid="epl" onclick="switchLg('epl',this)">EPL</button>
+      <button class="lgtab" data-lid="laliga" onclick="switchLg('laliga',this)">La Liga</button>
+      <button class="lgtab" data-lid="seriea" onclick="switchLg('seriea',this)">Serie A</button>
+      <button class="lgtab" data-lid="ligue1" onclick="switchLg('ligue1',this)">Ligue 1</button>
     </div>
+    <div class="table-wrap"><table class="standings-table"><thead><tr><th>#</th><th>Player</th><th>Club</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Form</th><th>Pts</th></tr></thead><tbody id="std-body"><tr><td colspan="12" style="padding:1.6rem;color:var(--dim);text-align:center">No players yet.</td></tr></tbody></table></div>
+    <div class="legend"><span>Gold = Champion</span><span>Blue = UCL (2-4)</span><span>Red = Bottom 3</span></div>
   </div>
-    <!-- News anchor -->
-  <div style="margin-bottom:1.2rem">
-    <div class="sh">
-      <div class="st">📰 Breaking News</div>
-      <div class="sl"></div>
-      <button class="bs" style="font-size:.64rem;padding:3px 10px;flex-shrink:0" onclick="if(typeof generateAllNews==='function'){generateAllNews();}">↻</button>
+  <!-- FIXTURES -->
+  <div class="page" id="page-fixtures">
+    <div class="page-header">
+      <div class="section-title c-cyan">Fixtures</div>
+      <button class="btn-sm btn-outline" id="add-fix-btn" style="display:none" onclick="toggleAddFixture()">+ Add</button>
     </div>
-    <div id="news-anchor-section"><div style="text-align:center;padding:1.5rem;color:var(--dim);font-size:.78rem">Generating news...</div></div>
-  </div>
-    <div class="g4" style="margin-bottom:1.6rem">
-    <div class="sbox"><div class="sv" id="st-p">-</div><div class="sl2">Players</div></div>
-    <div class="sbox"><div class="sv" id="st-m">-</div><div class="sl2">Matches</div></div>
-    <div class="sbox"><div class="sv" id="st-f">-</div><div class="sl2">Fixtures</div></div>
-    <div class="sbox"><div class="sv">4</div><div class="sl2">Leagues</div></div>
-  </div>
-  <div class="sh"><div class="st" style="color:#00FF85">&#9889; Recent Results</div><div class="sl" style="background:linear-gradient(90deg,#00ff88,transparent)"></div></div>
-  <div class="g2" id="recent-res"><div class="card" style="padding:1.2rem;text-align:center;color:var(--dim)">No results yet.</div></div>
-  <div class="sh" style="margin-top:1.6rem"><div class="st" style="color:#FFE600">&#127885; Top Players</div><div class="sl" style="background:linear-gradient(90deg,#ffe600,transparent)"></div></div>
-  <div class="g2" id="top-players"><div class="card" style="padding:1.2rem;text-align:center;color:var(--dim)">No players yet.</div></div>
-</div>
-
-<div class="page" id="page-leagues">
-  <div class="sh"><div class="st" style="color:#00D4FF">&#9917; Standings</div><div class="sl"></div></div>
-  <div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.9rem" id="lg-tabs">
-    <button class="tab on" onclick="switchLg('epl',this)" style="border-color:#37003C;color:#00FF85;background:rgba(55,0,60,0.3)">Premier League</button>
-    <button class="tab" onclick="switchLg('laliga',this)" style="border-color:#EE3224;color:#EE3224">La Liga</button>
-    <button class="tab" onclick="switchLg('seriea',this)" style="border-color:#1B7EC2;color:#1B7EC2">Serie A</button>
-    <button class="tab" onclick="switchLg('ligue1',this)" style="border-color:#0055A5;color:#7ab8ff">Ligue 1</button>
-  </div>
-  <div style="overflow-x:auto;border-radius:11px;border:1px solid var(--border)">
-    <table class="tbl"><thead><tr><th>#</th><th>Player</th><th>Club</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Form</th><th>Pts</th></tr></thead>
-    <tbody id="std-body"><tr><td colspan="12" style="padding:1.6rem;color:var(--dim);text-align:center">No players yet.</td></tr></tbody></table>
-  </div>
-  <div style="display:flex;gap:.9rem;flex-wrap:wrap;margin-top:.6rem;font-size:.63rem;color:var(--dim)">
-    <span>&#128993; Champion</span><span>&#128994; UCL (2-4)</span><span>&#128308; Relegation (bottom 3)</span>
-  </div>
-</div>
-
-<div class="page" id="page-fixtures">
-  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.6rem;margin-bottom:.9rem">
-    <div class="sh" style="margin-bottom:0"><div class="st" style="color:#00D4FF">&#128197; Fixtures</div></div>
-    <button class="bs" id="add-fix-btn" style="display:none;font-size:.72rem;padding:5px 11px" onclick="toggleEl('add-fix-panel')">+ Add Fixture</button>
-  </div>
-  <div id="score-panel" style="display:none;margin-bottom:.75rem">
-    <button class="bp" style="width:100%;padding:12px;font-size:.88rem;border-radius:11px" onclick="openScoreModal()">
-      &#9889; Submit Match Result
-    </button>
-  </div>
-  <div id="add-fix-panel" style="display:none;margin-bottom:.75rem" class="card">
-    <div style="padding:1rem">
-      <div style="font-family:'Orbitron',sans-serif;font-size:.72rem;color:#FFE600;margin-bottom:.8rem;letter-spacing:1px">+ ADD FIXTURE</div>
-      <div class="row">
-        <div style="flex:1;min-width:110px"><label class="lbl">League</label>
-          <select class="inp" id="fix-lg" onchange="loadFxPlayers()">
-            <option value="">&#8212;</option>
-            <option value="epl">Premier League</option>
-            <option value="laliga">La Liga</option>
-            <option value="seriea">Serie A</option>
-            <option value="ligue1">Ligue 1</option>
-          </select></div>
-        <div style="flex:1;min-width:110px"><label class="lbl">Home</label><select class="inp" id="fix-home"><option value="">&#8212;</option></select></div>
-        <div style="flex:1;min-width:110px"><label class="lbl">Away</label><select class="inp" id="fix-away"><option value="">&#8212;</option></select></div>
-        <button class="bp" style="font-size:.74rem;padding:5px 13px" onclick="addFixture()">Add</button>
+    <div id="add-fix-panel" class="card hidden" style="padding:1rem;margin-bottom:.75rem">
+      <div class="form-row">
+        <div class="form-group"><label class="lbl">League</label><select class="inp" id="fix-lg" onchange="loadFxPlayers()"><option value="">—</option><option value="epl">Premier League</option><option value="laliga">La Liga</option><option value="seriea">Serie A</option><option value="ligue1">Ligue 1</option></select></div>
+        <div class="form-group"><label class="lbl">Home</label><select class="inp" id="fix-home"><option value="">—</option></select></div>
+        <div class="form-group"><label class="lbl">Away</label><select class="inp" id="fix-away"><option value="">—</option></select></div>
+        <button class="btn-primary" style="align-self:flex-end;width:auto;padding:.65rem 1rem" onclick="addFixture()">Add</button>
       </div>
     </div>
+    <div id="score-panel" class="score-panel hidden"><button class="btn-primary" onclick="openScoreModal()">Submit Match Result</button></div>
+    <div class="filter-tabs" id="fix-filters">
+      <button class="ftab active" onclick="filterFx('all',this)">All</button>
+      <button class="ftab" onclick="filterFx('epl',this)">EPL</button>
+      <button class="ftab" onclick="filterFx('laliga',this)">La Liga</button>
+      <button class="ftab" onclick="filterFx('seriea',this)">Serie A</button>
+      <button class="ftab" onclick="filterFx('ligue1',this)">Ligue 1</button>
+    </div>
+    <div id="fix-list"><div class="card empty">No fixtures yet.</div></div>
   </div>
-  <div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.75rem" id="fix-filters">
-    <button class="tab on" onclick="filterFx('all',this)">All</button>
-    <button class="tab" onclick="filterFx('epl',this)">EPL</button>
-    <button class="tab" onclick="filterFx('laliga',this)">La Liga</button>
-    <button class="tab" onclick="filterFx('seriea',this)">Serie A</button>
-    <button class="tab" onclick="filterFx('ligue1',this)">Ligue 1</button>
+  <!-- MATCH PREP -->
+  <div class="page" id="page-matchprep">
+    <div id="my-swap-section"></div>
+    <div class="page-header"><div class="section-title c-gold">Match Prep</div><div id="autosched-btn-wrap"></div></div>
+    <div class="section-header"><div class="section-title c-cyan" style="font-size:.68rem">MATCH ROOMS</div><div class="section-line"></div></div>
+    <div id="match-rooms-wrap"><div id="match-rooms-list"><div class="card empty">Loading...</div></div><div id="match-room-panel" class="hidden"></div></div>
+    <div class="section-header"><div class="section-title c-green" style="font-size:.65rem">UPCOMING SCHEDULED</div></div>
+    <div id="sched-timeline"><div class="card empty">No scheduled matches yet.</div></div>
+    <div class="section-header" style="margin-top:1rem"><div class="section-title c-gold" style="font-size:.65rem">YOUR HOME MATCHES</div></div>
+    <div id="prep-home-list"></div>
+    <div class="section-header" style="margin-top:1rem"><div class="section-title c-cyan" style="font-size:.65rem">YOUR AWAY MATCHES</div></div>
+    <div id="prep-away-list"></div>
   </div>
-  <div id="fix-list"><div class="card" style="padding:1.2rem;text-align:center;color:var(--dim)">No fixtures yet.</div></div>
+  <!-- PREDICTIONS -->
+  <div class="page" id="page-predict"><div class="card empty" style="margin-top:1rem">Loading predictions...</div></div>
+  <!-- PREDICTIONS -->
+  <div class="page" id="page-predict"><div class="card empty" style="margin-top:1rem">Loading...</div></div>
+
+  <!-- UCL -->
+  <div class="page" id="page-ucl"><div class="card empty" style="margin-top:1rem">UCL coming in Batch 3</div></div>
+  <!-- REFEREE -->
+  <div class="page" id="page-referee"></div>
+  <!-- LEADERBOARD -->
+  <div class="page" id="page-leaderboard"><div id="my-predictions"></div><div id="pred-leaderboard"></div><div class="card empty" style="margin-top:1rem">Leaderboard coming in Batch 2</div></div>
+  <!-- POLLS -->
+  <div class="page" id="page-polls"><div class="card empty" style="margin-top:1rem">Polls coming in Batch 2</div></div>
+  <!-- CHAT / MESSENGER -->
+  <div class="page" id="page-chat"></div>
+  <!-- DMs (legacy, now part of messenger) -->
+  <div class="page" id="page-pm" style="display:none"></div>
+  <!-- PROFILE -->
+  <div class="page" id="page-profile"><div id="profile-content"><div class="card empty" style="margin-top:1rem">Profile coming in Batch 2</div></div></div>
+  <!-- ADMIN -->
+  <div class="page" id="page-admin"><div class="card empty" style="margin-top:1rem">Admin Panel coming in Batch 3</div></div>
 </div>
 
-<div class="page" id="page-matchprep">
-  <div class="sh"><div class="st" style="color:#FFE600">&#127918; Match Prep</div><div class="sl" style="background:linear-gradient(90deg,#ffe600,transparent)"></div>
-    <button class="bp" style="font-size:.7rem;padding:5px 12px" onclick="autoScheduleLeague()">Auto-Schedule</button>
-  </div>
+<!-- BOTTOM NAV -->
+<nav id="botnav">
+  <button class="nb active" data-page="home" onclick="goPage('home')">
+    <svg viewBox="0 0 24 24" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>Home</span>
+  </button>
+  <button class="nb" data-page="leagues" onclick="goPage('leagues')">
+    <svg viewBox="0 0 24 24" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg><span>Leagues</span>
+  </button>
+  <button class="nb nb-center" data-page="matchprep" onclick="goPage('matchprep')">
+    <div class="nb-center-ring"><svg viewBox="0 0 24 24" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div>
+    <span>Match</span><span class="nb-badge hidden" id="matchroom-badge"></span>
+  </button>
+  <button class="nb" data-page="predict" onclick="goPage('predict')">
+    <svg viewBox="0 0 24 24" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>Predict</span><span class="nb-badge hidden" id="predict-badge"></span>
+  </button>
+  <button class="nb" data-page="fixtures" onclick="goPage('fixtures')">
+    <svg viewBox="0 0 24 24" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Fixtures</span><span class="nb-badge hidden" id="fixtures-badge"></span>
+  </button>
+</nav>
 
-  <!-- Match Rooms Section -->
-  <div class="sh" style="margin-bottom:.65rem">
-    <div class="st" style="color:#00d4ff;font-size:.78rem">&#127965; MATCH ROOMS</div>
-    <div class="sl" style="background:linear-gradient(90deg,#00d4ff,transparent)"></div>
-  </div>
-  <p style="font-size:.72rem;color:var(--dim);margin-bottom:.75rem">Private rooms for you, your opponent and the referee. Discuss match time, share room codes.</p>
-
-  <div style="display:flex;gap:.75rem;margin-bottom:1.4rem" id="match-rooms-wrap">
-    <!-- Room list -->
-    <div style="width:200px;flex-shrink:0" id="match-rooms-list">
-      <div class="card" style="padding:1rem;text-align:center;color:var(--dim)">Loading rooms...</div>
-    </div>
-    <!-- Room chat panel -->
-    <div id="match-room-panel" style="flex:1;background:rgba(0,0,0,0.35);border:1px solid var(--border);border-radius:12px;display:none;min-height:300px;overflow:hidden">
-      <div style="padding:2rem;text-align:center;color:var(--dim)">Select a room to open chat</div>
-    </div>
-  </div>
-
-  <!-- Scheduled Timeline -->
-  <div class="sh" style="margin-bottom:.6rem"><div class="st" style="color:#00FF85;font-size:.72rem">UPCOMING SCHEDULED</div></div>
-  <div id="sched-timeline" style="margin-bottom:1.4rem"><div class="card" style="padding:1.1rem;text-align:center;color:var(--dim)">No scheduled matches yet.</div></div>
-
-  <div class="sh" style="margin-bottom:.6rem"><div class="st" style="color:#FFE600;font-size:.72rem">YOUR HOME MATCHES</div></div>
-  <div id="prep-home-list"></div>
-  <div class="sh" style="margin-bottom:.6rem;margin-top:1rem"><div class="st" style="color:#00d4ff;font-size:.72rem">YOUR AWAY MATCHES</div></div>
-  <div id="prep-away-list"></div>
-</div>
-
-<div class="page" id="page-ucl">
-  <div class="sh"><div class="st" style="color:#FFE600">&#127942; Champions League</div><div class="sl" style="background:linear-gradient(90deg,#ffe600,transparent)"></div></div>
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.65rem;margin-bottom:1.2rem">
-    <div class="prize-card prize-gold"><div style="font-size:.6rem;color:#FFE600;font-weight:700;letter-spacing:1px;text-transform:uppercase">1st Place</div><div class="prize-amt" id="prize-1st">&#8212;</div></div>
-    <div class="prize-card prize-silver"><div style="font-size:.6rem;color:#ccc;font-weight:700;letter-spacing:1px;text-transform:uppercase">2nd Place</div><div class="prize-amt" id="prize-2nd">&#8212;</div></div>
-    <div class="prize-card" style="border-color:rgba(0,212,255,0.28)"><div style="font-size:.6rem;color:#00D4FF;font-weight:700;letter-spacing:1px;text-transform:uppercase">Prize Pool</div><div class="prize-amt" id="prize-pool-total" style="color:#00D4FF;font-size:1.4rem">$0</div><div style="font-size:.6rem;color:var(--dim)"><span id="ucl-paid-count">0</span>/16 paid</div></div>
-  </div>
-  <div id="ucl-fee-section" style="display:none;background:rgba(0,212,255,0.06);border:1px solid rgba(0,212,255,0.2);border-radius:12px;padding:1rem;margin-bottom:1.2rem">
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.6rem;margin-bottom:.7rem">
-      <div><div style="font-family:'Orbitron',sans-serif;font-size:.75rem;color:#00D4FF;letter-spacing:1.5px;margin-bottom:2px">ENTRY FEE</div><div style="font-size:.72rem;color:var(--dim)">Qualified &#8212; pay to lock your spot</div></div>
-      <div id="ucl-my-status"></div>
-    </div>
-    <div id="ucl-pay-area"></div>
-  </div>
-  <div style="background:rgba(255,230,0,0.03);border:1px solid rgba(255,230,0,0.13);border-radius:10px;padding:.85rem;margin-bottom:1.2rem;font-size:.76rem;line-height:1.7;color:#ccc">
-    <div style="font-family:'Orbitron',sans-serif;font-size:.65rem;color:#FFE600;letter-spacing:1.5px;margin-bottom:.4rem">HOW IT WORKS</div>
-    Top 4 from each league (16 total) qualify &#8226; Pay entry fee &#8226; 70% to 1st, 30% to 2nd &#8226; No pay in 48hrs = forfeit spot
-  </div>
-  <div style="font-family:'Orbitron',sans-serif;font-size:.68rem;color:#FFE600;letter-spacing:2px;margin-bottom:.7rem">QUALIFIED PLAYERS</div>
-  <div class="g2" id="ucl-seeds" style="margin-bottom:1.4rem"></div>
-  <div style="font-family:'Orbitron',sans-serif;font-size:.68rem;color:#FFE600;letter-spacing:2px;margin-bottom:.65rem">BRACKET</div>
-  <div style="overflow-x:auto;padding-bottom:.9rem"><div style="display:flex;gap:.65rem;min-width:520px;align-items:flex-start" id="ucl-bracket"></div></div>
-  <div id="ucl-admin-controls" style="display:none;margin-top:1.4rem;padding:1rem;background:rgba(0,212,255,0.05);border:1px solid rgba(0,212,255,0.18);border-radius:12px">
-    <div style="font-family:'Orbitron',sans-serif;font-size:.68rem;color:#00D4FF;letter-spacing:1.5px;margin-bottom:.8rem">ADMIN &#8212; UCL SETTINGS</div>
-    <div class="row" style="margin-bottom:.55rem">
-      <div style="flex:1;min-width:120px"><label class="lbl">Entry Fee</label><input class="inp" id="ucl-fee-inp" type="number" min="1" placeholder="e.g. 5"></div>
-      <div style="flex:1;min-width:100px"><label class="lbl">Currency</label><input class="inp" id="ucl-cur-inp" placeholder="NGN"></div>
-    </div>
-    <div class="row" style="margin-bottom:.55rem">
-      <div style="flex:2;min-width:180px"><label class="lbl">Paystack Public Key</label><input class="inp" id="ucl-pk-inp" placeholder="pk_live_..."></div>
-      <div style="flex:1;min-width:160px"><label class="lbl">Paystack Email</label><input class="inp" id="ucl-acct-inp" placeholder="you@email.com"></div>
-      <button class="bp" style="font-size:.74rem;padding:5px 13px" onclick="saveUCLSettings()">Save</button>
-    </div>
-    <div style="margin-top:.8rem">
-      <div style="font-family:'Orbitron',sans-serif;font-size:.62rem;color:#00e07a;letter-spacing:1px;margin-bottom:.5rem">PAYMENTS</div>
-      <div id="ucl-payment-log" style="font-size:.73rem;color:var(--dim)">Loading...</div>
-    </div>
-  </div>
-</div>
-
-<!-- REFEREE PAGE -->
-<div class="page" id="page-referee"></div>
-
-<!-- LEADERBOARD PAGE -->
-<div class="page" id="page-leaderboard"></div>
-
-<!-- POLLS PAGE -->
-<div class="page" id="page-polls">
-  <!-- rendered by renderPolls() in core.js -->
-</div>
-
-<div class="page" id="page-chat">
-  <div style="display:flex;align-items:center;gap:.7rem;margin-bottom:.9rem">
-    <div style="font-family:'Orbitron',sans-serif;font-weight:700;font-size:.95rem;letter-spacing:2px;color:#00D4FF">&#128172; Live Chat</div>
-    <div style="font-size:.68rem;color:var(--dim)"><span style="width:7px;height:7px;border-radius:50%;background:#00ff88;display:inline-block;margin-right:3px;box-shadow:0 0 5px #00ff8899"></span><span id="online-count">0</span> online</div>
-  </div>
-  <div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.7rem">
-    <button class="crb on" onclick="switchRoom('global',this)">&#127760; Global</button>
-    <button class="crb" onclick="switchRoom('epl',this)">&#127988;&#65039; EPL</button>
-    <button class="crb" onclick="switchRoom('laliga',this)">&#127988;&#65039; La Liga</button>
-    <button class="crb" onclick="switchRoom('seriea',this)">&#127988;&#65039; Serie A</button>
-    <button class="crb" onclick="switchRoom('ligue1',this)">&#127988;&#65039; Ligue 1</button>
-    <button class="crb" onclick="switchRoom('banter',this)">&#128293; Banter</button>
-  </div>
-  <div id="chat-wrap">
-    <div id="chat-msgs"><div class="csys">Welcome! Be respectful</div></div>
-    <div id="chat-typing"></div>
-    <div id="chat-locked" style="display:none;text-align:center;padding:1.3rem;color:var(--dim)">Login to join the conversation
-      <div style="margin-top:.6rem;display:flex;gap:.45rem;justify-content:center">
-        <button class="bp" style="font-size:.74rem;padding:5px 12px" onclick="lTab('in');showLanding()">Login</button>
-        <button class="bs" style="font-size:.74rem;padding:5px 12px" onclick="lTab('up');showLanding()">Register</button>
-      </div>
-    </div>
-    <div id="emoji-popup"></div>
-    <div id="cinp-row">
-      <button id="cinp-emoji" onclick="toggleEmojiPicker()" title="Emoji">&#128512;</button>
-      <input id="cinp" type="text" maxlength="400" placeholder="Aa" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat()}" oninput="onTyping()">
-      <button id="csend" onclick="sendChat()">&#10148;</button>
-    </div>
-  </div>
-</div>
-
-<div class="page" id="page-pm">
-  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.6rem;margin-bottom:.9rem">
-    <div style="font-family:'Orbitron',sans-serif;font-weight:700;font-size:.95rem;letter-spacing:2px;color:#00D4FF">Direct Messages</div>
-    <button class="bs" style="font-size:.72rem;padding:5px 10px" onclick="openMo('new-dm-mo')">+ New DM</button>
-  </div>
-  <div id="pm-locked" style="display:none;text-align:center;padding:2.5rem;color:var(--dim)">Login to send DMs<br><button class="bp" style="font-size:.74rem;padding:5px 12px;margin-top:.7rem" onclick="lTab('in');showLanding()">Login</button></div>
-  <div id="pm-wrap">
-    <div id="pm-list"><div style="font-size:.68rem;color:var(--dim);text-align:center;padding:.9rem">No conversations yet</div></div>
-    <div id="pm-chat">
-      <div id="pm-header"><div style="font-size:.78rem;color:var(--dim);text-align:center;width:100%">Select a conversation</div></div>
-      <div id="pm-msgs"></div>
-      <div id="pm-inp-row" style="display:none">
-        <input id="pm-inp" type="text" maxlength="400" placeholder="Aa" onkeydown="if(event.key==='Enter')sendPM()">
-        <button id="pm-send" onclick="sendPM()" style="background:linear-gradient(135deg,#E8002D,#ff4400);border:none;border-radius:50%;width:36px;height:36px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0">&#10148;</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="page" id="page-profile"><div id="profile-content"></div></div>
-
-<div class="page" id="page-admin">
-  <div class="sh"><div class="st" style="color:#00D4FF">Admin Panel</div><div class="sl"></div></div>
-  <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:1.1rem">
-    <button class="atab on" onclick="aTab('reports',this)">Reports</button>
-    <button class="atab" onclick="aTab('users',this)">Users</button>
-    <button class="atab" onclick="aTab('matches',this)">Matches</button>
-    <button class="atab" onclick="aTab('penalties',this)">Penalties</button>
-    <button class="atab" onclick="aTab('season',this)">&#127941; Season</button>
-  </div>
-  <div class="apanel on" id="ap-reports"><div style="font-size:.7rem;color:var(--dim);margin-bottom:.75rem" id="rep-count">Loading...</div><div id="rep-list"></div></div>
-  <div class="apanel" id="ap-season"></div>
-  <div class="apanel" id="ap-users"><div id="admin-users-list"></div></div>
-  <div class="apanel" id="ap-matches"><div id="admin-matches-list"></div></div>
-  <div class="apanel" id="ap-penalties"><div style="font-size:.7rem;color:var(--dim);margin-bottom:.75rem" id="pen-count">Loading...</div><div id="pen-list"></div></div>
-</div>
+<!-- RESULT CELEBRATION -->
+<div id="result-celebration" class="hidden"></div>
 
 <!-- MODALS -->
-<div class="mo" id="prep-mo" onclick="if(event.target===this)closeMo('prep-mo')">
-  <div class="mb"><button class="mc" onclick="closeMo('prep-mo')">&#10005;</button>
-    <h3>Drop Match Details</h3>
-    <input type="hidden" id="prep-mid">
-    <div style="display:flex;flex-direction:column;gap:.85rem">
-      <div><label class="lbl">Room Code</label><input class="inp" id="prep-code" maxlength="20" placeholder="e.g. EF-123456" style="font-family:'Orbitron',sans-serif;font-size:.95rem;letter-spacing:2px;text-transform:uppercase"></div>
-      <div><label class="lbl">Match Date &amp; Time</label><input class="inp" id="prep-time" type="datetime-local"><div class="err" id="prep-time-err" style="margin-top:3px"></div></div>
-      <div><label class="lbl">Note (optional)</label><input class="inp" id="prep-note" placeholder="e.g. Best of 1"></div>
-      <div class="err" id="prep-err"></div>
-      <button class="bp" style="width:100%;padding:10px" onclick="submitPrep()">Send to Away Team</button>
+<div class="modal" id="score-mo" onclick="if(event.target===this)closeMo('score-mo')">
+  <div class="modal-box"><button class="modal-close" onclick="closeMo('score-mo')">✕</button>
+    <h3 class="modal-title">Submit Match Result</h3>
+    <div class="form-group"><label class="lbl">Select Match</label><select class="inp" id="sm-match-sel" onchange="smSelectMatch()"><option value="">— Choose —</option></select></div>
+    <div class="score-box">
+      <div class="score-team"><div class="score-team-name" id="sm-home-name">Home</div><div class="score-stepper"><button onclick="stepGoal('hg',-1)" class="step-btn">−</button><div id="sm-hg" class="score-num">0</div><input type="hidden" id="sm-hg-val" value="0"><button onclick="stepGoal('hg',1)" class="step-btn add">+</button></div></div>
+      <div class="score-vs">–</div>
+      <div class="score-team"><div class="score-team-name" id="sm-away-name">Away</div><div class="score-stepper"><button onclick="stepGoal('ag',-1)" class="step-btn">−</button><div id="sm-ag" class="score-num">0</div><input type="hidden" id="sm-ag-val" value="0"><button onclick="stepGoal('ag',1)" class="step-btn add">+</button></div></div>
     </div>
+    <div class="form-group"><label class="lbl">Screenshot (required)</label>
+      <label class="upload-label"><span id="sm-ss-label">Tap to upload screenshot</span><input type="file" id="sm-screenshot" accept="image/*" style="display:none" onchange="smPreviewScreenshot(this)"></label>
+      <img id="sm-ss-preview" class="ss-preview hidden" alt="preview"></div>
+    <label class="honesty-check"><input type="checkbox" id="sm-honest"><span>I confirm this result is accurate and honest.</span></label>
+    <div class="errmsg" id="sm-err"></div>
+    <button class="btn-primary full-width" id="sm-submit-btn" onclick="submitScoreModal()">Submit to Referee</button>
   </div>
 </div>
 
-<div class="mo" id="new-dm-mo" onclick="if(event.target===this)closeMo('new-dm-mo')">
-  <div class="mb"><button class="mc" onclick="closeMo('new-dm-mo')">&#10005;</button>
-    <h3>New Message</h3>
-    <div><label class="lbl">Search Player</label><input class="inp" id="dm-search" placeholder="Type username..." oninput="searchDmPlayer()"></div>
-    <div id="dm-results" style="display:flex;flex-direction:column;gap:.38rem;max-height:210px;overflow-y:auto;margin-top:.7rem"></div>
-  </div>
-</div>
-
-<div class="mo" id="report-mo" onclick="if(event.target===this)closeMo('report-mo')">
-  <div class="mb"><button class="mc" onclick="closeMo('report-mo')">&#10005;</button>
-    <h3>Report User</h3>
-    <input type="hidden" id="rep-uid"><input type="hidden" id="rep-uname">
-    <div style="display:flex;flex-direction:column;gap:.8rem">
-      <div><label class="lbl">Reporting</label><div id="rep-who" style="font-weight:700;color:#00D4FF;font-size:.88rem"></div></div>
-      <div><label class="lbl">Reason</label>
-        <select class="inp" id="rep-reason">
-          <option value="">&#8212; Select &#8212;</option>
-          <option value="Match result fraud">Match result fraud</option>
-          <option value="Abusive language">Abusive language</option>
-          <option value="No-show for match">No-show for match</option>
-          <option value="Unsportsmanlike conduct">Unsportsmanlike conduct</option>
-          <option value="Spam">Spam</option>
-          <option value="Other">Other</option>
-        </select>
-      </div>
-      <div><label class="lbl">Details</label><textarea class="inp" id="rep-details" rows="3" placeholder="Describe what happened..."></textarea></div>
-      <div class="err" id="rep-err"></div>
-      <button class="bp" style="width:100%;padding:10px" onclick="submitReport()" id="rep-submit-btn">Submit Report</button>
-    </div>
-  </div>
-</div>
-
-<div class="mo" id="deduct-mo" onclick="if(event.target===this)closeMo('deduct-mo')">
-  <div class="mb"><button class="mc" onclick="closeMo('deduct-mo')">&#10005;</button>
-    <h3>Deduct Points</h3>
-    <input type="hidden" id="ded-rep-key"><input type="hidden" id="ded-uid"><input type="hidden" id="ded-name">
-    <div style="display:flex;flex-direction:column;gap:.8rem">
-      <div><label class="lbl">Player</label><div id="ded-player" style="font-weight:700;color:#00D4FF;font-size:.9rem"></div></div>
-      <div><label class="lbl">Points to Deduct</label><input class="inp" id="ded-pts" type="number" min="1" max="30" value="3"></div>
-      <div><label class="lbl">Admin Note</label><textarea class="inp" id="ded-note" rows="2" placeholder="Reason..."></textarea></div>
-      <div class="err" id="ded-err"></div>
-      <div style="display:flex;gap:.55rem">
-        <button class="bs" style="flex:1;padding:9px" onclick="closeMo('deduct-mo')">Cancel</button>
-        <button class="bp" style="flex:2;padding:9px;background:linear-gradient(135deg,#FF2882,#cc0044)" onclick="applyDeduction()" id="ded-btn">Apply Deduction</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="mo" id="ucl-pay-mo" onclick="if(event.target===this)closeMo('ucl-pay-mo')">
-  <div class="mb"><button class="mc" onclick="closeMo('ucl-pay-mo')">&#10005;</button>
-    <h3>UCL Entry Payment</h3>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.55rem;margin-bottom:.9rem">
-      <div style="background:rgba(255,230,0,0.06);border:1px solid rgba(255,230,0,0.18);border-radius:9px;padding:.65rem;text-align:center">
-        <div style="font-size:.58rem;color:#FFE600;font-weight:700;text-transform:uppercase">1st Place</div>
-        <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:.95rem;color:#FFE600" id="modal-prize-1">&#8212;</div>
-      </div>
-      <div style="background:rgba(170,170,170,0.06);border:1px solid rgba(170,170,170,0.14);border-radius:9px;padding:.65rem;text-align:center">
-        <div style="font-size:.58rem;color:#ccc;font-weight:700;text-transform:uppercase">2nd Place</div>
-        <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:.95rem;color:#ccc" id="modal-prize-2">&#8212;</div>
-      </div>
-    </div>
-    <div style="background:rgba(0,200,100,0.05);border:1px solid rgba(0,200,100,0.18);border-radius:10px;padding:.8rem;margin-bottom:.9rem">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:.76rem;color:#ccc">Entry Fee</span>
-        <span style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:.95rem;color:#00e07a" id="modal-fee-display">&#8212;</span>
-      </div>
-    </div>
-    <div class="err" id="pay-err" style="margin-bottom:.45rem"></div>
-    <button class="pay-btn" onclick="launchPaystack()" id="pay-submit-btn">Pay &amp; Lock My Spot</button>
-  </div>
-</div>
-
-<div class="mo" id="user-mo" onclick="if(event.target===this)closeMo('user-mo')">
-  <div class="mb" style="max-width:480px"><button class="mc" onclick="closeMo('user-mo')">&#10005;</button>
-    <div id="user-mo-content"></div>
-  </div>
-</div>
-
-<div class="mo" id="avatar-mo" onclick="if(event.target===this)closeMo('avatar-mo')">
-  <div class="mb"><button class="mc" onclick="closeMo('avatar-mo')">&#10005;</button>
-    <h3>Edit Avatar</h3>
-    <div style="margin-bottom:.9rem"><label class="lbl">Choose Emoji</label><div style="display:flex;flex-wrap:wrap;gap:.45rem" id="emoji-picker"></div></div>
-    <div style="margin-bottom:.9rem"><label class="lbl">Or Upload Image</label>
-      <div class="ss-box"><input type="file" id="avatar-upload" accept="image/*" onchange="previewAvatar(this)">
-        <div id="avatar-ph"><div style="font-size:1.2rem">&#128247;</div><div style="font-size:.73rem;color:var(--dim)">Tap to upload</div></div>
-        <img id="avatar-prev" class="ss-prev" alt="">
-      </div>
-    </div>
-    <div class="err" id="avatar-err"></div>
-    <button class="bp" style="width:100%;padding:10px;margin-top:.5rem" onclick="saveAvatar()" id="avatar-save-btn">Save Avatar</button>
-  </div>
-</div>
-
-<!-- Scripts — load in correct dependency order -->
-<!-- CREATE POLL MODAL -->
-<div class="mo" id="create-poll-mo" onclick="if(event.target===this)closeMo('create-poll-mo')">
-  <div class="mb"><button class="mc" onclick="closeMo('create-poll-mo')">&#10005;</button>
-    <h3>&#128202; Create Poll</h3>
-    <div style="display:flex;flex-direction:column;gap:.75rem">
-      <div><label class="lbl">Question</label><input class="inp" id="poll-question" placeholder="What should we decide?" maxlength="120"></div>
-      <div><label class="lbl">Option 1</label><input class="inp" id="poll-opt1" placeholder="Option A" maxlength="60"></div>
-      <div><label class="lbl">Option 2</label><input class="inp" id="poll-opt2" placeholder="Option B" maxlength="60"></div>
-      <div><label class="lbl">Option 3 (optional)</label><input class="inp" id="poll-opt3" placeholder="Option C" maxlength="60"></div>
-      <div><label class="lbl">Option 4 (optional)</label><input class="inp" id="poll-opt4" placeholder="Option D" maxlength="60"></div>
-      <div class="err" id="poll-err"></div>
-      <button class="bp" style="width:100%;padding:11px" onclick="createPoll()">&#128202; Post Poll</button>
-    </div>
-  </div>
-</div>
-
-<!-- SCORE SUBMISSION MODAL -->
-<div class="mo" id="score-mo" onclick="if(event.target===this)closeMo('score-mo')">
-  <div class="mb" style="max-width:480px"><button class="mc" onclick="closeMo('score-mo')">&#10005;</button>
-    <h3>&#9917; Submit Match Result</h3>
-
-    <!-- Match select -->
-    <div class="lf"><label class="lbl">Select Match</label>
-      <select class="inp" id="sm-match-sel" onchange="smSelectMatch()">
-        <option value="">&#8212; Choose &#8212;</option>
-      </select>
-    </div>
-
-    <!-- Score steppers -->
-    <div style="display:flex;align-items:center;justify-content:center;gap:1rem;margin-bottom:1rem;padding:.9rem;background:rgba(0,0,0,0.35);border-radius:12px;border:1px solid var(--border)">
-      <!-- Home -->
-      <div style="text-align:center;flex:1">
-        <div style="font-size:.65rem;color:var(--dim);margin-bottom:.4rem" id="sm-home-name">Home</div>
-        <div style="display:flex;align-items:center;justify-content:center;gap:.5rem">
-          <button onclick="stepGoal('hg',-1)" style="background:rgba(0,212,255,0.15);border:1px solid rgba(0,212,255,0.3);color:#00D4FF;width:34px;height:34px;border-radius:50%;font-size:1.2rem;cursor:pointer;font-weight:700;display:flex;align-items:center;justify-content:center">&#8722;</button>
-          <div id="sm-hg" style="font-family:Orbitron,sans-serif;font-weight:900;font-size:2rem;color:#fff;min-width:36px;text-align:center">0</div>
-          <input type="hidden" id="sm-hg-val" value="0">
-          <button onclick="stepGoal('hg',1)" style="background:rgba(0,255,136,0.12);border:1px solid rgba(0,255,136,0.3);color:#00FF85;width:34px;height:34px;border-radius:50%;font-size:1.2rem;cursor:pointer;font-weight:700;display:flex;align-items:center;justify-content:center">+</button>
-        </div>
-      </div>
-      <div style="font-family:Orbitron,sans-serif;font-size:1.1rem;color:var(--dim);font-weight:900">&#8211;</div>
-      <!-- Away -->
-      <div style="text-align:center;flex:1">
-        <div style="font-size:.65rem;color:var(--dim);margin-bottom:.4rem" id="sm-away-name">Away</div>
-        <div style="display:flex;align-items:center;justify-content:center;gap:.5rem">
-          <button onclick="stepGoal('ag',-1)" style="background:rgba(0,212,255,0.15);border:1px solid rgba(0,212,255,0.3);color:#00D4FF;width:34px;height:34px;border-radius:50%;font-size:1.2rem;cursor:pointer;font-weight:700;display:flex;align-items:center;justify-content:center">&#8722;</button>
-          <div id="sm-ag" style="font-family:Orbitron,sans-serif;font-weight:900;font-size:2rem;color:#fff;min-width:36px;text-align:center">0</div>
-          <input type="hidden" id="sm-ag-val" value="0">
-          <button onclick="stepGoal('ag',1)" style="background:rgba(0,255,136,0.12);border:1px solid rgba(0,255,136,0.3);color:#00FF85;width:34px;height:34px;border-radius:50%;font-size:1.2rem;cursor:pointer;font-weight:700;display:flex;align-items:center;justify-content:center">+</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Screenshot upload -->
-    <div class="lf">
-      <label class="lbl">Match Screenshot (required)</label>
-      <label style="display:flex;align-items:center;gap:.65rem;background:rgba(255,255,255,0.04);border:1.5px dashed rgba(255,255,255,0.14);border-radius:10px;padding:.75rem 1rem;cursor:pointer;transition:border-color .2s" onmouseover="this.style.borderColor='#00ff88'" onmouseout="this.style.borderColor='rgba(255,255,255,0.14)'">
-        <span style="font-size:1.4rem">&#128247;</span>
-        <span id="sm-ss-label" style="font-size:.78rem;color:var(--dim)">Tap to upload screenshot</span>
-        <input type="file" id="sm-screenshot" accept="image/*" style="display:none" onchange="smPreviewScreenshot(this)">
-      </label>
-      <img id="sm-ss-preview" style="width:100%;max-height:150px;object-fit:contain;border-radius:8px;margin-top:.55rem;border:1px solid rgba(0,255,136,0.2);display:none" alt="preview">
-    </div>
-
-    <!-- Honesty declaration -->
-    <label style="display:flex;align-items:flex-start;gap:.65rem;background:rgba(255,230,0,0.06);border:1px solid rgba(255,230,0,0.2);border-radius:10px;padding:.8rem;cursor:pointer;margin-bottom:.7rem">
-      <input type="checkbox" id="sm-honest" style="margin-top:2px;width:16px;height:16px;accent-color:#FFE600;flex-shrink:0">
-      <span style="font-size:.75rem;color:#ccc;line-height:1.5">I confirm this result is <strong style="color:#FFE600">accurate and honest</strong>. I understand that submitting a <strong style="color:#FF2882">false result</strong> will result in an automatic <strong style="color:#FF2882">point deduction</strong> and possible ban.</span>
-    </label>
-
-    <div class="err" id="sm-err" style="margin-bottom:.4rem"></div>
-    <button class="bp" style="width:100%;padding:13px;font-size:.9rem;border-radius:11px" id="sm-submit-btn" onclick="submitScoreModal()">
-      &#128228; Submit to Referee
-    </button>
-  </div>
-</div>
-
-<!-- AWAY TEAM DISPUTE MODAL -->
-<div class="mo" id="dispute-mo" onclick="if(event.target===this)closeMo('dispute-mo')">
-  <div class="mb"><button class="mc" onclick="closeMo('dispute-mo')">&#10005;</button>
-    <h3>&#10060; Dispute This Result</h3>
+<div class="modal" id="dispute-mo" onclick="if(event.target===this)closeMo('dispute-mo')">
+  <div class="modal-box"><button class="modal-close" onclick="closeMo('dispute-mo')">✕</button>
+    <h3 class="modal-title">Dispute Result</h3>
     <input type="hidden" id="disp-mid">
-    <div style="background:rgba(255,0,110,0.08);border:1px solid rgba(255,0,110,0.25);border-radius:10px;padding:.8rem;margin-bottom:.9rem">
-      <div style="font-size:.7rem;color:#FF2882;font-weight:700;margin-bottom:3px">&#9888; Submitted score:</div>
-      <div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:1.4rem;color:#fff" id="disp-score">0 &#8211; 0</div>
-    </div>
-    <div style="font-size:.76rem;color:#ccc;margin-bottom:.9rem;line-height:1.6">Upload your screenshot showing the real result. The referee will compare both and decide.</div>
-    <div class="lf">
-      <label class="lbl">Your Screenshot (required)</label>
-      <label style="display:flex;align-items:center;gap:.65rem;background:rgba(255,255,255,0.04);border:1.5px dashed rgba(255,0,110,0.3);border-radius:10px;padding:.75rem 1rem;cursor:pointer">
-        <span style="font-size:1.4rem">&#128247;</span>
-        <span id="disp-ss-label" style="font-size:.78rem;color:var(--dim)">Upload your screenshot</span>
-        <input type="file" id="disp-screenshot" accept="image/*" style="display:none" onchange="dispPreviewScreenshot(this)">
-      </label>
-      <img id="disp-ss-preview" style="width:100%;max-height:140px;object-fit:contain;border-radius:8px;margin-top:.5rem;border:1px solid rgba(255,0,110,0.2);display:none" alt="">
-    </div>
-    <div class="err" id="disp-err" style="margin-bottom:.4rem"></div>
-    <button class="bp" style="width:100%;padding:12px;font-size:.88rem;background:linear-gradient(135deg,#FF2882,#cc0044)" id="disp-submit-btn" onclick="submitDispute()">
-      &#10060; Submit Dispute
-    </button>
+    <div style="text-align:center;margin:.7rem 0"><div style="font-size:.7rem;color:var(--dim)">Submitted score:</div><div id="disp-score" style="font-family:Orbitron,sans-serif;font-size:1.3rem;font-weight:900;color:var(--pink)">0 – 0</div></div>
+    <p style="font-size:.76rem;color:var(--dim);margin-bottom:.7rem">Upload your screenshot showing the real result.</p>
+    <label class="upload-label"><span id="disp-ss-label">Upload your screenshot</span><input type="file" id="disp-screenshot" accept="image/*" style="display:none" onchange="dispPreviewScreenshot(this)"></label>
+    <img id="disp-ss-preview" class="ss-preview hidden" alt="">
+    <div class="errmsg" id="disp-err"></div>
+    <button class="btn-danger full-width" id="disp-submit-btn" onclick="submitDispute()">Submit Dispute</button>
   </div>
 </div>
 
-<!-- SET MATCH TIME MODAL (admin) -->
-<div class="mo" id="set-time-mo" onclick="if(event.target===this)closeMo('set-time-mo')">
-  <div class="mb"><button class="mc" onclick="closeMo('set-time-mo')">&#10005;</button>
-    <h3>&#9200; Set Match Time</h3>
-    <input type="hidden" id="set-time-mid">
-    <div class="lf"><label class="lbl">Date &amp; Time</label>
-      <input class="inp" id="set-time-inp" type="datetime-local">
-    </div>
-    <div class="err" id="set-time-err" style="margin-bottom:.4rem"></div>
-    <button class="bp" style="width:100%;padding:11px" onclick="saveMatchTime()">&#9989; Confirm Time</button>
+<div class="modal" id="prep-mo" onclick="if(event.target===this)closeMo('prep-mo')">
+  <div class="modal-box"><button class="modal-close" onclick="closeMo('prep-mo')">✕</button>
+    <h3 class="modal-title">Drop Match Details</h3>
+    <input type="hidden" id="prep-mid">
+    <div class="form-group"><label class="lbl">Room Code</label><input class="inp" id="prep-code" maxlength="20" placeholder="e.g. EF-123456" style="font-family:Orbitron,sans-serif;letter-spacing:2px"></div>
+    <div class="form-group"><label class="lbl">Match Date & Time</label><input class="inp" id="prep-time" type="datetime-local"></div>
+    <div class="form-group"><label class="lbl">Note (optional)</label><input class="inp" id="prep-note" placeholder="e.g. Best of 1"></div>
+    <div class="errmsg" id="prep-err"></div>
+    <button class="btn-primary full-width" onclick="submitPrep()">Send to Away Team</button>
   </div>
 </div>
 
-<!-- POSTPONE REQUEST MODAL -->
-<div class="mo" id="postpone-req-mo" onclick="if(event.target===this)closeMo('postpone-req-mo')">
-  <div class="mb"><button class="mc" onclick="closeMo('postpone-req-mo')">&#10005;</button>
-    <h3>&#9208;&#65039; Request Postpone</h3>
+<div class="modal" id="report-mo" onclick="if(event.target===this)closeMo('report-mo')">
+  <div class="modal-box"><button class="modal-close" onclick="closeMo('report-mo')">✕</button>
+    <h3 class="modal-title">Report User</h3>
+    <input type="hidden" id="rep-uid"><input type="hidden" id="rep-uname">
+    <div class="form-group"><label class="lbl">Reporting</label><div id="rep-who" class="report-who"></div></div>
+    <div class="form-group"><label class="lbl">Reason</label><select class="inp" id="rep-reason"><option value="">— Select —</option><option>Match result fraud</option><option>Abusive language</option><option>No-show for match</option><option>Unsportsmanlike conduct</option><option>Spam</option><option>Other</option></select></div>
+    <div class="form-group"><label class="lbl">Details</label><textarea class="inp" id="rep-details" rows="3" placeholder="Describe what happened..."></textarea></div>
+    <div class="errmsg" id="rep-err"></div>
+    <button class="btn-primary full-width" id="rep-submit-btn" onclick="submitReport()">Submit Report</button>
+  </div>
+</div>
+
+<div class="modal" id="new-dm-mo" onclick="if(event.target===this)closeMo('new-dm-mo')">
+  <div class="modal-box"><button class="modal-close" onclick="closeMo('new-dm-mo')">✕</button>
+    <h3 class="modal-title">New Message</h3>
+    <div class="form-group"><label class="lbl">Search Player</label><input class="inp" id="dm-search" placeholder="Type username..." oninput="searchDmPlayer()"></div>
+    <div id="dm-results"></div>
+  </div>
+</div>
+
+<div class="modal" id="user-mo" onclick="if(event.target===this)closeMo('user-mo')">
+  <div class="modal-box wide"><button class="modal-close" onclick="closeMo('user-mo')">✕</button><div id="user-mo-content"></div></div>
+</div>
+
+<div class="modal" id="google-setup-mo">
+  <div class="modal-box">
+    <h3 class="modal-title">Complete Profile</h3>
+    <div id="gs-step1">
+      <div class="form-group"><label class="lbl">Username</label><input class="inp" id="gs-name" placeholder="YourGamertag" maxlength="20"></div>
+      <div class="form-group"><label class="lbl">Country</label><select class="inp" id="gs-country"><option value="">— Select —</option><option>Nigeria</option><option>Ghana</option><option>Kenya</option><option>South Africa</option><option>United Kingdom</option><option>United States</option><option>Germany</option><option>France</option><option>Spain</option><option>Italy</option><option>Brazil</option><option>Portugal</option><option>Other</option></select></div>
+      <div class="errmsg" id="gs-err1"></div>
+      <button class="btn-primary full-width" onclick="gsNext1()">Next</button>
+    </div>
+    <div id="gs-step2" class="hidden">
+      <div class="form-group"><label class="lbl">Choose League</label>
+        <input type="hidden" id="gs-league-val" value="">
+        <div class="league-pick-grid">
+          <div class="league-pick-opt" data-lid="epl" onclick="gsSelectLeague(this)"><img src="https://upload.wikimedia.org/wikipedia/en/f/f2/Premier_League_Logo.svg" loading="lazy"><div><div>Premier League</div></div></div>
+          <div class="league-pick-opt" data-lid="laliga" onclick="gsSelectLeague(this)"><img src="https://upload.wikimedia.org/wikipedia/commons/1/13/LaLiga_logo_2023.svg" loading="lazy"><div><div>La Liga</div></div></div>
+          <div class="league-pick-opt" data-lid="seriea" onclick="gsSelectLeague(this)"><img src="https://upload.wikimedia.org/wikipedia/en/e/e1/Serie_A_logo_%282019%29.svg" loading="lazy"><div><div>Serie A</div></div></div>
+          <div class="league-pick-opt" data-lid="ligue1" onclick="gsSelectLeague(this)"><img src="https://upload.wikimedia.org/wikipedia/commons/9/9f/Ligue1_logo_2024.svg" loading="lazy"><div><div>Ligue 1</div></div></div>
+        </div>
+      </div>
+      <div class="errmsg" id="gs-err2"></div>
+      <div class="modal-btns"><button class="btn-secondary" onclick="gsBack1()">Back</button><button class="btn-primary" onclick="gsNext2()">Pick Club</button></div>
+    </div>
+    <div id="gs-step3" class="hidden">
+      <div class="form-group"><label class="lbl">Pick Your Club</label><div id="gs-club-grid" class="club-grid"></div></div>
+      <div class="errmsg" id="gs-err3"></div>
+      <div class="modal-btns"><button class="btn-secondary" onclick="gsBack2()">Back</button><button class="btn-primary" id="gs-confirm-btn" onclick="gsConfirm()">Join!</button></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="config.js"></script>
+<script src="core.js"></script>
+<script src="auth.js"></script>
+<script src="pages.js"></script>
+<script src="chat.js"></script>
+<script src="referee.js"></script>
+<script src="matchroom.js"></script>
+<script src="features.js"></script>
+<script src="swap.js"></script>
+<script src="ucl.js"></script>
+<script src="admin.js"></script>
+<script src="seeder.js"></script>
+
+
+<!-- POSTPONE REQUEST -->
+<div class="modal" id="postpone-req-mo" onclick="if(event.target===this)closeMo('postpone-req-mo')">
+  <div class="modal-box"><button class="modal-close" onclick="closeMo('postpone-req-mo')">&#10005;</button>
+    <h3 class="modal-title">Request Postpone</h3>
     <input type="hidden" id="ppr-mid">
-    <div style="font-size:.76rem;color:#ccc;margin-bottom:.9rem;line-height:1.6">
-      Choose your preferred date and give a reason. The referee and admin will decide.
-    </div>
-    <div class="lf"><label class="lbl">Preferred Date &amp; Time</label>
-      <input class="inp" id="ppr-date" type="datetime-local">
-    </div>
-    <div class="lf"><label class="lbl">Reason</label>
-      <textarea class="inp" id="ppr-reason" rows="3" maxlength="200" placeholder="e.g. Internet issues, travelling, work schedule..."></textarea>
-    </div>
-    <div class="err" id="ppr-err" style="margin-bottom:.4rem"></div>
-    <button class="bp" style="width:100%;padding:11px" onclick="submitPostponeRequest()">&#9208;&#65039; Submit Request</button>
+    <p style="font-size:.76rem;color:var(--dim);margin-bottom:.7rem">Choose a preferred date and give a reason.</p>
+    <div class="form-group"><label class="lbl">Preferred Date & Time</label><input class="inp" id="ppr-date" type="datetime-local"></div>
+    <div class="form-group"><label class="lbl">Reason</label><textarea class="inp" id="ppr-reason" rows="3" maxlength="200" placeholder="e.g. Internet issues..."></textarea></div>
+    <div class="errmsg" id="ppr-err"></div>
+    <button class="btn-primary full-width" onclick="submitPostponeRequest()">Submit Request</button>
   </div>
 </div>
 
-<!-- RESTRICT PLAYER MODAL (admin) -->
-<div class="mo" id="restrict-mo" onclick="if(event.target===this)closeMo('restrict-mo')">
-  <div class="mb"><button class="mc" onclick="closeMo('restrict-mo')">&#10005;</button>
-    <h3>&#128683; Restrict Player</h3>
+<!-- SET MATCH TIME -->
+<div class="modal" id="set-time-mo" onclick="if(event.target===this)closeMo('set-time-mo')">
+  <div class="modal-box"><button class="modal-close" onclick="closeMo('set-time-mo')">&#10005;</button>
+    <h3 class="modal-title">Set Match Time</h3>
+    <input type="hidden" id="set-time-mid">
+    <div class="form-group"><label class="lbl">Date & Time</label><input class="inp" id="set-time-inp" type="datetime-local"></div>
+    <div class="errmsg" id="set-time-err"></div>
+    <button class="btn-primary full-width" onclick="saveMatchTime()">Confirm Time</button>
+  </div>
+</div>
+
+<!-- CLUB SWAP -->
+<div class="modal" id="swap-mo" onclick="if(event.target===this)closeMo('swap-mo')">
+  <div class="modal-box"><button class="modal-close" onclick="closeMo('swap-mo')">&#10005;</button>
+    <h3 class="modal-title">Club Swap</h3>
+    <div id="swap-my-club"></div>
+    <div style="font-size:.7rem;color:var(--dim);margin:.5rem 0">Select a player to swap with:</div>
+    <div id="swap-player-list" style="max-height:220px;overflow-y:auto"></div>
+    <div id="swap-target-info" class="hidden" style="margin-top:.6rem;background:rgba(0,212,255,0.05);border:1px solid rgba(0,212,255,0.15);border-radius:10px"></div>
+    <div class="errmsg" id="swap-err"></div>
+    <div id="swap-msg" class="hidden" style="font-size:.76rem;color:var(--green);text-align:center;padding:.5rem"></div>
+    <button class="btn-primary full-width hidden" id="swap-send-btn" onclick="sendSwapRequest()">Send Swap Request</button>
+  </div>
+</div>
+
+<!-- AVATAR -->
+<div class="modal" id="avatar-mo" onclick="if(event.target===this)closeMo('avatar-mo')">
+  <div class="modal-box"><button class="modal-close" onclick="closeMo('avatar-mo')">&#10005;</button>
+    <h3 class="modal-title">Edit Avatar</h3>
+    <div class="form-group"><label class="lbl">Upload Photo</label>
+      <label class="upload-label">Tap to upload<input type="file" id="avatar-upload" accept="image/*" style="display:none" onchange="previewAvatar(this)"></label>
+      <img id="avatar-prev" class="ss-preview hidden" alt="">
+    </div>
+    <div class="errmsg" id="avatar-err"></div>
+    <button class="btn-primary full-width" id="avatar-save-btn" onclick="saveAvatar()">Save Avatar</button>
+  </div>
+</div>
+
+<!-- EDIT BIO -->
+<div class="modal" id="edit-bio-mo" onclick="if(event.target===this)closeMo('edit-bio-mo')">
+  <div class="modal-box"><button class="modal-close" onclick="closeMo('edit-bio-mo')">&#10005;</button>
+    <h3 class="modal-title">Edit Profile</h3>
+    <div class="form-group"><label class="lbl">Bio (max 100 chars)</label><input class="inp" id="bio-inp" maxlength="100" placeholder="e.g. Unbeaten since October"></div>
+    <div class="form-group"><label class="lbl">Cover Photo</label>
+      <label class="upload-label">Tap to upload<input type="file" accept="image/*" onchange="uploadCover(this)" style="display:none"></label>
+    </div>
+    <div class="errmsg" id="bio-err"></div>
+    <button class="btn-primary full-width" id="cover-save-btn" onclick="saveBio()">Save</button>
+  </div>
+</div>
+
+<!-- CREATE POLL -->
+<div class="modal" id="create-poll-mo" onclick="if(event.target===this)closeMo('create-poll-mo')">
+  <div class="modal-box"><button class="modal-close" onclick="closeMo('create-poll-mo')">&#10005;</button>
+    <h3 class="modal-title">Create Poll</h3>
+    <div class="form-group"><label class="lbl">Question</label><input class="inp" id="poll-question" placeholder="What should we decide?" maxlength="120"></div>
+    <div class="form-group"><label class="lbl">Option 1</label><input class="inp" id="poll-opt1" placeholder="Option A" maxlength="60"></div>
+    <div class="form-group"><label class="lbl">Option 2</label><input class="inp" id="poll-opt2" placeholder="Option B" maxlength="60"></div>
+    <div class="form-group"><label class="lbl">Option 3 (optional)</label><input class="inp" id="poll-opt3" placeholder="Option C" maxlength="60"></div>
+    <div class="form-group"><label class="lbl">Option 4 (optional)</label><input class="inp" id="poll-opt4" placeholder="Option D" maxlength="60"></div>
+    <div class="errmsg" id="poll-err"></div>
+    <button class="btn-primary full-width" onclick="createPoll()">Post Poll</button>
+  </div>
+</div>
+
+<!-- PREDICT SCORE -->
+<div class="modal" id="predict-mo" onclick="if(event.target===this)closeMo('predict-mo')">
+  <div class="modal-box"><button class="modal-close" onclick="closeMo('predict-mo')">&#10005;</button>
+    <h3 class="modal-title">Predict Score</h3>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin:1rem 0">
+      <div style="flex:1;text-align:center"><div id="predict-home-badge"></div><div id="predict-home-name" style="font-size:.76rem;font-weight:700;margin-top:.3rem"></div></div>
+      <div style="text-align:center">
+        <div style="display:flex;align-items:center;gap:.4rem">
+          <div style="display:flex;align-items:center;gap:.3rem">
+            <button class="step-btn" onclick="predStep('h',-1)">&#8722;</button>
+            <span id="pred-hg" style="font-family:Orbitron,sans-serif;font-size:1.4rem;font-weight:900;color:var(--green);min-width:24px;text-align:center">0</span>
+            <input type="hidden" id="pred-hg-val" value="0">
+            <button class="step-btn add" onclick="predStep('h',1)">&#43;</button>
+          </div>
+          <span style="color:var(--dim)">&#8211;</span>
+          <div style="display:flex;align-items:center;gap:.3rem">
+            <button class="step-btn" onclick="predStep('a',-1)">&#8722;</button>
+            <span id="pred-ag" style="font-family:Orbitron,sans-serif;font-size:1.4rem;font-weight:900;color:var(--green);min-width:24px;text-align:center">0</span>
+            <input type="hidden" id="pred-ag-val" value="0">
+            <button class="step-btn add" onclick="predStep('a',1)">&#43;</button>
+          </div>
+        </div>
+      </div>
+      <div style="flex:1;text-align:center"><div id="predict-away-badge"></div><div id="predict-away-name" style="font-size:.76rem;font-weight:700;margin-top:.3rem"></div></div>
+    </div>
+    <input type="hidden" id="predict-mid">
+    <div id="predict-already" class="hidden" style="font-size:.74rem;color:var(--gold);text-align:center;margin-bottom:.5rem"></div>
+    <div class="errmsg" id="predict-err"></div>
+    <button class="btn-primary full-width" id="predict-submit-btn" onclick="submitPrediction()">Submit Prediction</button>
+  </div>
+</div>
+
+<!-- UCL PAYMENT -->
+<div class="modal" id="ucl-pay-mo" onclick="if(event.target===this)closeMo('ucl-pay-mo')">
+  <div class="modal-box"><button class="modal-close" onclick="closeMo('ucl-pay-mo')">&#10005;</button>
+    <h3 class="modal-title">UCL Entry Payment</h3>
+    <div style="display:flex;gap:.5rem;margin-bottom:.8rem">
+      <div style="flex:1;background:rgba(255,230,0,0.08);border:1px solid rgba(255,230,0,0.2);border-radius:10px;padding:.7rem;text-align:center">
+        <div style="font-size:.62rem;color:var(--dim)">1st Place</div><div id="modal-prize-1" style="font-weight:700;color:var(--gold)">—</div>
+      </div>
+      <div style="flex:1;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:10px;padding:.7rem;text-align:center">
+        <div style="font-size:.62rem;color:var(--dim)">2nd Place</div><div id="modal-prize-2" style="font-weight:700">—</div>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:.7rem;background:rgba(0,212,255,0.06);border:1px solid rgba(0,212,255,0.15);border-radius:10px;margin-bottom:.7rem">
+      <span style="font-size:.78rem">Entry Fee</span><span id="modal-fee-display" style="font-family:Orbitron,sans-serif;font-weight:700;color:var(--cyan)">—</span>
+    </div>
+    <div class="errmsg" id="pay-err"></div>
+    <button class="btn-primary full-width" id="pay-submit-btn" onclick="launchPaystack()">Pay & Lock My Spot</button>
+  </div>
+</div>
+
+<!-- DEDUCT POINTS -->
+<div class="modal" id="deduct-mo" onclick="if(event.target===this)closeMo('deduct-mo')">
+  <div class="modal-box"><button class="modal-close" onclick="closeMo('deduct-mo')">&#10005;</button>
+    <h3 class="modal-title">Deduct Points</h3>
+    <input type="hidden" id="ded-rep-key"><input type="hidden" id="ded-uid"><input type="hidden" id="ded-name">
+    <div class="form-group"><label class="lbl">Player</label><div id="ded-player" style="font-weight:700;color:var(--cyan);padding:.3rem 0"></div></div>
+    <div class="form-group"><label class="lbl">Points to Deduct</label><input class="inp" id="ded-pts" type="number" min="1" max="30" value="3"></div>
+    <div class="form-group"><label class="lbl">Reason</label><textarea class="inp" id="ded-note" rows="2" placeholder="Reason..."></textarea></div>
+    <div class="errmsg" id="ded-err"></div>
+    <div class="modal-btns">
+      <button class="btn-secondary" onclick="closeMo('deduct-mo')">Cancel</button>
+      <button class="btn-danger" id="ded-btn" onclick="applyDeduction()">Apply Deduction</button>
+    </div>
+  </div>
+</div>
+
+<!-- RESTRICT PLAYER -->
+<div class="modal" id="restrict-mo" onclick="if(event.target===this)closeMo('restrict-mo')">
+  <div class="modal-box"><button class="modal-close" onclick="closeMo('restrict-mo')">&#10005;</button>
+    <h3 class="modal-title">Restrict Player</h3>
     <div id="restrict-modal-content"></div>
   </div>
 </div>
 
-<!-- BROADCAST MODAL (admin) -->
-<div class="mo" id="broadcast-mo" onclick="if(event.target===this)closeMo('broadcast-mo')">
-  <div class="mb"><button class="mc" onclick="closeMo('broadcast-mo')">&#10005;</button>
-    <h3>&#128226; Broadcast to All Users</h3>
-    <div style="display:flex;flex-direction:column;gap:.75rem">
-      <div><label class="lbl">Type</label>
-        <select class="inp" id="broadcast-type">
-          <option value="info">&#128226; Info</option>
-          <option value="warning">&#9888;&#65039; Warning</option>
-          <option value="celebration">&#127881; Celebration</option>
-        </select>
-      </div>
-      <div><label class="lbl">Message</label>
-        <textarea class="inp" id="broadcast-msg" rows="3" maxlength="200" placeholder="Type your message to all players..."></textarea>
-      </div>
-      <button class="bp" style="width:100%;padding:11px" id="broadcast-btn" onclick="sendBroadcast()">&#128226; Send to All Players</button>
+<!-- BROADCAST -->
+<div class="modal" id="broadcast-mo" onclick="if(event.target===this)closeMo('broadcast-mo')">
+  <div class="modal-box"><button class="modal-close" onclick="closeMo('broadcast-mo')">&#10005;</button>
+    <h3 class="modal-title">Broadcast Message</h3>
+    <div class="form-group"><label class="lbl">Type</label>
+      <select class="inp" id="broadcast-type"><option value="info">Info</option><option value="warning">Warning</option><option value="celebration">Celebration</option></select>
     </div>
+    <div class="form-group"><label class="lbl">Message</label><textarea class="inp" id="broadcast-msg" rows="3" maxlength="200" placeholder="Type your message..."></textarea></div>
+    <button class="btn-primary full-width" onclick="sendBroadcast()">Send to All</button>
   </div>
 </div>
 
-<!-- EDIT BIO & COVER MODAL -->
-<div class="mo" id="edit-bio-mo" onclick="if(event.target===this)closeMo('edit-bio-mo')">
-  <div class="mb"><button class="mc" onclick="closeMo('edit-bio-mo')">&#10005;</button>
-    <h3>&#9999;&#65039; Edit Profile</h3>
-    <div style="display:flex;flex-direction:column;gap:.85rem">
-      <div><label class="lbl">Bio (max 100 chars)</label>
-        <input class="inp" id="bio-inp" maxlength="100" placeholder="e.g. Unbeaten since October 👑">
-      </div>
-      <div><label class="lbl">Cover Photo</label>
-        <div class="ss-box">
-          <input type="file" accept="image/*" onchange="uploadCover(this)">
-          <div style="font-size:1.2rem">&#128247;</div>
-          <div style="font-size:.73rem;color:var(--dim)">Tap to upload cover photo</div>
-        </div>
-      </div>
-      <div class="err" id="bio-err"></div>
-      <button class="bp" style="width:100%;padding:11px" id="cover-save-btn" onclick="saveBio()">&#10003; Save Bio</button>
-    </div>
+<!-- NOTIFICATION PANEL -->
+<div class="modal" id="notif-panel-mo" onclick="if(event.target===this)closeMo('notif-panel-mo')">
+  <div class="modal-box"><button class="modal-close" onclick="closeMo('notif-panel-mo')">&#10005;</button>
+    <h3 class="modal-title">&#128276; Notifications</h3>
+    <div id="notif-panel-list"><div style="color:var(--dim);text-align:center;padding:1rem;font-size:.78rem">Loading...</div></div>
   </div>
 </div>
 
-<script src="core.js"></script>
-<script src="news.js"></script>
-<script src="odds.js"></script>
-<script src="swap.js"></script>
-<script src="pages.js"></script>
-<script src="ucl.js"></script>
-<script src="chat.js"></script>
-<script src="admin.js"></script>
-<script src="features.js"></script>
-<script src="referee.js"></script>
-<script src="matchroom.js"></script>
 
+<script>
+  // Wire up goPage for predictions + chat messenger
+  var _coreGoPage = goPage;
+  goPage = function(name) {
+    _coreGoPage(name);
+    if (name === 'chat') renderMessenger();
+    if (name === 'predict') renderPredictions();
+    if (name === 'referee') renderRefPanel();
+    // Show/hide FAB
+    var fab = document.getElementById('chat-fab');
+    if (fab) fab.style.display = (name === 'chat') ? 'none' : (myProfile ? 'flex' : 'none');
+  };
+
+  // Update topbar when logged in — show club badge instead of Login/Join
+  var _coreUpdateNav = updateNav;
+  updateNav = function() {
+    _coreUpdateNav();
+    var e = document.getElementById('nav-right');
+    if (!e) return;
+    if (myProfile && myProfile.username) {
+      var club = getClub(myProfile.league, myProfile.club);
+      var init = myProfile.username.charAt(0).toUpperCase();
+      e.innerHTML = '<button class="topbar-club-btn" onclick="goPage(\'profile\')" title="' + esc(myProfile.username) + '">'
+        + (club && club.logo ? '<img src="' + club.logo + '" onerror="this.outerHTML=\'' + init + '\'">' : init)
+        + '</button>';
+      // Show FAB when logged in
+      var fab = document.getElementById('chat-fab');
+      if (fab && activePage() !== 'chat') fab.style.display = 'flex';
+    }
+  };
+
+  // Stubs for batch 2/3
+  function renderMatchRooms() { var el=document.getElementById('match-rooms-list'); if(el)el.innerHTML='<div class="card empty">Open the Messages icon to access match rooms.</div>'; }
+  function renderPolls(){}
+  function renderLeaderboard(){}
+  function renderMyPredictions(){}
+  function renderPredLeaderboard(){}
+  function renderProfile(){ var el=document.getElementById('profile-content'); if(el)el.innerHTML='<div class="card empty" style="margin-top:1rem">Profile coming in Batch 2</div>'; }
+  function renderUCL(){}
+  function renderPollBadge(){}
+  function loadAdmin(){ var el=document.getElementById('page-admin'); if(el)el.innerHTML='<div class="card empty" style="margin-top:1rem">Admin Panel coming in Batch 3</div>'; }
+  function initSwap(){}
+  function listenMatchRooms(){}
+  function acceptSwap(){}
+  function declineSwap(){}
+  function openRestrictModal(){}
+  function _openPredictModal(){ toast('Predictions system coming in Batch 2','error'); }
+  function renderHomeStats(){
+    var ps=Object.keys(allPlayers).length,ms=Object.values(allMatches);
+    var played=ms.filter(function(m){return m.played;}).length;
+    var sp=document.getElementById('st-p'),sm=document.getElementById('st-m'),sf=document.getElementById('st-f');
+    if(sp)sp.textContent=ps; if(sm)sm.textContent=played; if(sf)sf.textContent=ms.length;
+  }
+
+  try { initApp(); } catch(e) {
+    console.error('Init error:',e);
+    hideLoader();
+    var h=document.getElementById('page-home');
+    if(h)h.classList.add('active');
+  }
+</script>
 </body>
 </html>

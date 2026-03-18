@@ -1,133 +1,204 @@
 // ============================================================
-// UCL
+// UCL.JS — Champions League: Bracket + Paystack Payments
 // ============================================================
-function renderUCL(){
-  var seeds=[];
-  ['epl','esl','ebl','esc'].forEach(function(lid){computeStd(lid).slice(0,4).forEach(function(r,i){seeds.push(Object.assign({},r,{league:lid,seed:i+1}));});});
-  var fee=parseFloat(uclSettings.fee)||0,cur=uclSettings.currency||'$';
-  var paidList=Object.values(uclPayments).filter(function(p){return p.status==='confirmed';});
-  var pool=paidList.length*fee,p1=(pool*.7).toFixed(2),p2=(pool*.3).toFixed(2);
-  var e1=$('prize-1st'),e2=$('prize-2nd'),ep=$('prize-pool-total'),ec=$('ucl-paid-count');
-  if(e1)e1.textContent=fee>0?(pool>0?cur+p1:cur+'?'):'--';
-  if(e2)e2.textContent=fee>0?(pool>0?cur+p2:cur+'?'):'--';
-  if(ep)ep.textContent=fee>0?cur+pool.toFixed(2):'$0';
-  if(ec)ec.textContent=paidList.length;
-  var myPay=myProfile?uclPayments[myProfile.uid]||null:null;
-  var iQ=myProfile&&seeds.some(function(s){return s.uid===myProfile.uid;});
-  var fs=$('ucl-fee-section');
-  if(fs){
-    if(!iQ){fs.style.display='none';}
-    else{
-      fs.style.display='block';var sH='',pA='';
-      if(!fee){sH='<span class="usb usb-pend">Fee not set</span>';pA='<div style="font-size:.76rem;color:var(--dim)">Admin has not set the entry fee yet.</div>';}
-      else if(!myPay){sH='<span class="usb usb-unpaid">Unpaid</span>';pA='<button class="pay-btn" style="margin-top:.5rem" onclick="openUCLPay()">Pay Entry Fee ('+cur+fee+')</button>';}
-      else if(myPay.status==='pending'){sH='<span class="usb usb-pend">Pending</span>';pA='<div style="font-size:.76rem;color:#FFE600">Payment submitted - admin reviewing.</div>';}
-      else if(myPay.status==='confirmed'){sH='<span class="usb usb-paid">Paid</span>';pA='<div style="font-size:.76rem;color:#00FF85">Spot locked!</div>';}
-      var ms=$('ucl-my-status'),pa=$('ucl-pay-area');
-      if(ms)ms.innerHTML=sH;if(pa)pa.innerHTML=pA;
-    }
-  }
-  var ac=$('ucl-admin-controls');
-  if(ac){
-    ac.style.display=(me&&me.email===ADMIN_EMAIL)?'block':'none';
-    if(me&&me.email===ADMIN_EMAIL){
-      var fi=$('ucl-fee-inp');if(fi&&!fi.value)fi.value=fee||'';
-      var ci=$('ucl-cur-inp');if(ci&&!ci.value)ci.value=uclSettings.currency||'$';
-      var pi=$('ucl-pk-inp');if(pi&&!pi.value)pi.value=uclSettings.pk||PAYSTACK_PK;
-      var ai=$('ucl-acct-inp');if(ai&&!ai.value)ai.value=uclSettings.acctEmail||'';
-      renderUCLPayLog();
-    }
-  }
-  var ss=$('ucl-seeds');
-  if(ss){
-    ss.innerHTML=seeds.length?seeds.map(function(s,i){
-      var lg=LGS[s.league]||{};
-      var pay=uclPayments[s.uid];
-      var pb=!fee?'':pay&&pay.status==='confirmed'?'<span class="usb usb-paid" style="font-size:.52rem">Paid</span>':pay&&pay.status==='pending'?'<span class="usb usb-pend" style="font-size:.52rem">Pending</span>':'<span class="usb usb-unpaid" style="font-size:.52rem">Unpaid</span>';
-      return'<div class="card" style="padding:.82rem;display:flex;align-items:center;gap:.65rem;border:1px solid '+lg.c+'33">'
-        +'<div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:.85rem;color:#FFE600;min-width:20px">#'+(i+1)+'</div>'
-        +clubBadge(s.club,30)
-        +'<div style="flex:1"><div style="font-weight:700;font-size:.8rem">'+esc(s.name)+'</div>'
-        +'<div style="font-size:.6rem;color:var(--dim)">'+esc(s.club)+'</div>'
-        +'<div style="font-size:.6rem;color:'+lg.c+'">'+esc(lg.n||'')+'</div></div>'
-        +'<div style="text-align:right"><div style="font-family:Orbitron,sans-serif;font-weight:900;color:#FFE600;font-size:.8rem">'+s.pts+'pts</div>'+pb+'</div></div>';
-    }).join(''):'<div class="card" style="padding:1.2rem;text-align:center;color:var(--dim)">Register and play to qualify!</div>';
-  }
-  var br=$('ucl-bracket');
-  if(br){
-    var pad=function(s){return s||{name:'TBD',club:'--'};};
-    var rounds=[
-      {t:'QF',ms:[{h:pad(seeds[0]),a:pad(seeds[15])},{h:pad(seeds[1]),a:pad(seeds[14])},{h:pad(seeds[2]),a:pad(seeds[13])},{h:pad(seeds[3]),a:pad(seeds[12])}]},
-      {t:'SF',ms:[{h:{name:'QF1 Win'},a:{name:'QF2 Win'}},{h:{name:'QF3 Win'},a:{name:'QF4 Win'}}]},
-      {t:'Final',ms:[{h:{name:'SF1 Win'},a:{name:'SF2 Win'}}]}
-    ];
-    br.innerHTML=rounds.map(function(r){
-      return'<div style="flex:1;display:flex;flex-direction:column;gap:.55rem">'
-        +'<div style="text-align:center;font-family:Orbitron,sans-serif;font-size:.56rem;font-weight:700;letter-spacing:2px;color:#FFE600;margin-bottom:.28rem">'+r.t+'</div>'
-        +r.ms.map(function(m){
-          return'<div style="background:var(--card);border:1px solid rgba(255,230,0,0.13);border-radius:8px;overflow:hidden">'
-            +'<div style="padding:5px 9px;display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.04);font-size:.7rem;font-weight:600"><span>'+esc(m.h.name||'TBD')+'</span><span style="color:var(--dim)">?</span></div>'
-            +'<div style="padding:5px 9px;display:flex;justify-content:space-between;font-size:.7rem;font-weight:600"><span>'+esc(m.a.name||'TBD')+'</span><span style="color:var(--dim)">?</span></div></div>';
-        }).join('')+'</div>';
-    }).join('');
-  }
+
+function renderUCL() {
+  var pg = $('page-ucl'); if (!pg) return;
+
+  // Top 4 from each league = 16 seeds — FIX: use correct IDs
+  var seeds = [];
+  UCL_LEAGUES.forEach(function (lid) {
+    computeStd(lid).slice(0, 4).forEach(function (r, i) {
+      seeds.push(Object.assign({}, r, { league: lid, seed: i + 1 }));
+    });
+  });
+
+  var fee      = parseFloat(uclSettings.fee) || 0;
+  var cur      = uclSettings.currency || '$';
+  var paidList = Object.values(uclPayments).filter(function (p) { return p.status === 'confirmed'; });
+  var pool     = paidList.length * fee;
+  var p1       = (pool * 0.7).toFixed(2);
+  var p2       = (pool * 0.3).toFixed(2);
+  var isAdmin  = me && me.email === ADMIN_EMAIL;
+  var myPay    = myProfile ? (uclPayments[myProfile.uid] || null) : null;
+  var iQ       = myProfile && seeds.some(function (s) { return s.uid === myProfile.uid; });
+
+  var html =
+    '<div class="section-header"><div class="section-title c-gold">Champions League</div><div class="section-line gold"></div></div>'
+    // Prize cards
+    + '<div class="ucl-prizes">'
+    + '<div class="ucl-prize gold"><div class="ucl-prize-label">1st Place</div><div class="ucl-prize-val">' + (fee > 0 && pool > 0 ? cur + p1 : fee > 0 ? cur + '?' : '--') + '</div></div>'
+    + '<div class="ucl-prize silver"><div class="ucl-prize-label">2nd Place</div><div class="ucl-prize-val">' + (fee > 0 && pool > 0 ? cur + p2 : fee > 0 ? cur + '?' : '--') + '</div></div>'
+    + '<div class="ucl-prize cyan"><div class="ucl-prize-label">Prize Pool</div><div class="ucl-prize-val" style="color:var(--cyan)">' + cur + pool.toFixed(2) + '</div><div style="font-size:.6rem;color:var(--dim)">' + paidList.length + '/16 paid</div></div>'
+    + '</div>'
+    // My fee status
+    + (iQ ? '<div class="ucl-fee-box">'
+      + '<div style="font-family:Orbitron,sans-serif;font-size:.62rem;color:var(--dim);letter-spacing:1.5px;margin-bottom:.5rem">YOUR ENTRY</div>'
+      + (!fee ? '<div style="font-size:.76rem;color:var(--dim)">Admin has not set the entry fee yet.</div>'
+        : !myPay ? '<button class="btn-primary" onclick="openUCLPay()">Pay Entry Fee (' + cur + fee + ')</button>'
+        : myPay.status === 'pending' ? '<div style="font-size:.76rem;color:var(--gold)">Payment submitted — admin reviewing.</div>'
+        : myPay.status === 'confirmed' ? '<div style="font-size:.76rem;color:var(--green)">Spot locked!</div>'
+        : '<button class="btn-primary" onclick="openUCLPay()">Pay (' + cur + fee + ')</button>')
+      + '</div>' : '')
+    // Rules
+    + '<div class="ucl-rules"><div style="font-family:Orbitron,sans-serif;font-size:.6rem;color:var(--gold);letter-spacing:1.5px;margin-bottom:.4rem">HOW IT WORKS</div>'
+    + '<div style="font-size:.74rem;color:var(--dim);line-height:1.6">Top 4 from each league (16 total) qualify · Pay entry fee · 70% to 1st, 30% to 2nd · No payment in 48hrs = forfeit spot</div>'
+    + '</div>'
+    // Qualified players
+    + '<div style="font-family:Orbitron,sans-serif;font-size:.62rem;color:var(--dim);letter-spacing:1.5px;margin:1rem 0 .5rem">QUALIFIED</div>'
+    + '<div class="grid2">' + (seeds.length ? seeds.map(function (s) {
+      var p    = allPlayers[s.uid]; if (!p) return '';
+      var lg   = LGS[s.league] || {};
+      var paid = uclPayments[s.uid] && uclPayments[s.uid].status === 'confirmed';
+      return '<div class="card" style="padding:.7rem;display:flex;align-items:center;gap:.5rem">'
+        + clubBadge(p.club, s.league, 26)
+        + '<div style="flex:1;min-width:0"><div style="font-size:.78rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(p.username) + '</div>'
+        + '<div style="font-size:.6rem;color:' + lg.c + '">' + esc(lg.short || '') + ' #' + s.seed + '</div></div>'
+        + '<div style="font-size:.65rem;color:' + (paid ? 'var(--green)' : 'var(--dim)') + '">' + (paid ? 'Paid' : 'Unpaid') + '</div>'
+        + '</div>';
+    }).join('') : '<div class="card empty" style="grid-column:span 2">No qualifiers yet. Complete your league season first.</div>') + '</div>'
+    // Bracket
+    + '<div style="font-family:Orbitron,sans-serif;font-size:.62rem;color:var(--dim);letter-spacing:1.5px;margin:1rem 0 .5rem">BRACKET</div>'
+    + '<div id="ucl-bracket" style="overflow-x:auto">' + renderBracket(seeds, paidList) + '</div>'
+    // Admin panel
+    + (isAdmin ? renderUCLAdmin() : '');
+
+  pg.innerHTML = html;
 }
-function openUCLPay(){
-  if(!myProfile){showLanding();return;}
-  if(!uclSettings.pk||!uclSettings.fee){toast('Payment not configured. Contact admin.','error');return;}
-  var fee=parseFloat(uclSettings.fee),cur=uclSettings.currency||'NGN';
-  var pool=Object.values(uclPayments).filter(function(p){return p.status==='confirmed';}).length*fee;
-  var m1=$('modal-prize-1'),m2=$('modal-prize-2'),mf=$('modal-fee-display');
-  if(m1)m1.textContent=pool>0?cur+(pool*.7).toFixed(2):cur+'?';
-  if(m2)m2.textContent=pool>0?cur+(pool*.3).toFixed(2):cur+'?';
-  if(mf)mf.textContent=cur+fee;
-  var pe=$('pay-err');if(pe)pe.textContent='';
-  openMo('ucl-pay-mo');
+
+function renderBracket(seeds, paidList) {
+  if (seeds.length < 8) return '<div class="card empty">Bracket available once 8+ players qualify.</div>';
+  // Simple bracket display
+  var rounds = ['Quarter Finals', 'Semi Finals', 'Final'];
+  var matches = [
+    [seeds[0], seeds[7]], [seeds[1], seeds[6]], [seeds[2], seeds[5]], [seeds[3], seeds[4]]
+  ];
+  var html = '<div style="display:flex;gap:.5rem;overflow-x:auto;padding-bottom:.5rem">';
+  rounds.forEach(function (round, ri) {
+    html += '<div style="min-width:140px">'
+      + '<div style="font-family:Orbitron,sans-serif;font-size:.58rem;color:var(--dim);letter-spacing:1px;margin-bottom:.4rem;text-align:center">' + round + '</div>';
+    var roundMatches = ri === 0 ? matches : Array(Math.pow(2, 1 - ri) + 1).fill(null).map(function () { return [null, null]; });
+    roundMatches.forEach(function (pair) {
+      html += '<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:.45rem .6rem;margin-bottom:.4rem">'
+        + '<div style="font-size:.7rem;font-weight:700;border-bottom:1px solid rgba(255,255,255,0.05);padding-bottom:.25rem;margin-bottom:.25rem">'
+        + (pair && pair[0] ? esc((allPlayers[pair[0].uid] || {}).username || '?') : 'TBD') + '</div>'
+        + '<div style="font-size:.7rem;font-weight:700">'
+        + (pair && pair[1] ? esc((allPlayers[pair[1].uid] || {}).username || '?') : 'TBD') + '</div>'
+        + '</div>';
+    });
+    html += '</div>';
+  });
+  html += '</div>';
+  return html;
 }
-function launchPaystack(){
-  if(!myProfile){toast('Login first','error');return;}
-  var pe=$('pay-err');if(pe)pe.textContent='';
-  var pk=uclSettings.pk||PAYSTACK_PK,fee=parseFloat(uclSettings.fee),cur=(uclSettings.currency||'NGN').toUpperCase();
-  if(!pk||!fee){if(pe)pe.textContent='Payment not configured.';return;}
-  if(typeof PaystackPop==='undefined'){if(pe)pe.textContent='Paystack not loaded. Check connection.';return;}
-  var btn=$('pay-submit-btn');btn.textContent='Opening...';btn.disabled=true;
-  PaystackPop.setup({
-    key:pk,email:myProfile.email,amount:Math.round(fee*100),currency:cur,
-    ref:'UCL-'+myProfile.uid+'-'+Date.now(),
-    onSuccess:function(tx){
-      btn.textContent='Pay & Lock My Spot';btn.disabled=false;
-      db.ref('ef_ucl_payments/'+myProfile.uid).set({uid:myProfile.uid,username:myProfile.username,club:myProfile.club,email:myProfile.email,ref:tx.reference,status:'confirmed',confirmedAt:Date.now(),fee:fee,currency:cur,method:'paystack'})
-        .then(function(){closeMo('ucl-pay-mo');toast('Payment confirmed! UCL spot locked!');})
-        .catch(function(){toast('Payment done! Contact admin with ref: '+tx.reference,'error');});
-    },
-    onCancel:function(){btn.textContent='Pay & Lock My Spot';btn.disabled=false;if(pe)pe.textContent='Cancelled.';}
-  }).openIframe();
+
+function renderUCLAdmin() {
+  return '<div style="background:rgba(255,40,130,0.05);border:1px solid rgba(255,40,130,0.15);border-radius:12px;padding:.9rem;margin-top:1rem">'
+    + '<div style="font-family:Orbitron,sans-serif;font-size:.62rem;color:var(--pink);letter-spacing:1.5px;margin-bottom:.7rem">ADMIN — UCL SETTINGS</div>'
+    + '<div class="form-row">'
+    + '<div class="form-group"><label class="lbl">Entry Fee</label><input class="inp" id="ucl-fee-inp" type="number" min="1" placeholder="e.g. 5" value="' + (uclSettings.fee || '') + '"></div>'
+    + '<div class="form-group"><label class="lbl">Currency</label><input class="inp" id="ucl-cur-inp" placeholder="NGN" value="' + (uclSettings.currency || '') + '"></div>'
+    + '</div>'
+    + '<div class="form-row">'
+    + '<div class="form-group" style="flex:2"><label class="lbl">Paystack Key</label><input class="inp" id="ucl-pk-inp" placeholder="pk_live_..." value="' + (uclSettings.pk || PAYSTACK_PK || '') + '"></div>'
+    + '<div class="form-group"><label class="lbl">Account Email</label><input class="inp" id="ucl-acct-inp" placeholder="you@email.com" value="' + (uclSettings.acctEmail || '') + '"></div>'
+    + '</div>'
+    + '<button class="btn-primary" onclick="saveUCLSettings()">Save Settings</button>'
+    + '<div style="font-family:Orbitron,sans-serif;font-size:.6rem;color:var(--dim);letter-spacing:1px;margin-top:.9rem;margin-bottom:.4rem">PAYMENTS</div>'
+    + '<div id="ucl-payment-log">' + renderUCLPayLog() + '</div>'
+    + '</div>';
 }
-function saveUCLSettings(){
-  if(!me||me.email!==ADMIN_EMAIL){toast('Admin only','error');return;}
-  var pk=($('ucl-pk-inp')?$('ucl-pk-inp').value:'').trim();
-  var fee=parseFloat($('ucl-fee-inp').value);
-  var cur=($('ucl-cur-inp').value||'NGN').trim().toUpperCase();
-  var acct=($('ucl-acct-inp')?$('ucl-acct-inp').value:'').trim();
-  if(!pk||!pk.startsWith('pk_')){toast('Invalid Paystack key','error');return;}
-  if(isNaN(fee)||fee<=0){toast('Invalid fee','error');return;}
-  db.ref('ef_ucl_settings').set({pk:pk,fee:fee,currency:cur,acctEmail:acct,updatedAt:Date.now()})
-    .then(function(){toast('UCL settings saved!');}).catch(function(){toast('Failed','error');});
+
+function saveUCLSettings() {
+  if (!db || !me || me.email !== ADMIN_EMAIL) return;
+  var fee     = parseFloat($('ucl-fee-inp').value) || 0;
+  var cur     = $('ucl-cur-inp').value.trim() || '$';
+  var pk      = $('ucl-pk-inp').value.trim();
+  var acct    = $('ucl-acct-inp').value.trim();
+  db.ref(DB.uclSet).update({ fee:fee, currency:cur, pk:pk, acctEmail:acct })
+    .then(function () { toast('UCL settings saved!'); });
 }
-function renderUCLPayLog(){
-  var el=$('ucl-payment-log');if(!el)return;
-  var pays=Object.values(uclPayments);
-  if(!pays.length){el.innerHTML='<div style="color:var(--dim)">No payments yet.</div>';return;}
-  pays.sort(function(a,b){return(b.submittedAt||0)-(a.submittedAt||0);});
-  el.innerHTML=pays.map(function(p){
-    var sc=p.status==='confirmed'?'#00FF85':p.status==='rejected'?'#FF2882':'#FFE600';
-    return'<div style="background:var(--card);border:1px solid var(--border);border-radius:9px;padding:.65rem .85rem;display:flex;align-items:center;gap:.65rem;flex-wrap:wrap;margin-bottom:.4rem">'
-      +'<div style="flex:1"><div style="font-weight:700;font-size:.8rem">'+esc(p.username)+'</div>'
-      +'<div style="font-size:.63rem;color:var(--dim)">Ref: '+esc(p.ref||'--')+' - '+(p.currency||'$')+(p.fee||'?')+'</div></div>'
-      +'<span style="font-size:.6rem;font-weight:700;color:'+sc+'">'+esc((p.status||'').toUpperCase())+'</span>'
-      +(p.status==='pending'?'<div style="display:flex;gap:4px"><button class="bg" style="font-size:.65rem;padding:4px 9px" onclick="confirmUCLPay(\''+p.uid+'\',\''+esc(p.username)+'\')">Confirm</button><button class="bd" style="font-size:.65rem;padding:4px 9px" onclick="rejectUCLPay(\''+p.uid+'\',\''+esc(p.username)+'\')">Reject</button></div>':'')
-      +'</div>';
+
+function renderUCLPayLog() {
+  var pays = Object.entries(uclPayments);
+  if (!pays.length) return '<div style="font-size:.74rem;color:var(--dim)">No payments yet.</div>';
+  return pays.map(function (kv) {
+    var uid = kv[0], pay = kv[1];
+    var p   = allPlayers[uid];
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:.4rem 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:.74rem">'
+      + '<span>' + esc(p ? p.username : uid) + '</span>'
+      + '<span style="color:' + (pay.status==='confirmed'?'var(--green)':pay.status==='pending'?'var(--gold)':'var(--pink)') + '">' + esc(pay.status || '') + '</span>'
+      + (pay.status === 'pending' && me && me.email === ADMIN_EMAIL
+        ? '<button class="btn-xs" onclick="confirmUCLPayment(\'' + uid + '\')">Confirm</button>' : '')
+      + '</div>';
   }).join('');
 }
-function confirmUCLPay(uid,name){db.ref('ef_ucl_payments/'+uid).update({status:'confirmed',confirmedAt:Date.now()}).then(function(){toast(name+" payment confirmed!");}).catch(function(){toast('Failed','error');});}
-function rejectUCLPay(uid,name){if(!confirm('Reject payment from '+name+'?'))return;db.ref('ef_ucl_payments/'+uid).update({status:'rejected',rejectedAt:Date.now()}).then(function(){toast('Payment rejected.');}).catch(function(){toast('Failed','error');});}
+
+function confirmUCLPayment(uid) {
+  if (!db || !me || me.email !== ADMIN_EMAIL) return;
+  db.ref(DB.uclPay + '/' + uid).update({ status:'confirmed', confirmedAt:Date.now(), confirmedBy:me.uid })
+    .then(function () {
+      toast('Payment confirmed for ' + (allPlayers[uid] ? allPlayers[uid].username : uid));
+      sendNotif(uid, { title:'UCL Payment Confirmed', body:'Your spot is locked! Get ready.', icon:'trophy' });
+      renderUCL();
+    });
+}
+
+// ── PAYSTACK PAYMENT ──────────────────────────────────────────
+function openUCLPay() {
+  if (!myProfile) { showLanding(); return; }
+  var fee = parseFloat(uclSettings.fee) || 0;
+  var cur = uclSettings.currency || 'NGN';
+  if (!fee) { toast('Entry fee not set yet.', 'error'); return; }
+  $('modal-prize-1').textContent = cur + (fee * 16 * 0.7).toFixed(2);
+  $('modal-prize-2').textContent = cur + (fee * 16 * 0.3).toFixed(2);
+  $('modal-fee-display').textContent = cur + fee;
+  $('pay-err').textContent = '';
+  openMo('ucl-pay-mo');
+}
+
+function launchPaystack() {
+  var fee  = parseFloat(uclSettings.fee) || 0;
+  var cur  = uclSettings.currency || 'NGN';
+  var pk   = uclSettings.pk || PAYSTACK_PK;
+  var acct = uclSettings.acctEmail || '';
+  var err  = $('pay-err');
+
+  if (!fee)  { err.textContent = 'Entry fee not configured.'; return; }
+  if (!pk)   { err.textContent = 'Payment not configured.'; return; }
+  if (!acct) { err.textContent = 'Recipient email not configured.'; return; }
+
+  var btn = $('pay-submit-btn');
+  btn.textContent = 'Opening payment...'; btn.disabled = true;
+
+  // Save pending record first
+  db.ref(DB.uclPay + '/' + myProfile.uid).set({
+    uid:       myProfile.uid,
+    username:  myProfile.username,
+    amount:    fee,
+    currency:  cur,
+    status:    'pending',
+    createdAt: Date.now()
+  }).then(function () {
+    var handler = PaystackPop.setup({
+      key:        pk,
+      email:      myProfile.email || me.email,
+      amount:     fee * 100,
+      currency:   cur,
+      ref:        'UCL_' + myProfile.uid + '_' + Date.now(),
+      metadata:   { uid: myProfile.uid, username: myProfile.username },
+      callback:   function (response) {
+        db.ref(DB.uclPay + '/' + myProfile.uid).update({ paystackRef:response.reference, paidAt:Date.now() })
+          .then(function () {
+            closeMo('ucl-pay-mo');
+            toast('Payment submitted! Admin will confirm shortly.');
+            btn.textContent = 'Pay & Lock My Spot'; btn.disabled = false;
+          });
+      },
+      onClose: function () {
+        btn.textContent = 'Pay & Lock My Spot'; btn.disabled = false;
+      }
+    });
+    handler.openIframe();
+  });
+}

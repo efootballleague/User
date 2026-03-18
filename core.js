@@ -1,638 +1,752 @@
+// ============================================================
+// CORE.JS — State, Helpers, Navigation, Firebase Boot
+// ============================================================
 
-// ============================================================
-// HELPERS
-// ============================================================
-function $(id){return document.getElementById(id);}
-function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-function shuffle(a){var b=a.slice();for(var i=b.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=b[i];b[i]=b[j];b[j]=t;}return b;}
-function fmtDate(ts){if(!ts)return'';return new Date(ts).toLocaleDateString('en-GB',{day:'2-digit',month:'short'});}
-function fmtTime(ts){if(!ts)return'';return new Date(ts).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});}
-function fmtFull(ts){if(!ts)return'';return new Date(ts).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});}
-function fmtAgo(ts){
-  if(!ts)return'Never';
-  var d=Date.now()-ts,m=Math.floor(d/60000);
-  if(m<2)return'Online now';if(m<60)return m+'m ago';
-  var h=Math.floor(m/60);if(h<24)return h+'h ago';
-  var dy=Math.floor(h/24);if(dy===1)return'Yesterday';if(dy<7)return dy+'d ago';
+// ── GLOBAL STATE ─────────────────────────────────────────────
+var auth = null, db = null;
+var me = null, myProfile = null;
+var allPlayers  = {};
+var allMatches  = {};
+var allPenalties = {};
+var allPolls    = {};
+var uclSettings = {};
+var uclPayments = {};
+
+// UI state
+var curLg        = 'epl';
+var curFxFilter  = 'all';
+var chatRoom     = 'global';
+var chatOff      = null;
+var typingOff    = null;
+var typingTO     = null;
+var pmOff        = null;
+var pmUID        = null;
+var unreadChat   = 0;
+var unreadPM     = 0;
+var onlineInterval = null;
+var _globalDMsListening  = false;
+var _unreadListening     = false;
+var _lastNotifMsg        = {};
+var matchRoomOff         = null;
+var activeRoomKey        = null;
+var matchRoomChatOff     = null;
+var drawnClub            = null;
+var _swapListening       = false;
+var _swapRequests        = {};
+var _refreshTimer        = null;
+var _navLock             = false;
+
+// ── SHORTHAND HELPERS ─────────────────────────────────────────
+function $(id) { return document.getElementById(id); }
+
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function shuffle(a) {
+  var b = a.slice();
+  for (var i = b.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = b[i]; b[i] = b[j]; b[j] = t;
+  }
+  return b;
+}
+
+// ── DATE / TIME HELPERS ───────────────────────────────────────
+function fmtDate(ts) {
+  if (!ts) return '';
+  return new Date(ts).toLocaleDateString('en-GB', { day:'2-digit', month:'short' });
+}
+function fmtTime(ts) {
+  if (!ts) return '';
+  return new Date(ts).toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+}
+function fmtFull(ts) {
+  if (!ts) return '';
+  return new Date(ts).toLocaleString('en-GB', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
+}
+function fmtAgo(ts) {
+  if (!ts) return 'Never';
+  var d = Date.now() - ts, m = Math.floor(d / 60000);
+  if (m < 2)  return 'Online now';
+  if (m < 60) return m + 'm ago';
+  var h = Math.floor(m / 60);
+  if (h < 24) return h + 'h ago';
+  var dy = Math.floor(h / 24);
+  if (dy === 1) return 'Yesterday';
+  if (dy < 7)  return dy + 'd ago';
   return fmtDate(ts);
 }
-function lsColor(ts){if(!ts)return'#555';var d=Date.now()-ts;if(d<300000)return'#00ff88';if(d<3600000)return'#ffe600';return'#555';}
-function dmKey(a,b){return[a,b].sort().join('_');}
-function toggleEl(id){var e=$(id);e.style.display=e.style.display==='none'||!e.style.display?'block':'none';}
-function openMo(id){var e=$(id);if(e)e.classList.add('on');}
-function closeMo(id){var e=$(id);if(e)e.classList.remove('on');}
-function toast(msg,type){
-  var e=$('toast');if(!e)return;
-  e.textContent=msg;
-  e.style.background=type==='error'?'rgba(255,40,130,0.18)':'rgba(0,212,255,0.12)';
-  e.style.border='1.5px solid '+(type==='error'?'#FF2882':'#00D4FF');
-  e.style.color=type==='error'?'#FF2882':'#00D4FF';
-  e.style.backdropFilter='blur(10px)';
-  e.style.display='block';clearTimeout(e._t);
-  e._t=setTimeout(function(){e.style.display='none';},2800);
+function lsColor(ts) {
+  if (!ts) return '#555';
+  var d = Date.now() - ts;
+  if (d < 300000)   return '#00ff88';   // < 5 min  → green
+  if (d < 3600000)  return '#ffe600';   // < 1 hour → yellow
+  return '#555';
+}
+function dmKey(a, b) { return [a, b].sort().join('_'); }
+
+// ── TOAST ─────────────────────────────────────────────────────
+function toast(msg, type) {
+  var e = $('toast');
+  if (!e) return;
+  e.textContent = msg;
+  var isErr = (type === 'error');
+  e.style.background = isErr ? 'rgba(255,40,130,0.18)' : 'rgba(0,212,255,0.12)';
+  e.style.border      = '1.5px solid ' + (isErr ? '#FF2882' : '#00D4FF');
+  e.style.color       = isErr ? '#FF2882' : '#00D4FF';
+  e.style.opacity     = '1';
+  e.style.transform   = 'translateY(0)';
+  e.style.display     = 'block';
+  clearTimeout(e._t);
+  e._t = setTimeout(function () {
+    e.style.opacity   = '0';
+    e.style.transform = 'translateY(8px)';
+    setTimeout(function () { e.style.display = 'none'; }, 300);
+  }, 2800);
 }
 
-// ============================================================
-// REAL LEAGUE & TEAM DATA
-// ============================================================
-var ADMIN_EMAIL='admin@efootballuniverse.com';
-var PAYSTACK_PK='pk_live_46d79b8be095322027cec63e4b69a5e48e32a3a4';
+// ── MODALS ────────────────────────────────────────────────────
+function openMo(id)  { var e = $(id); if (e) e.classList.add('active'); }
+function closeMo(id) { var e = $(id); if (e) e.classList.remove('active'); }
 
-var LGS={
-  epl:{
-    n:'Premier League',
-    short:'EPL',
-    f:'🏴󠁧󠁢󠁥󠁮󠁧󠁿',
-    c:'#37003C',        // PL purple
-    accent:'#00ff85',   // PL green
-    bg:'rgba(61,25,91,0.18)',
-    logo:'https://upload.wikimedia.org/wikipedia/en/f/f2/Premier_League_Logo.svg'
-  },
-  laliga:{
-    n:'La Liga',
-    short:'LaLiga',
-    f:'🇪🇸',
-    c:'#ff4b00',        // La Liga orange
-    accent:'#ff4b00',
-    bg:'rgba(255,75,0,0.15)',
-    logo:'https://upload.wikimedia.org/wikipedia/commons/1/13/LaLiga_logo_2023.svg'
-  },
-  seriea:{
-    n:'Serie A',
-    short:'Serie A',
-    f:'🇮🇹',
-    c:'#1a56db',        // Serie A blue
-    accent:'#1a56db',
-    bg:'rgba(26,86,219,0.15)',
-    logo:'https://upload.wikimedia.org/wikipedia/en/e/e1/Serie_A_logo_%282019%29.svg'
-  },
-  ligue1:{
-    n:'Ligue 1',
-    short:'Ligue 1',
-    f:'🇫🇷',
-    c:'#0055A5',        // Ligue 1 gold
-    accent:'#daa520',
-    bg:'rgba(0,85,165,0.15)',
-    logo:'https://upload.wikimedia.org/wikipedia/commons/9/9f/Ligue1_logo_2024.svg'
+// ── CLUB BADGE HELPERS ────────────────────────────────────────
+function getClub(lid, name) {
+  return (ALL_CLUBS[lid] || []).find(function (c) { return c.name === name; }) || { name: name, color: '#888', logo: '' };
+}
+
+function clubColor(name) {
+  var lids = ['epl', 'laliga', 'seriea', 'ligue1'];
+  for (var i = 0; i < lids.length; i++) {
+    var c = getClub(lids[i], name);
+    if (c && c.color && c.color !== '#888') return c.color;
   }
-};
-
-// Real top 10 clubs per league with official colors and badge URLs
-var ALL_CLUBS={
-  epl:[
-    {name:'Liverpool',         color:'#C8102E', logo:'https://upload.wikimedia.org/wikipedia/en/0/0c/Liverpool_FC.svg'},
-    {name:'Arsenal',           color:'#EF0107', logo:'https://upload.wikimedia.org/wikipedia/en/5/53/Arsenal_FC.svg'},
-    {name:'Manchester City',   color:'#6CABDD', logo:'https://upload.wikimedia.org/wikipedia/en/e/eb/Manchester_City_FC_badge.svg'},
-    {name:'Chelsea',           color:'#034694', logo:'https://upload.wikimedia.org/wikipedia/en/c/cc/Chelsea_FC.svg'},
-    {name:'Newcastle United',  color:'#241F20', logo:'https://upload.wikimedia.org/wikipedia/en/5/56/Newcastle_United_Logo.svg'},
-    {name:'Tottenham Hotspur', color:'#132257', logo:'https://upload.wikimedia.org/wikipedia/en/b/b4/Tottenham_Hotspur.svg'},
-    {name:'Aston Villa',       color:'#95BFE5', logo:'https://upload.wikimedia.org/wikipedia/en/9/9f/Aston_Villa_FC_crest_%282016%29.svg'},
-    {name:'Manchester United', color:'#DA291C', logo:'https://upload.wikimedia.org/wikipedia/en/7/7a/Manchester_United_FC_crest.svg'},
-    {name:'Nottingham Forest', color:'#DD0000', logo:'https://upload.wikimedia.org/wikipedia/en/e/e5/Nottingham_Forest_F.C._logo.svg'},
-    {name:'Brighton',          color:'#0057B8', logo:'https://upload.wikimedia.org/wikipedia/en/f/fd/Brighton_%26_Hove_Albion_logo.svg'}
-  ],
-  laliga:[
-    {name:'Barcelona',         color:'#A50044', logo:'https://upload.wikimedia.org/wikipedia/en/4/47/FC_Barcelona_%28crest%29.svg'},
-    {name:'Real Madrid',       color:'#FEBE10', logo:'https://upload.wikimedia.org/wikipedia/en/5/56/Real_Madrid_CF.svg'},
-    {name:'Atletico Madrid',   color:'#CB3524', logo:'https://upload.wikimedia.org/wikipedia/en/f/f4/Atletico_Madrid_2017_logo.svg'},
-    {name:'Athletic Bilbao',   color:'#EE2523', logo:'https://upload.wikimedia.org/wikipedia/en/9/98/Club_Athletic_de_Bilbao_logo.svg'},
-    {name:'Villarreal',        color:'#FFD700', logo:'https://upload.wikimedia.org/wikipedia/en/b/b9/Villarreal_CF_logo-en.svg'},
-    {name:'Real Sociedad',     color:'#0067B1', logo:'https://upload.wikimedia.org/wikipedia/en/f/f1/Real_Sociedad_logo.svg'},
-    {name:'Real Betis',        color:'#00954C', logo:'https://upload.wikimedia.org/wikipedia/en/1/13/Real_betis_logo.svg'},
-    {name:'Sevilla',           color:'#C41E3A', logo:'https://upload.wikimedia.org/wikipedia/en/3/3b/Sevilla_FC_logo.svg'},
-    {name:'Osasuna',           color:'#D2001F', logo:'https://upload.wikimedia.org/wikipedia/en/5/50/CA_Osasuna_logo.svg'},
-    {name:'Valencia',          color:'#FF7F00', logo:'https://upload.wikimedia.org/wikipedia/en/c/ce/Valenciacf.svg'}
-  ],
-  seriea:[
-    {name:'Napoli',            color:'#087CC4', logo:'https://upload.wikimedia.org/wikipedia/commons/2/2d/SSC_Napoli_badge.svg'},
-    {name:'Inter Milan',       color:'#0068A8', logo:'https://upload.wikimedia.org/wikipedia/commons/0/05/FC_Internazionale_Milano_2021.svg'},
-    {name:'AC Milan',          color:'#FB090B', logo:'https://upload.wikimedia.org/wikipedia/commons/d/d0/Logo_of_AC_Milan.svg'},
-    {name:'Juventus',          color:'#000000', logo:'https://upload.wikimedia.org/wikipedia/commons/1/15/Juventus_FC_2017_logo.svg'},
-    {name:'Atalanta',          color:'#1E73BE', logo:'https://upload.wikimedia.org/wikipedia/en/6/66/AtalantaBC_logo.svg'},
-    {name:'Roma',              color:'#8B0000', logo:'https://upload.wikimedia.org/wikipedia/en/f/f7/AS_Roma_logo_%282017%29.svg'},
-    {name:'Lazio',             color:'#87CEEB', logo:'https://upload.wikimedia.org/wikipedia/en/7/71/SS_Lazio_Badge.svg'},
-    {name:'Fiorentina',        color:'#6A0DAD', logo:'https://upload.wikimedia.org/wikipedia/commons/7/7e/ACF_Fiorentina_-_2022.svg'},
-    {name:'Bologna',           color:'#D40000', logo:'https://upload.wikimedia.org/wikipedia/commons/5/5b/Bologna_F.C._1909_logo.svg'},
-    {name:'Torino',            color:'#8B0000', logo:'https://upload.wikimedia.org/wikipedia/commons/4/4c/Torino_FC_Logo.svg'}
-  ],
-  ligue1:[
-    {name:'PSG',               color:'#004170', logo:'https://upload.wikimedia.org/wikipedia/en/a/a7/Paris_Saint-Germain_F.C..svg'},
-    {name:'Marseille',         color:'#009EDD', logo:'https://upload.wikimedia.org/wikipedia/commons/d/d8/Olympique_Marseille_logo.svg'},
-    {name:'Monaco',            color:'#D4021D', logo:'https://upload.wikimedia.org/wikipedia/en/6/63/AS_Monaco_FC.svg'},
-    {name:'Nice',              color:'#C8102E', logo:'https://upload.wikimedia.org/wikipedia/en/4/42/OGC_Nice_logo.svg'},
-    {name:'Lille',             color:'#C41E3A', logo:'https://upload.wikimedia.org/wikipedia/en/e/e2/Lille_OSC_2011.svg'},
-    {name:'Lyon',              color:'#003DA5', logo:'https://upload.wikimedia.org/wikipedia/en/b/b3/Olympique_Lyonnais_logo_2022.svg'},
-    {name:'Lens',              color:'#FFD700', logo:'https://upload.wikimedia.org/wikipedia/en/4/42/RC_Lens_logo.svg'},
-    {name:'Rennes',            color:'#D40000', logo:'https://upload.wikimedia.org/wikipedia/en/e/e4/Stade_Rennais_FC.svg'},
-    {name:'Strasbourg',        color:'#1E3F8B', logo:'https://upload.wikimedia.org/wikipedia/en/9/99/RC_Strasbourg_logo.svg'},
-    {name:'Brest',             color:'#E30613', logo:'https://upload.wikimedia.org/wikipedia/en/5/5b/Stade_Brestois_29_logo.svg'}
-  ]
-};
-
-// Helper: get club object by name and league
-function getClub(lid,name){
-  return (ALL_CLUBS[lid]||[]).find(function(c){return c.name===name;})||{name:name,color:'#888',logo:''};
+  // Fallback: deterministic color from name
+  var h = 0;
+  for (var j = 0; j < (name || '').length; j++) h = (h * 31 + name.charCodeAt(j)) & 0xFFFFFF;
+  return '#' + h.toString(16).padStart(6, '0');
 }
 
-// Legacy color helper — still used in DM list and notifications
-function clubColor(name){
-  // Try to find in any league
-  var all=['epl','laliga','seriea','ligue1'];
-  for(var i=0;i<all.length;i++){
-    var club=getClub(all[i],name);
-    if(club&&club.color&&club.color!=='#888') return club.color;
+function clubBadge(name, lid, sz) {
+  var club  = getClub(lid, name);
+  var c     = club.color || '#888';
+  var init  = (name || '?').split(' ').map(function (w) { return w[0] || ''; }).join('').slice(0, 2).toUpperCase();
+  var s     = sz || 28;
+  var style = 'width:' + s + 'px;height:' + s + 'px;border-radius:50%;background:' + c + '18;border:1.5px solid ' + c + '44;'
+    + 'display:inline-flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;'
+    + 'position:relative;font-size:' + (s * 0.3) + 'px;font-weight:800;color:' + c + ';vertical-align:middle';
+  if (club.logo) {
+    return '<div style="' + style + '" title="' + esc(name) + '">' + init
+      + '<img src="' + club.logo + '" loading="lazy" decoding="async" '
+      + 'style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;padding:' + (s * 0.1) + 'px;background:#fff;opacity:0;transition:opacity .2s" '
+      + 'onload="this.style.opacity=1" onerror="this.remove()">'
+      + '</div>';
   }
-  // Fallback: generate from name
-  var h=0;for(var j=0;j<(name||'').length;j++)h=(h*31+name.charCodeAt(j))&0xFFFFFF;
-  return'#'+h.toString(16).padStart(6,'0');
+  return '<div style="' + style + '" title="' + esc(name) + '">' + init + '</div>';
 }
 
-// Club badge — initials show instantly, logo loads lazily on top
-function clubBadge(name,lid,sz){
-  var club=getClub(lid,name);
-  var c=club.color||'#888';
-  var init=name.split(' ').map(function(w){return w[0]||'';}).join('').slice(0,2).toUpperCase();
-  var base='width:'+sz+'px;height:'+sz+'px;border-radius:50%;background:'+c+'18;'
-    +'border:1.5px solid '+c+'44;display:inline-flex;align-items:center;justify-content:center;'
-    +'overflow:hidden;flex-shrink:0;position:relative;font-size:'+(sz*.3)+'px;font-weight:800;color:'+c+';vertical-align:middle';
-  if(club.logo){
-    return'<div style="'+base+'" title="'+esc(name)+'">'
-      +init
-      +'<img src="'+club.logo+'" loading="lazy" decoding="async" '
-      +'style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;padding:'+(sz*.1)+'px;background:#fff;opacity:0;transition:opacity .2s" '
-      +'onload="this.style.opacity=1" onerror="this.remove()">'
-      +'</div>';
-  }
-  return'<div style="'+base+'" title="'+esc(name)+'">'+init+'</div>';
+function lgBadge(lid) {
+  var lg = LGS[lid] || {};
+  return '<span class="lg-badge" style="background:' + lg.bg + ';color:' + lg.c + ';border:1px solid ' + lg.c + '44">' + lg.f + ' ' + lg.short + '</span>';
 }
 
-// League badge pill
-function lgBadge(lid){
-  var lg=LGS[lid]||{};
-  return'<span style="display:inline-flex;align-items:center;gap:4px;font-size:.58rem;font-weight:700;padding:2px 7px;border-radius:4px;background:'+lg.bg+';color:'+lg.c+';border:1px solid '+lg.c+'44">'+lg.f+' '+lg.short+'</span>';
+// ── LOADING SCREEN ────────────────────────────────────────────
+// FIX: Show a loading screen immediately on page load.
+// The app becomes visible the moment Firebase resolves (or times out).
+// No more stuck blank/landing screen.
+function showLoader() {
+  var l = $('loader');
+  if (l) l.style.display = 'flex';
+}
+function hideLoader() {
+  var l = $('loader');
+  if (!l) return;
+  l.style.opacity = '0';
+  setTimeout(function () { l.style.display = 'none'; }, 400);
 }
 
-// ============================================================
-// STATE
-// ============================================================
-var me=null,myProfile=null;
-var allPlayers={},allMatches={},allPenalties={},uclSettings={},uclPayments={},allPolls={};
-var curLg='epl',curFxFilter='all',chatRoom='global';
-var chatOff=null,typingOff=null,typingTO=null,pmOff=null,pmUID=null;
-var unreadChat=0,unreadPM=0,drawnClub=null,onlineIntervalSet=false;
-var auth=null,db=null;
-var _globalDMsListening=false,_unreadListening=false,_lastNotifMsg={};
+// ── LANDING ───────────────────────────────────────────────────
+function lTab(t) {
+  document.querySelectorAll('.ltab').forEach(function (b, i) {
+    b.classList.toggle('active', (t === 'in' && i === 0) || (t !== 'in' && i === 1));
+  });
+  var pin = $('l-in'), pup = $('l-up');
+  if (pin) pin.classList.toggle('active', t === 'in');
+  if (pup) pup.classList.toggle('active', t !== 'in');
+}
 
-// ============================================================
-// LANDING
-// ============================================================
-function lTab(t){
-  var pin=$('l-in'),pup=$('l-up');
-  var tabs=document.querySelectorAll('.l-tab');
-  if(pin)pin.classList.toggle('on',t==='in');
-  if(pup)pup.classList.toggle('on',t!=='in');
-  if(tabs[0])tabs[0].classList.toggle('on',t==='in');
-  if(tabs[1])tabs[1].classList.toggle('on',t!=='in');
+function showLanding() {
+  hideLoader();
+  var l = $('landing');
+  if (l) { l.classList.remove('landing-hidden'); l.classList.add('landing-visible'); }
+  document.querySelectorAll('.page').forEach(function (p) { p.classList.remove('active'); });
 }
-function showLanding(){
-  hideLoadingScreen();
-  var l=$('landing');if(l){l.classList.remove('gone');l.classList.add('visible');}
+
+function hideLanding() {
+  var l = $('landing');
+  if (l) { l.classList.add('landing-hidden'); l.classList.remove('landing-visible'); }
 }
-function enterApp(){
-  hideLoadingScreen();
-  var l=$('landing');if(l){l.classList.remove('visible');l.classList.add('gone');}
-  var pg=$('page-home');if(pg&&!document.querySelector('.page.on'))pg.classList.add('on');
+
+// ── ENTER APP ─────────────────────────────────────────────────
+// FIX: Always show home page when entering app — no race condition
+function enterApp() {
+  hideLoader();
+  hideLanding();
+  // Always activate home page
+  document.querySelectorAll('.page').forEach(function (p) { p.classList.remove('active'); });
+  var home = $('page-home');
+  if (home) home.classList.add('active');
+  // Sync bottom nav
+  document.querySelectorAll('.nb').forEach(function (b) { b.classList.remove('active'); });
+  var homeBtn = document.querySelector('.nb[data-page="home"]');
+  if (homeBtn) homeBtn.classList.add('active');
   updateNav();
+  updateDrawer();
+  renderHomeStats();
+  renderRecentRes();
+  renderTopPlayers();
 }
 
-// ============================================================
-// FIREBASE LOADER — hard timeout so screen NEVER hangs forever
-// ============================================================
-var _appReady=false;
-function hideLoadingScreen(){
-  if(_appReady)return;_appReady=true;
-  var ls=document.getElementById('loading-screen');if(!ls)return;
-  ls.style.transition='opacity .3s';ls.style.opacity='0';
-  setTimeout(function(){ls.style.display='none';},320);
-}
-// If loading takes more than 7 seconds, force show landing
-var _loadTimer=setTimeout(function(){
-  if(!_appReady){hideLoadingScreen();showLanding();}
-},7000);
+// ── NAVIGATION ────────────────────────────────────────────────
+function goPage(name) {
+  if (_navLock) return;
+  _navLock = true;
+  setTimeout(function () { _navLock = false; }, 250);
 
-function loadScript(url,cb){
-  var s=document.createElement('script');s.src=url;s.onload=cb;
-  s.onerror=function(){console.warn('Script failed:',url);cb();};
-  document.head.appendChild(s);
-}
-function loadScripts(urls,cb){
-  var n=urls.length;if(!n){cb();return;}var done=0;
-  urls.forEach(function(u){loadScript(u,function(){if(++done===n)cb();});});
-}
+  hideLanding();
+  document.querySelectorAll('.page').forEach(function (p) { p.classList.remove('active'); });
+  document.querySelectorAll('.nb').forEach(function (b) { b.classList.remove('active'); });
+  window.scrollTo(0, 0);
 
-loadScripts([
-  'https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js',
-  'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js',
-  'https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js'
-],function(){
-  clearTimeout(_loadTimer);
-  try{
-    if(!firebase.apps.length){
-      firebase.initializeApp({
-        apiKey:"AIzaSyDbhuP9fhjI_0cxiUSTYi6dw4xqM0QI8wg",
-        authDomain:"videocall-ada87.firebaseapp.com",
-        databaseURL:"https://videocall-ada87-default-rtdb.firebaseio.com",
-        projectId:"videocall-ada87",
-        storageBucket:"videocall-ada87.firebasestorage.app",
-        messagingSenderId:"1048410446932",
-        appId:"1:1048410446932:web:0f3e3d8538e466202061c1"
-      });
+  var pg = $('page-' + name);
+  if (pg) pg.classList.add('active');
+
+  // Highlight matching nav button
+  var nb = document.querySelector('.nb[data-page="' + name + '"]');
+  if (nb) nb.classList.add('active');
+
+  // Page-specific actions
+  if (name === 'leagues')    { renderStd(curLg); }
+  if (name === 'fixtures')   { renderFx(); }
+  if (name === 'matchprep')  { renderMatchPrep(); renderMatchRooms(); renderSchedTimeline(); }
+  if (name === 'ucl')        { renderUCL(); }
+  if (name === 'polls')      { renderPolls(); setBadge('polls-badge', 0); }
+  if (name === 'leaderboard'){ renderLeaderboard(); renderMyPredictions(); renderPredLeaderboard(); }
+  if (name === 'referee')    { renderRefPanel(); setBadge('ref-badge', 0); }
+  if (name === 'profile')    { renderProfile(); }
+  if (name === 'admin')      { loadAdmin(); }
+  if (name === 'pm') {
+    var pw = $('pm-wrap'), pl = $('pm-locked');
+    if (!myProfile) {
+      if (pw) pw.style.display = 'none';
+      if (pl) pl.classList.remove('hidden');
+    } else {
+      if (pw) pw.style.display = '';
+      if (pl) pl.classList.add('hidden');
+      unreadPM = 0; setBadge('pm-badge', 0); loadPMList();
     }
-    auth=firebase.auth();db=firebase.database();
-    startApp();
-  }catch(e){console.error('Firebase init failed:',e);hideLoadingScreen();showLanding();}
-});
-loadScript('https://js.paystack.co/v2/inline.js',function(){});
+  }
+  if (name === 'chat') {
+    if (chatOff)   { chatOff();   chatOff   = null; }
+    if (typingOff) { typingOff(); typingOff = null; }
+    loadChat(); listenTyping();
+    unreadChat = 0; setBadge('chat-badge', 0);
+    var cr = $('cinp-row'), cl = $('chat-locked');
+    if (myProfile) {
+      if (cr) cr.classList.remove('hidden');
+      if (cl) cl.classList.add('hidden');
+    } else {
+      if (cr) cr.classList.add('hidden');
+      if (cl) cl.classList.remove('hidden');
+    }
+    setTimeout(function () { var b = $('chat-msgs'); if (b) b.scrollTop = b.scrollHeight; }, 200);
+  }
+}
 
-// Auto-refresh data when user returns to the tab/browser
-document.addEventListener('visibilitychange',function(){
-  if(document.visibilityState==='visible'&&_appReady&&db){
-    setTimeout(function(){
-      debouncedRefresh();
-      if(typeof generateAllNews==='function')generateAllNews();
-    },300);
+// ── BADGE HELPER ─────────────────────────────────────────────
+function setBadge(id, n) {
+  var e = $(id); if (!e) return;
+  if (n > 0) { e.textContent = n > 9 ? '9+' : n; e.classList.remove('hidden'); }
+  else { e.classList.add('hidden'); }
+}
+
+// ── TOP NAV UPDATE ────────────────────────────────────────────
+function updateNav() {
+  var e = $('nav-right'); if (!e) return;
+  var isAdmin = me && me.email === ADMIN_EMAIL;
+  if (myProfile && myProfile.username) {
+    e.innerHTML = '<span class="uchip" onclick="goPage(\'profile\')">' + esc(myProfile.username) + '</span>'
+      + (isAdmin ? '<button class="btn-sm btn-outline" onclick="goPage(\'admin\')">Admin</button>' : '')
+      + '<button class="btn-sm btn-outline" onclick="doLogout()">Out</button>';
+    var h = $('home-cta');
+    if (h) h.innerHTML = '<button class="btn-sm btn-accent" onclick="goPage(\'fixtures\')">Result</button>'
+      + '<button class="btn-sm btn-outline" onclick="goPage(\'profile\')">Profile</button>';
+    var af = $('add-fix-btn');   if (af) af.style.display = 'inline-flex';
+    var sp = $('score-panel');   if (sp) sp.classList.remove('hidden');
+    var da = $('drawer-admin-btn'); if (da) da.style.display = isAdmin ? 'flex' : 'none';
+    var ds = $('drawer-signout-btn'); if (ds) ds.style.display = 'flex';
+    var dl = $('drawer-login-btn');  if (dl) dl.style.display = 'none';
+  } else {
+    e.innerHTML = '<button class="btn-sm btn-outline" onclick="lTab(\'in\');showLanding()">Login</button>'
+      + '<button class="btn-sm btn-accent" onclick="lTab(\'up\');showLanding()">Join</button>';
+    var h = $('home-cta');
+    if (h) h.innerHTML = '<button class="btn-sm btn-accent" onclick="lTab(\'up\');showLanding()">Join</button>';
+    var af = $('add-fix-btn');   if (af) af.style.display = 'none';
+    var sp = $('score-panel');   if (sp) sp.classList.add('hidden');
+    var da = $('drawer-admin-btn'); if (da) da.style.display = 'none';
+    var ds = $('drawer-signout-btn'); if (ds) ds.style.display = 'none';
+    var dl = $('drawer-login-btn');  if (dl) dl.style.display = 'flex';
+  }
+}
+
+// ── DRAWER ────────────────────────────────────────────────────
+function openDrawer() {
+  var d = $('drawer'), o = $('drawer-overlay'), h = $('hamburger');
+  if (d) d.classList.add('open');
+  if (o) o.classList.add('active');
+  if (h) h.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeDrawer() {
+  var d = $('drawer'), o = $('drawer-overlay'), h = $('hamburger');
+  if (d) d.classList.remove('open');
+  if (o) o.classList.remove('active');
+  if (h) h.classList.remove('open');
+  document.body.style.overflow = '';
+}
+function updateDrawer() {
+  var dn  = $('drawer-name');
+  var dcl = $('drawer-club-lg');
+  var dav = $('drawer-avatar');
+  if (myProfile && myProfile.username) {
+    if (dn)  dn.textContent  = myProfile.username;
+    if (dcl) dcl.textContent = myProfile.club + ' · ' + ((LGS[myProfile.league] || {}).short || '');
+    if (dav) {
+      if (myProfile.avatar && myProfile.avatar.length < 10) {
+        dav.textContent  = myProfile.avatar;
+        dav.style.fontSize = '1.4rem';
+      } else if (myProfile.avatar && myProfile.avatar.startsWith('http')) {
+        dav.innerHTML = '<img src="' + myProfile.avatar + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
+      } else {
+        dav.textContent = (myProfile.username || '?').charAt(0).toUpperCase();
+      }
+    }
+  } else {
+    if (dn)  dn.textContent  = 'Guest';
+    if (dcl) dcl.textContent = '';
+    if (dav) dav.textContent = '?';
+  }
+}
+
+// ── ACTIVE PAGE ───────────────────────────────────────────────
+function activePage() {
+  var pages = ['home','leagues','fixtures','matchprep','ucl','polls','leaderboard','referee','chat','pm','profile','admin'];
+  for (var i = 0; i < pages.length; i++) {
+    var p = $('page-' + pages[i]);
+    if (p && p.classList.contains('active')) return pages[i];
+  }
+  return 'home';
+}
+
+// ── REFRESH ───────────────────────────────────────────────────
+function debouncedRefresh() {
+  clearTimeout(_refreshTimer);
+  _refreshTimer = setTimeout(refreshAll, 150);
+}
+function refreshAll() {
+  renderHomeStats();
+  var pg = activePage();
+  if (pg === 'home')     { renderRecentRes(); renderTopPlayers(); }
+  else if (pg === 'leagues')  renderStd(curLg);
+  else if (pg === 'fixtures') renderFx();
+  else if (pg === 'matchprep') { renderMatchPrep(); renderSchedTimeline(); }
+  else if (pg === 'ucl')   renderUCL();
+  else if (pg === 'polls') renderPolls();
+}
+
+
+// ── UNIVERSAL BADGE REFRESH ───────────────────────────────────
+// Called on every data change — updates every red dot in the app
+function refreshAllBadges() {
+  if (!myProfile) return;
+  var uid = myProfile.uid;
+
+  // ── MATCH button badge ────────────────────────────────────
+  // Counts: your unplayed fixtures + pending results needing action
+  var matchCount = Object.values(allMatches).filter(function(m) {
+    if (m.played) return false;
+    var isMine = m.homeId === uid || m.awayId === uid || m.refereeUID === uid;
+    if (!isMine) return false;
+    // Needs attention: awaiting verification, pending ref review, or you're assigned ref
+    return m.awayVerifying && m.awayId === uid    // away needs to verify
+      || (m.pendingResult && m.refereeUID === uid) // ref needs to review
+      || (m.refStatus === 'rejected' && (m.homeId === uid || m.awayId === uid)); // result rejected
+  }).length;
+  setBadge('matchroom-badge', matchCount);
+
+  // ── FIXTURES button badge ─────────────────────────────────
+  // Counts: your fixtures needing immediate action
+  var fixCount = Object.values(allMatches).filter(function(m) {
+    if (m.played) return false;
+    return (m.awayVerifying && m.awayId === uid && !m.awayDispute)  // must verify
+      || (m.refStatus === 'rejected' && (m.homeId === uid || m.awayId === uid)); // rejected - resubmit
+  }).length;
+  setBadge('fixtures-badge', fixCount);
+
+  // ── PREDICT button badge ──────────────────────────────────
+  // Counts: upcoming fixtures you haven't predicted yet (not your own matches)
+  if (db) {
+    db.ref('ef_predictions/' + uid).once('value', function(s) {
+      var predicted = Object.keys(s.val() || {});
+      var unpredicted = Object.values(allMatches).filter(function(m) {
+        return !m.played
+          && m.homeId !== uid && m.awayId !== uid  // not your match
+          && !predicted.includes(m.id);            // not predicted yet
+      }).length;
+      setBadge('predict-badge', unpredicted > 9 ? 9 : unpredicted);
+    });
+  }
+
+  // ── REFEREE badge ─────────────────────────────────────────
+  var refCount = Object.values(allMatches).filter(function(m) {
+    return !m.played && (
+      (m.refereeUID === uid && m.pendingResult)           // ref duty
+      || (m.awayId === uid && m.awayVerifying && !m.awayDispute) // away verify
+    );
+  }).length;
+  setBadge('ref-badge', refCount);
+
+  // ── POLLS badge ───────────────────────────────────────────
+  var unseenPolls = Object.values(allPolls || {}).filter(function(p) {
+    return p.active && !(p.votes && p.votes[uid]);
+  }).length;
+  setBadge('polls-badge', unseenPolls);
+
+  // ── SWAP badge ────────────────────────────────────────────
+  if (db) {
+    db.ref(DB.swaps).orderByChild('toUID').equalTo(uid).once('value', function(s) {
+      var pending = Object.values(s.val() || {}).filter(function(r) {
+        return r.status === 'pending';
+      }).length;
+      setBadge('swap-badge', pending);
+    });
+  }
+
+  // ── UCL badge ─────────────────────────────────────────────
+  // Show if qualified but not paid
+  var fee = parseFloat(uclSettings.fee) || 0;
+  if (fee > 0) {
+    var seeds = [];
+    UCL_LEAGUES.forEach(function(lid) {
+      computeStd(lid).slice(0, 4).forEach(function(r) { seeds.push(r.uid); });
+    });
+    var isQualified = seeds.includes(uid);
+    var hasPaid = uclPayments[uid] && uclPayments[uid].status === 'confirmed';
+    setBadge('ucl-badge', (isQualified && !hasPaid) ? 1 : 0);
+  }
+}
+
+// ── ONLINE PRESENCE ───────────────────────────────────────────
+function setOnline() {
+  if (!myProfile || !db) return;
+  var ref = db.ref(DB.online + '/' + me.uid);
+  ref.set({ name: myProfile.username, ts: Date.now() });
+  ref.onDisconnect().remove();
+  db.ref(DB.players + '/' + me.uid + '/lastSeen').set(Date.now());
+  if (!onlineInterval) {
+    onlineInterval = setInterval(function () {
+      if (!myProfile || !db) return;
+      db.ref(DB.online + '/' + me.uid).set({ name: myProfile.username, ts: Date.now() });
+      db.ref(DB.players + '/' + me.uid + '/lastSeen').set(Date.now());
+    }, 30000);
+    setInterval(refreshAgoLabels, 30000);
+  }
+}
+
+function refreshAgoLabels() {
+  document.querySelectorAll('[data-lastseen]').forEach(function (el) {
+    var ts = parseInt(el.getAttribute('data-lastseen') || '0');
+    el.style.background = lsColor(ts);
+    el.title = fmtAgo(ts);
+  });
+  document.querySelectorAll('[data-agospan]').forEach(function (el) {
+    var ts = parseInt(el.getAttribute('data-agospan') || '0');
+    el.textContent = fmtAgo(ts);
+    el.style.color  = lsColor(ts);
+  });
+}
+
+// ── SCROLL SHADOW ─────────────────────────────────────────────
+window.addEventListener('scroll', function () {
+  var tb = $('topbar');
+  if (tb) tb.classList.toggle('scrolled', window.scrollY > 8);
+}, { passive: true });
+
+// ── VISIBILITY REFRESH ────────────────────────────────────────
+document.addEventListener('visibilitychange', function () {
+  if (document.visibilityState === 'visible' && db) {
+    setTimeout(debouncedRefresh, 300);
   }
 });
 
-function startApp(){
-  db.ref('ef_players').on('value',function(s){
-    var newData=s.val()||{};
-    var oldCount=Object.keys(allPlayers).length;
-    var newCount=Object.keys(newData).length;
-    allPlayers=newData;
-    if(newCount!==oldCount)debouncedRefresh();
-    else refreshAgoLabels();
-  });
-  db.ref('ef_matches').on('value',function(s){
-    allMatches=s.val()||{};
+// ── COPY CODE ─────────────────────────────────────────────────
+function copyCode(code) {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(code).then(function () { toast('Copied: ' + code); });
+  } else {
+    toast('Code: ' + code);
+  }
+}
+
+// ── COMPATIBILITY ALIASES ─────────────────────────────────────
+// Keep these so any old references in other files still work
+function go(name) { goPage(name); }
+function updateBadge(id, n) { setBadge(id, n); }
+function hideLoadingScreen() { hideLoader(); }
+
+// ── SAFE STUBS ────────────────────────────────────────────────
+// These are defined in their own files. Stubbed here so core
+// doesn't throw if a file loads out of order.
+function renderStd(l)            { /* pages.js */ }
+function renderFx()              { /* pages.js */ }
+function renderHomeStats()       { /* pages.js */ }
+function renderRecentRes()       { /* pages.js */ }
+function renderTopPlayers()      { /* pages.js */ }
+function renderMatchPrep()       { /* pages.js */ }
+function renderSchedTimeline()   { /* pages.js */ }
+function renderPredictions()     { /* pages.js  */ }
+function renderUCL()             { /* ucl.js    */ }
+function renderPolls()           { /* features.js */ }
+function renderLeaderboard()     { /* features.js */ }
+function renderMyPredictions()   { /* features.js */ }
+function renderPredLeaderboard() { /* features.js */ }
+function renderRefPanel()        { /* referee.js */ }
+function renderProfile()         { /* features.js */ }
+function renderMatchRooms()      { /* matchroom.js */ }
+function loadAdmin()             { /* admin.js  */ }
+function loadPMList()            { /* chat.js   */ }
+function loadChat()              { /* chat.js   */ }
+function listenTyping()          { /* chat.js   */ }
+function listenUnread()          { /* chat.js   */ }
+function listenGlobalDMs()       { /* chat.js   */ }
+function initRefereeSystem()     { /* referee.js */ }
+function listenMatchRooms()      { /* matchroom.js */ }
+function initSwap()              { /* swap.js   */ }
+function checkPendingAutoApprovals() { /* referee.js */ }
+function listenRefDuties()       { /* referee.js */ }
+function openGoogleSetup(user)   { /* auth.js   */ }
+function doLogout()              { /* auth.js   */ }
+function renderPollBadge()       { /* features.js */ }
+
+// ── FIREBASE INIT ─────────────────────────────────────────────
+function initApp() {
+  // Show loader immediately — user sees something right away
+  showLoader();
+
+  // Load Paystack script in background
+  (function () {
+    var s = document.createElement('script');
+    s.src = 'https://js.paystack.co/v2/inline.js';
+    s.async = true;
+    document.head.appendChild(s);
+  })();
+
+  // Init Firebase
+  if (!firebase.apps.length) {
+    firebase.initializeApp(FIREBASE_CONFIG);
+  }
+  auth = firebase.auth();
+  db   = firebase.database();
+
+  // FIX: Set a hard timeout — if Firebase doesn't respond in 6s,
+  // show the app anyway so the user is never stuck
+  var authResolved = false;
+  var authTimeout = setTimeout(function () {
+    if (!authResolved) {
+      console.warn('Auth timeout — entering app as guest');
+      authResolved = true;
+      enterApp();
+    }
+  }, 6000);
+
+  auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+    .catch(function () {}) // ignore persistence errors
+    .then(function () { startListeners(authTimeout, function () { authResolved = true; }); });
+}
+
+// ── FIREBASE LISTENERS ────────────────────────────────────────
+function startListeners(authTimeout, onResolved) {
+  // Live data
+  db.ref(DB.players).on('value', function (s) {
+    allPlayers = s.val() || {};
     debouncedRefresh();
-    var pg=activePage();
-    if(pg==='fixtures')loadScoreSel();
-    if(pg==='matchprep'){renderMatchPrep();renderSchedTimeline();}
   });
-  db.ref('ef_online').on('value',function(s){var e=$('online-count');if(e)e.textContent=Object.keys(s.val()||{}).length;});
-  db.ref('ef_ucl_settings').on('value',function(s){uclSettings=s.val()||{};if($('page-ucl').classList.contains('on'))renderUCL();});
-  db.ref('ef_ucl_payments').on('value',function(s){uclPayments=s.val()||{};if($('page-ucl').classList.contains('on'))renderUCL();});
-  db.ref('ef_penalties').on('value',function(s){
-    allPenalties=s.val()||{};
-    if(activePage()==='leagues')renderStd(curLg);
-    if(activePage()==='admin')renderPenaltyLog();
+  db.ref(DB.matches).on('value', function (s) {
+    allMatches = s.val() || {};
+    debouncedRefresh();
+    var pg = activePage();
+    if (pg === 'fixtures') renderFx();
+    if (pg === 'matchprep') { renderMatchPrep(); renderSchedTimeline(); }
   });
-  db.ref('ef_polls').on('value',function(s){
-    allPolls=s.val()||{};
-    if(activePage()==='polls')renderPolls();
-    renderPollBadge();
-  });
-  // Season banner
-  setTimeout(function(){renderSeasonBanner();},1000);
-  setTimeout(function(){if(typeof initNews==='function')initNews();},2500);
-  auth.onAuthStateChanged(function(user){
-    me=user;
-    if(user){
-      db.ref('ef_players/'+user.uid).once('value',function(s){
-        var data=s.val();
-        // Must have a username — otherwise not registered yet
-        if(!data||!data.username){
-          hideLoadingScreen();
-          if(user.providerData&&user.providerData[0]&&user.providerData[0].providerId==='google.com'){
-            if(typeof openGoogleSetup==='function')openGoogleSetup(user);
-            else showLanding();
-          }else{showLanding();}
+
+  // Non-critical data — deferred 2s so initial load is fast
+  setTimeout(function () {
+    db.ref(DB.online).on('value', function (s) {
+      var e = $('online-count');
+      if (e) e.textContent = Object.keys(s.val() || {}).length;
+    });
+    db.ref(DB.penalties).on('value', function (s) {
+      allPenalties = s.val() || {};
+      if (activePage() === 'leagues') renderStd(curLg);
+    });
+    db.ref(DB.polls).on('value', function (s) {
+      allPolls = s.val() || {};
+      if (activePage() === 'polls') renderPolls();
+      renderPollBadge();
+    });
+    db.ref(DB.uclSet).on('value', function (s) {
+      uclSettings = s.val() || {};
+      if (activePage() === 'ucl') renderUCL();
+    });
+    db.ref(DB.uclPay).on('value', function (s) {
+      uclPayments = s.val() || {};
+      if (activePage() === 'ucl') renderUCL();
+    });
+  }, 2000);
+
+  // Auth state — the ONE place that controls guest vs logged-in
+  auth.onAuthStateChanged(function (user) {
+    // Cancel the safety timeout — auth responded
+    if (authTimeout) clearTimeout(authTimeout);
+    if (onResolved)  onResolved();
+
+    me = user;
+
+    if (user) {
+      // Check if this user has a profile in the database
+      db.ref(DB.players + '/' + user.uid).once('value', function (s) {
+        var data = s.val();
+
+        if (!data || !data.username) {
+          hideLoader();
+          showLanding();
           return;
         }
-        myProfile=data;
-        hideLoadingScreen();  // Hide loading screen immediately
+
+        // Existing user — enter app
+        myProfile = data;
         enterApp();
-        updateNav();
-        debouncedRefresh();
-        db.ref('ef_players/'+user.uid).on('value',function(s2){
-          var d2=s2.val();if(d2&&d2.username)myProfile=d2;
+
+        // Live profile updates
+        db.ref(DB.players + '/' + user.uid).on('value', function (s2) {
+          var d2 = s2.val();
+          if (d2 && d2.username) myProfile = d2;
           updateNav();
-          if(myProfile){setOnline();listenUnread();listenGlobalDMs();initRefereeSystem();listenMatchRooms();if(typeof initSwap==='function')initSwap();}
+          updateDrawer();
         });
-        if(myProfile){setOnline();listenUnread();listenGlobalDMs();initRefereeSystem();listenMatchRooms();if(typeof initSwap==='function')initSwap();}
-      },function(){hideLoadingScreen();enterApp();updateNav();});
-    }else{
-      myProfile=null;
-      hideLoadingScreen();
-      showLanding();
-      updateNav();
-    }
-  },function(err){console.error('Auth error:',err);hideLoadingScreen();showLanding();});
-}
 
-// ============================================================
-// AUTH ACTIONS
-// ============================================================
-function doSignIn(){
-  var em=$('li-em').value.trim(),pw=$('li-pw').value;
-  var err=$('li-err');err.textContent='';
-  if(!em||!pw){err.textContent='Fill in both fields.';return;}
-  if(!auth){err.textContent='Still loading, please wait...';setTimeout(doSignIn,1000);return;}
-  var btn=$('li-btn');btn.textContent='Signing in...';btn.disabled=true;
-  auth.signInWithEmailAndPassword(em,pw)
-    .then(function(){btn.textContent='Sign In';btn.disabled=false;$('li-em').value='';$('li-pw').value='';})
-    .catch(function(e){
-      var msg='Wrong email or password.';
-      if(e.code==='auth/too-many-requests')msg='Too many attempts. Try later.';
-      if(e.code==='auth/network-request-failed')msg='Network error. Check your connection.';
-      err.textContent=msg;btn.textContent='Sign In';btn.disabled=false;
-    });
-}
-function doRegStep1(){
-  var u=$('ru-name').value.trim(),em=$('ru-em').value.trim();
-  var pw=$('ru-pw').value,c=$('ru-country').value,l=$('ru-league').value;
-  var err=$('ru-err');err.textContent='';
-  if(!u||!em||!pw||!c||!l){err.textContent='Please fill in all fields.';return;}
-  if(pw.length<8){err.textContent='Password must be at least 8 characters.';return;}
-  if(Object.values(allPlayers).some(function(p){return p.username.toLowerCase()===u.toLowerCase();})){err.textContent='Username taken.';return;}
-  var taken=Object.values(allPlayers).filter(function(p){return p.league===l;}).map(function(p){return p.club;});
-  var avail=(ALL_CLUBS[l]||[]).map(function(c){return c.name;}).filter(function(cn){return!taken.includes(cn);});
-  if(!avail.length){err.textContent='League is full. Choose another.';return;}
-  // Show club picker instead of random draw
-  showClubPicker(l,avail);
-}
+        // Boot user-specific features
+        setOnline();
+        listenUnread();
+        listenGlobalDMs();
+        initRefereeSystem();
+        listenMatchRooms();
+        initSwap();
+        initPushNotifications();
 
-function showClubPicker(lid,avail){
-  var lg=LGS[lid]||{};
-  var html='<div style="margin-bottom:.8rem"><div style="font-family:Orbitron,sans-serif;font-size:.7rem;color:'+lg.c+';letter-spacing:1.5px;margin-bottom:.6rem">CHOOSE YOUR CLUB</div>'
-    +'<p style="font-size:.72rem;color:var(--dim);margin-bottom:.75rem">Pick any available club. This is your team for the season.</p>'
-    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:.45rem;max-height:280px;overflow-y:auto">';
-  avail.forEach(function(cn){
-    var club=getClub(lid,cn);
-    html+='<div onclick="selectClub(\''+cn+'\')" style="display:flex;align-items:center;gap:.55rem;padding:.6rem;background:#111;border:1.5px solid rgba(255,255,255,0.07);border-radius:10px;cursor:pointer;transition:all .18s" onmouseover="this.style.borderColor=\''+club.color+'\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,0.07)\'">'
-      +clubBadge(cn,lid,30)
-      +'<span style="font-size:.76rem;font-weight:700">'+esc(cn)+'</span>'
-      +'</div>';
-  });
-  html+='</div></div>';
-  $('l-club-picker').innerHTML=html;
-  $('l-s1').style.display='none';
-  $('l-s-picker').style.display='';
-}
-
-function selectClub(name){
-  drawnClub=name;
-  var lid=$('ru-league').value;
-  var club=getClub(lid,name);
-  var lg=LGS[lid]||{};
-  $('l-club-badge').innerHTML=clubBadge(name,lid,60);
-  $('l-club-name').textContent=name;
-  $('l-club-name').style.color=club.color;
-  $('l-club-lg').textContent=lg.f+' '+lg.n;
-  $('l-club-lg').style.color=lg.c;
-  $('l-s-picker').style.display='none';
-  $('l-s2').style.display='';
-}
-
-function regBack(){
-  if($('l-s2').style.display!=='none'){$('l-s2').style.display='none';$('l-s-picker').style.display='';}
-  else{$('l-s-picker').style.display='none';$('l-s1').style.display='';}
-  drawnClub=null;
-}
-
-function doRegConfirm(){
-  var u=$('ru-name').value.trim(),em=$('ru-em').value.trim();
-  var pw=$('ru-pw').value,c=$('ru-country').value,l=$('ru-league').value;
-  var err=$('ru-err2');err.textContent='';
-  if(!drawnClub){err.textContent='No club selected. Go back.';return;}
-  if(!auth){err.textContent='Connecting... please wait.';return;}
-  var btn=$('ru-confirm');btn.textContent='Registering...';btn.disabled=true;
-  auth.createUserWithEmailAndPassword(em,pw)
-    .then(function(cr){
-      return db.ref('ef_players/'+cr.user.uid).set({uid:cr.user.uid,username:u,email:em,country:c,league:l,club:drawnClub,joinedAt:Date.now(),lastSeen:Date.now()});
-    })
-    .then(function(){btn.textContent='Confirm';btn.disabled=false;drawnClub=null;toast('Welcome to eFootball Universe!');})
-    .catch(function(e){
-      var msg='Registration failed.';
-      if(e.code==='auth/email-already-in-use')msg='Email already registered. Sign in instead.';
-      if(e.code==='auth/invalid-email')msg='Invalid email address.';
-      err.textContent=msg;btn.textContent='Confirm';btn.disabled=false;
-    });
-}
-function doLogout(){
-  if(!auth)return;
-  auth.signOut().then(function(){
-    myProfile=null;me=null;
-    _globalDMsListening=false;_unreadListening=false;_lastNotifMsg={};
-    if(matchRoomOff){matchRoomOff();matchRoomOff=null;}if(matchRoomChatOff){matchRoomChatOff();matchRoomChatOff=null;}
-    updateNav();go('home');showLanding();toast('See you on the pitch!');
-  });
-}
-
-// ============================================================
-// NAVIGATION
-// ============================================================
-function go(name,btn){
-  if(go._lock)return;go._lock=true;setTimeout(function(){go._lock=false;},300);
-  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('on');});
-  window.scrollTo(0,0);
-  document.querySelectorAll('.nb').forEach(function(b){b.classList.remove('on');});
-  var pg=$('page-'+name);if(pg)pg.classList.add('on');
-  if(btn)btn.classList.add('on');
-  else document.querySelectorAll('.nb').forEach(function(b){if((b.getAttribute('onclick')||'').includes("'"+name+"'"))b.classList.add('on');});
-  if(name==='leagues')renderStd(curLg);
-  if(name==='fixtures'){renderFx();loadScoreSel();}
-  if(name==='matchprep'){renderMatchPrep();renderMatchRooms();}
-  if(name==='ucl')renderUCL();
-  if(name==='polls'){renderPolls();updateBadge('polls-badge',0);}
-  if(name==='leaderboard')renderLeaderboard();
-  if(name==='referee'){renderRefPanel();updateBadge('ref-badge',0);}
-  if(name==='chat'){
-    if(chatOff){chatOff();chatOff=null;}if(typingOff){typingOff();typingOff=null;}
-    loadChat();listenTyping();unreadChat=0;updateBadge('chat-badge',0);
-    if(myProfile){$('cinp-row').style.display='flex';$('chat-locked').style.display='none';}
-    else{$('cinp-row').style.display='none';$('chat-locked').style.display='block';}
-    setTimeout(function(){var b=$('chat-msgs');if(b)b.scrollTop=b.scrollHeight;},200);
-  }
-  if(name==='pm'){
-    if(!myProfile){$('pm-wrap').style.display='none';$('pm-locked').style.display='block';}
-    else{$('pm-wrap').style.display='flex';$('pm-locked').style.display='none';unreadPM=0;updateBadge('pm-badge',0);loadPMList();}
-  }
-  if(name==='profile')renderProfile();
-  if(name==='admin')loadAdmin();
-}
-function updateBadge(id,n){var e=$(id);if(!e)return;e.style.display=n>0?'inline':'none';e.textContent=n>9?'9+':n;}
-function updateNav(){
-  var e=$('nav-right');if(!e)return;
-  if(myProfile&&myProfile.username){
-    var isAdmin=me&&me.email===ADMIN_EMAIL;
-    e.innerHTML='<span class="uchip" onclick="go(\'profile\')" title="Profile">'+esc(myProfile.username)+'</span>'
-      +(isAdmin?'<button class="bsm bsm-d" onclick="go(\'admin\')">Admin</button>':'')
-      +'<button class="bsm bsm-d" onclick="doLogout()">Out</button>';
-    var h=$('home-cta');
-    if(h)h.innerHTML='<button class="bp" style="font-size:.88rem;padding:10px 20px" onclick="go(\'fixtures\')">Enter Result</button><button class="bs" style="font-size:.88rem;padding:10px 20px" onclick="go(\'profile\')">My Profile</button>';
-    var ab=$('add-fix-btn');if(ab)ab.style.display='inline-flex';
-    var sp=$('score-panel');if(sp)sp.style.display='block';
-    var cr=$('cinp-row');if(cr)cr.style.display='flex';
-    var cl=$('chat-locked');if(cl)cl.style.display='none';
-  }else{
-    e.innerHTML='<button class="bsm bsm-s" onclick="lTab(\'in\');showLanding()">Login</button><button class="bsm bsm-p" onclick="lTab(\'up\');showLanding()">Join</button>';
-    var h=$('home-cta');
-    if(h)h.innerHTML='<button class="bp" style="font-size:.88rem;padding:10px 20px" onclick="lTab(\'up\');showLanding()">Join Now</button><button class="bs" style="font-size:.88rem;padding:10px 20px" onclick="lTab(\'in\');showLanding()">Login</button>';
-    var ab=$('add-fix-btn');if(ab)ab.style.display='none';
-    var sp=$('score-panel');if(sp)sp.style.display='none';
-    var cr=$('cinp-row');if(cr)cr.style.display='none';
-    var cl=$('chat-locked');if(cl)cl.style.display='block';
-  }
-}
-var _refreshTimer=null;
-function debouncedRefresh(){clearTimeout(_refreshTimer);_refreshTimer=setTimeout(refreshAll,120);}
-function activePage(){
-  var pages=['home','leagues','fixtures','matchprep','ucl','polls','leaderboard','referee','chat','pm','profile','admin'];
-  for(var i=0;i<pages.length;i++){var p=$('page-'+pages[i]);if(p&&p.classList.contains('on'))return pages[i];}
-  return'home';
-}
-function refreshAll(){
-  renderHomeStats();
-  var pg=activePage();
-  if(pg==='home'){renderRecentRes();renderTopPlayers();}
-  else if(pg==='leagues')renderStd(curLg);
-  else if(pg==='fixtures'){renderFx();loadScoreSel();}
-  else if(pg==='matchprep'){renderMatchPrep();renderSchedTimeline();}
-  else if(pg==='ucl')renderUCL();
-  else if(pg==='polls')renderPolls();
-}
-function initRefereeSystem(){
-  if(!myProfile||!db)return;
-  checkPendingAutoApprovals();
-  listenRefDuties();
-}
-function setOnline(){
-  if(!myProfile||!db)return;
-  var ref=db.ref('ef_online/'+me.uid);
-  ref.set({name:myProfile.username,ts:Date.now()});ref.onDisconnect().remove();
-  db.ref('ef_players/'+me.uid+'/lastSeen').set(Date.now());
-  if(!onlineIntervalSet){
-    onlineIntervalSet=true;
-    setInterval(function(){
-      if(!myProfile||!db)return;
-      db.ref('ef_online/'+me.uid).set({name:myProfile.username,ts:Date.now()});
-      db.ref('ef_players/'+me.uid+'/lastSeen').set(Date.now());
-    },30000);
-    setInterval(function(){refreshAgoLabels();},30000);
-  }
-}
-function refreshAgoLabels(){
-  document.querySelectorAll('[data-lastseen]').forEach(function(el){
-    var ts=parseInt(el.getAttribute('data-lastseen')||'0');
-    el.style.background=lsColor(ts);el.setAttribute('title',fmtAgo(ts));
-  });
-  document.querySelectorAll('[data-agospan]').forEach(function(el){
-    var ts=parseInt(el.getAttribute('data-agospan')||'0');
-    el.textContent=fmtAgo(ts);el.style.color=lsColor(ts);
-  });
-}
-
-// ============================================================
-// VOTE POLLS
-// ============================================================
-function renderPollBadge(){
-  if(!myProfile)return;
-  var unvoted=Object.values(allPolls).filter(function(p){
-    return p.active&&!(p.votes&&p.votes[myProfile.uid]);
-  }).length;
-  updateBadge('polls-badge',unvoted);
-}
-
-function renderPolls(){
-  var el=$('page-polls');if(!el)return;
-  var isAdmin=me&&me.email===ADMIN_EMAIL;
-  var polls=Object.entries(allPolls).sort(function(a,b){return(b[1].createdAt||0)-(a[1].createdAt||0);});
-
-  var html='<div class="sh"><div class="st" style="color:#ffe600">&#128202; Community Polls</div><div class="sl" style="background:linear-gradient(90deg,#ffe600,transparent)"></div>'
-    +(isAdmin?'<button class="bp" style="font-size:.7rem;padding:5px 12px" onclick="openMo(\'create-poll-mo\')">+ New Poll</button>':'')
-    +'</div>';
-
-  if(!polls.length){
-    html+='<div class="card" style="padding:1.6rem;text-align:center;color:var(--dim)">No polls yet. Admin will post one soon!</div>';
-  } else {
-    polls.forEach(function(kv){
-      var key=kv[0],p=kv[1];
-      var total=p.votes?Object.values(p.votes).length:0;
-      var myVote=myProfile&&p.votes?p.votes[myProfile.uid]:null;
-      var closed=!p.active;
-
-      html+='<div class="card" style="padding:1.1rem;margin-bottom:.75rem;border-color:'+(closed?'rgba(255,255,255,0.08)':'rgba(255,230,0,0.22)')+'">';
-      // Header
-      html+='<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem;margin-bottom:.8rem">'
-        +'<div><div style="font-weight:700;font-size:.92rem;margin-bottom:3px">'+esc(p.question)+'</div>'
-        +'<div style="font-size:.62rem;color:var(--dim)">'+fmtDate(p.createdAt)+' &middot; '+total+' vote'+(total!==1?'s':'')+'</div></div>'
-        +'<span style="font-size:.6rem;font-weight:700;padding:2px 8px;border-radius:20px;flex-shrink:0;'+(closed?'background:rgba(255,255,255,0.07);color:var(--dim)':'background:rgba(255,230,0,0.12);color:#ffe600;border:1px solid rgba(255,230,0,0.3)')+'">'+( closed?'Closed':'Live')+'</span>'
-        +'</div>';
-
-      // Options
-      (p.options||[]).forEach(function(opt,i){
-        var count=p.votes?Object.values(p.votes).filter(function(v){return v===i;}).length:0;
-        var pct=total>0?Math.round(count/total*100):0;
-        var isMyVote=myVote===i;
-        var canVote=!closed&&myProfile&&myVote===null;
-        html+='<div style="margin-bottom:.45rem">'
-          +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">'
-          +'<span style="font-size:.8rem;font-weight:'+(isMyVote?'700':'400')+';color:'+(isMyVote?'#ffe600':'#ccc')+'">'+esc(opt)+(isMyVote?' &#10003;':'')+'</span>'
-          +'<span style="font-size:.72rem;color:var(--dim)">'+count+' ('+pct+'%)</span>'
-          +'</div>'
-          +'<div style="height:6px;background:rgba(255,255,255,0.06);border-radius:4px;overflow:hidden;cursor:'+(canVote?'pointer':'default')+'" '+(canVote?'onclick="castVote(\''+key+'\','+i+')"':'')+'>'
-          +'<div style="height:100%;width:'+pct+'%;background:'+(isMyVote?'linear-gradient(90deg,#ffe600,#ff6b00)':'rgba(255,255,255,0.18)')+';border-radius:4px;transition:width .4s ease"></div>'
-          +'</div>'
-          +(canVote?'<div style="font-size:.6rem;color:var(--dim);margin-top:1px">Tap bar to vote</div>':'')
-          +'</div>';
+      }, function () {
+        // DB read error — still enter app as guest
+        hideLoader();
+        enterApp();
       });
 
-      if(!myProfile){
-        html+='<div style="font-size:.73rem;color:var(--dim);margin-top:.55rem;text-align:center">Login to vote</div>';
-      } else if(myVote===null&&!closed){
-        html+='<div style="font-size:.68rem;color:#ffe600;margin-top:.35rem">Your vote counts! Tap an option above.</div>';
-      } else if(myVote!==null){
-        html+='<div style="font-size:.68rem;color:#00ff88;margin-top:.35rem">&#10003; You voted: '+esc((p.options||[])[myVote]||'')+'</div>';
-      }
+    } else {
+      // Logged out / no session
+      myProfile = null;
+      me = null;
+      enterApp();
+    }
 
-      if(isAdmin){
-        html+='<div style="display:flex;gap:.35rem;margin-top:.65rem;padding-top:.55rem;border-top:1px solid rgba(255,255,255,0.05)">'
-          +(p.active?'<button class="bd" style="font-size:.63rem;padding:3px 9px" onclick="closePoll(\''+key+'\')">Close Poll</button>':'<button class="bg" style="font-size:.63rem;padding:3px 9px" onclick="reopenPoll(\''+key+'\')">Reopen</button>')
-          +'<button class="bd" style="font-size:.63rem;padding:3px 9px;background:rgba(139,0,0,0.2);color:#ff4444" onclick="deletePoll(\''+key+'\')">Delete</button>'
-          +'</div>';
-      }
-      html+='</div>';
-    });
+  }, function (err) {
+    // Auth error — still enter app
+    console.error('Auth error:', err);
+    if (authTimeout) clearTimeout(authTimeout);
+    enterApp();
+  });
+}
+
+// ── PUSH NOTIFICATIONS ────────────────────────────────────────
+function initPushNotifications() {
+  if (!myProfile || !db) return;
+  if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
+  if (Notification.permission === 'denied') return;
+
+  Notification.requestPermission().then(function (permission) {
+    if (permission !== 'granted') return;
+    // FCM token registration happens in firebase-messaging-sw.js
+    // For now we just store the permission state
+    db.ref(DB.players + '/' + me.uid + '/notifPermission').set(true);
+  });
+}
+
+// Send an in-app notification to a specific user via Firebase
+function sendNotif(toUID, payload) {
+  if (!db || !toUID) return;
+  db.ref(DB.notifs + '/' + toUID).push({
+    title:   payload.title   || 'eFootball Universe',
+    body:    payload.body    || '',
+    icon:    payload.icon    || '⚽',
+    link:    payload.link    || '',
+    ts:      Date.now(),
+    read:    false
+  });
+}
+
+// Listen for incoming notifications for current user
+var _notifOff = null;
+function listenNotifs() {
+  if (!myProfile || !db || _notifOff) return;
+  var ref = db.ref(DB.notifs + '/' + me.uid).orderByChild('ts').limitToLast(20);
+  var handler = ref.on('child_added', function (s) {
+    var n = s.val();
+    if (!n || n.read) return;
+    // Mark as read
+    s.ref.update({ read: true });
+    // Show in-app banner
+    showNotifBanner(n);
+  });
+  _notifOff = function () { ref.off('child_added', handler); };
+}
+
+function showNotifBanner(n) {
+  var wrap = $('notif-wrap');
+  if (!wrap) return;
+  var div = document.createElement('div');
+  div.className = 'notif-banner';
+  div.innerHTML = '<span class="notif-icon">' + esc(n.icon || '⚽') + '</span>'
+    + '<div class="notif-body"><div class="notif-title">' + esc(n.title) + '</div>'
+    + '<div class="notif-msg">' + esc(n.body) + '</div></div>'
+    + '<button class="notif-close" onclick="this.parentNode.remove()">✕</button>';
+  wrap.appendChild(div);
+  // Auto-dismiss after 5s
+  setTimeout(function () { if (div.parentNode) div.remove(); }, 5000);
+}
+
+// ── eFootball DEEP LINK ───────────────────────────────────────
+function launchEfootball() {
+  var ua = navigator.userAgent || '';
+  if (/iPhone|iPad|iPod/.test(ua)) {
+    var iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = 'efootball://';
+    document.body.appendChild(iframe);
+    setTimeout(function () {
+      document.body.removeChild(iframe);
+      window.location.href = 'https://apps.apple.com/app/efootball-2024/id1448787484';
+    }, 2500);
+  } else if (/Android/.test(ua)) {
+    window.open('https://play.google.com/store/apps/details?id=com.konami.efootball.android', '_blank');
+  } else {
+    openMo('efootball-links-mo');
   }
-  el.innerHTML=html;
 }
-
-function castVote(pollKey,optIndex){
-  if(!myProfile){showLanding();return;}
-  var poll=allPolls[pollKey];
-  if(!poll||!poll.active){toast('This poll is closed.','error');return;}
-  if(poll.votes&&poll.votes[myProfile.uid]!==undefined){toast('You already voted.','error');return;}
-  db.ref('ef_polls/'+pollKey+'/votes/'+myProfile.uid).set(optIndex)
-    .then(function(){toast('Vote cast!');})
-    .catch(function(){toast('Failed. Try again.','error');});
-}
-
-function createPoll(){
-  if(!me||me.email!==ADMIN_EMAIL){toast('Admin only','error');return;}
-  var q=$('poll-question').value.trim();
-  var opts=[$('poll-opt1').value.trim(),$('poll-opt2').value.trim(),$('poll-opt3').value.trim(),$('poll-opt4').value.trim()].filter(Boolean);
-  var err=$('poll-err');err.textContent='';
-  if(!q){err.textContent='Enter a question.';return;}
-  if(opts.length<2){err.textContent='Add at least 2 options.';return;}
-  db.ref('ef_polls').push({question:q,options:opts,votes:{},active:true,createdAt:Date.now(),createdBy:myProfile.username})
-    .then(function(){
-      closeMo('create-poll-mo');
-      $('poll-question').value='';$('poll-opt1').value='';$('poll-opt2').value='';$('poll-opt3').value='';$('poll-opt4').value='';
-      toast('Poll created!');
-    }).catch(function(){err.textContent='Failed. Try again.';});
-}
-function closePoll(key){db.ref('ef_polls/'+key+'/active').set(false).then(function(){toast('Poll closed.');});}
-function reopenPoll(key){db.ref('ef_polls/'+key+'/active').set(true).then(function(){toast('Poll reopened.');});}
-function deletePoll(key){if(!confirm('Delete this poll?'))return;db.ref('ef_polls/'+key).remove().then(function(){toast('Poll deleted.');});}

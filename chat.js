@@ -1,436 +1,463 @@
 // ============================================================
-// CHAT & DM
+// CHAT.JS — Full Messenger: DMs + League Chat + Match Rooms
 // ============================================================
-function loadChat(){
-  if(chatOff){chatOff();chatOff=null;}
-  var ref=db.ref('ef_chat/'+chatRoom).limitToLast(80);
-  var handler=ref.on('value',function(s){
-    var arr=Object.values(s.val()||{}).sort(function(a,b){return a.ts-b.ts;});
-    var box=$('chat-msgs');if(!box)return;
-    var atBot=box.scrollHeight-box.scrollTop-box.clientHeight<100;
-    var parts=[];
-    var ld='',lastUID='',lastTS=0;
-    var GROUP_GAP=5*60*1000; // 5 min gap = new group
 
-    arr.forEach(function(m,idx){
-      // Date divider
-      var d=new Date(m.ts).toDateString(),today=new Date().toDateString();
-      if(d!==ld){
-        ld=d;lastUID='';
-        var lbl=d===today?'Today':new Date(m.ts).toLocaleDateString('en-GB',{weekday:'long',day:'2-digit',month:'long'});
-        parts.push('<div class="csys">'+lbl+'</div>');
-      }
-      if(m.system){
-        lastUID='';
-        parts.push('<div class="csys">'+esc(m.text)+'</div>');
-        return;
-      }
-      var mine=myProfile&&m.uid===myProfile.uid;
-      var side=mine?'mine':'other';
+var chatTab          = 'dms';
+var activeDMUID      = null;
+var activeDMKey      = null;
+var dmListOff        = null;
+var leagueChatOff    = null;
+var roomChatOff      = null;
+var activeRoomId     = null;
+var _dmUnreadGroups  = {};
 
-      // Determine if this starts a new group
-      var newGroup=m.uid!==lastUID||(m.ts-lastTS)>GROUP_GAP;
-      lastUID=m.uid;lastTS=m.ts;
+// ── OPEN MESSENGER ────────────────────────────────────────────
+function openMessenger(tab) {
+  chatTab = tab || 'dms';
+  goPage('chat');
+}
 
-      // Look ahead to check if next msg is same sender
-      var nextMsg=arr[idx+1];
-      var isLast=!nextMsg||nextMsg.uid!==m.uid||(nextMsg.ts-m.ts)>GROUP_GAP||nextMsg.system;
+// ── RENDER MESSENGER (called by goPage) ───────────────────────
+function renderMessenger() {
+  var pg = $('page-chat');
+  if (!pg) return;
+  hideFab();
+  pg.innerHTML =
+    '<div class="msng-wrap">'
+    + '<div class="msng-header">'
+    + '<button class="msng-back" onclick="msngBack()">&#8592;</button>'
+    + '<div class="msng-title">Messages</div>'
+    + '<button class="msng-new" onclick="openMo(\'new-dm-mo\')">&#43;</button>'
+    + '</div>'
+    + '<div class="msng-tabs">'
+    + '<button class="msng-tab' + (chatTab==='dms'?' active':'') + '" onclick="switchMsngTab(\'dms\')">DMs</button>'
+    + '<button class="msng-tab' + (chatTab==='league'?' active':'') + '" onclick="switchMsngTab(\'league\')">League</button>'
+    + '<button class="msng-tab' + (chatTab==='rooms'?' active':'') + '" onclick="switchMsngTab(\'rooms\')">Match Rooms</button>'
+    + '</div>'
+    + '<div id="msng-content" class="msng-content"></div>'
+    + '</div>';
+  renderMsngTab(chatTab);
+}
 
-      // Bubble shape class
-      var shapeClass='';
-      if(newGroup&&isLast) shapeClass=''; // single bubble — default radius
-      else if(newGroup) shapeClass='first';
-      else if(isLast) shapeClass='last';
-      else shapeClass='mid';
-
-      var club=getClub(m.league||'epl',m.club||'');
-      var c=club.color||'#888';
-
-      var html='';
-      if(newGroup){
-        // Open group div
-        html+='<div class="cmsg-group '+side+'">';
-        // Header with avatar + name (other only, mine shows nothing)
-        html+='<div class="cmsg-header">';
-        if(!mine){
-          html+='<div class="cav" style="background:'+c+'22;border:1.5px solid '+c+'44;color:'+c+'" onclick="openReport(\''+m.uid+'\',\''+esc(m.username||'?')+'\')">';
-          if(club.logo){
-            html+='<img src="'+club.logo+'" style="width:18px;height:18px;object-fit:contain;border-radius:50%" onerror="this.outerHTML=\''+esc(m.username||'?').slice(0,2).toUpperCase()+'\'">';
-          }else{
-            html+=esc(m.username||'?').slice(0,2).toUpperCase();
-          }
-          html+='</div>';
-          html+='<span class="cav-name">'+esc(m.username||'')+'</span>';
-        }
-        html+='</div>';
-        html+='<div class="cbub-wrap">';
-      }
-
-      // The bubble itself
-      html+='<div class="cbub '+side+' '+shapeClass+'">'+esc(m.text)+'</div>';
-
-      // Time shown only on last bubble of group
-      if(isLast){
-        html+='<span class="cbub-time">'+fmtTime(m.ts)+'</span>';
-        html+='</div>'; // close cbub-wrap
-        html+='</div>'; // close cmsg-group
-      }
-      parts.push(html);
-    });
-
-    box.innerHTML=parts.join('');
-    if(atBot)box.scrollTop=box.scrollHeight;
+function switchMsngTab(tab) {
+  chatTab = tab;
+  document.querySelectorAll('.msng-tab').forEach(function(b, i) {
+    b.classList.toggle('active', (tab==='dms'&&i===0)||(tab==='league'&&i===1)||(tab==='rooms'&&i===2));
   });
-  chatOff=function(){ref.off('value',handler);};
+  if (leagueChatOff) { leagueChatOff(); leagueChatOff = null; }
+  if (roomChatOff)   { roomChatOff();   roomChatOff   = null; }
+  if (dmListOff)     { dmListOff();     dmListOff     = null; }
+  activeDMUID = null; activeRoomId = null;
+  renderMsngTab(tab);
 }
-function switchRoom(room,btn){
-  chatRoom=room;
-  document.querySelectorAll('.crb').forEach(function(b){b.classList.remove('on');});
-  if(btn)btn.classList.add('on');
-  if(chatOff){chatOff();chatOff=null;}if(typingOff){typingOff();typingOff=null;}
-  loadChat();listenTyping();
+
+function renderMsngTab(tab) {
+  if (tab === 'dms')    renderDMList();
+  if (tab === 'league') renderLeagueChat();
+  if (tab === 'rooms')  renderRoomsList();
 }
-function sendChat(){
-  if(!myProfile){showLanding();return;}
-  var inp=$('cinp'),text=inp.value.trim();if(!text)return;
-  inp.value='';
-  db.ref('ef_chat/'+chatRoom).push({uid:myProfile.uid,username:myProfile.username,club:myProfile.club,country:myProfile.country||'',text:text,ts:Date.now()});
-  db.ref('ef_typing/'+chatRoom+'/'+me.uid).remove();
-}
-var EMOJIS=['😀','😂','🤣','😍','😎','🥳','😭','😤','🔥','💯','👍','👎','❤️','💀','😱','🤝','👊','🎉','⚽','🏆','💪','😏','🤔','👀','🙏','😬','🥹','😮','💥','🎯','⚡','😤','🤯','🥶','😴','🤦','🤷'];
-var emojiOpen=false;
-function toggleEmojiPicker(){
-  var ep=$('emoji-popup');if(!ep)return;
-  emojiOpen=!emojiOpen;
-  if(emojiOpen){
-    ep.innerHTML=EMOJIS.map(function(e){return'<button class="ep-btn" onclick="insertEmoji(''+e+'')">'+e+'</button>';}).join('');
-    ep.classList.add('open');
-  }else{ep.classList.remove('open');}
-}
-function insertEmoji(e){
-  var inp=$('cinp');if(!inp)return;
-  var pos=inp.selectionStart;
-  inp.value=inp.value.slice(0,pos)+e+inp.value.slice(pos);
-  inp.focus();inp.selectionStart=inp.selectionEnd=pos+e.length;
-  var ep=$('emoji-popup');if(ep){ep.classList.remove('open');emojiOpen=false;}
-}
-document.addEventListener('click',function(ev){
-  if(emojiOpen&&!ev.target.closest('#emoji-popup')&&ev.target.id!=='cinp-emoji'){
-    var ep=$('emoji-popup');if(ep){ep.classList.remove('open');emojiOpen=false;}
+
+function msngBack() {
+  if (activeDMUID || activeRoomId) {
+    if (dmListOff)   { dmListOff();   dmListOff   = null; }
+    if (roomChatOff) { roomChatOff(); roomChatOff = null; }
+    activeDMUID = null; activeRoomId = null;
+    renderMsngTab(chatTab);
+  } else {
+    showFab();
+    goPage('home');
   }
-});
-function onTyping(){
-  if(!myProfile||!db)return;
-  db.ref('ef_typing/'+chatRoom+'/'+me.uid).set({name:myProfile.username,ts:Date.now()});
-  clearTimeout(typingTO);typingTO=setTimeout(function(){db.ref('ef_typing/'+chatRoom+'/'+me.uid).remove();},2500);
 }
-function listenTyping(){
-  if(!db)return;
-  var ref=db.ref('ef_typing/'+chatRoom);
-  var handler=ref.on('value',function(s){
-    var now=Date.now();
-    var names=Object.values(s.val()||{}).filter(function(t){return t.ts>now-3500&&(!myProfile||t.name!==myProfile.username);}).map(function(t){return t.name;});
-    var e=$('chat-typing');if(!e)return;
-    if(!names.length){e.innerHTML='';}
-    else{
-      var who=names.length===1?names[0]:names.slice(0,-1).join(', ')+' & '+names[names.length-1];
-      e.innerHTML='<div class="ctyping-wrap"><div style="font-size:.62rem;color:var(--dim);margin-right:2px">'+esc(who)+'</div>'
-        +'<div class="ctyping-dots"><span></span><span></span><span></span></div></div>';
+
+// ── DM LIST ───────────────────────────────────────────────────
+function renderDMList() {
+  var el = $('msng-content'); if (!el) return;
+  if (!myProfile) {
+    el.innerHTML = '<div class="msng-empty">Login to view messages</div>'; return;
+  }
+  el.innerHTML = '<div class="msng-list-wrap"><div id="dm-conv-list"><div class="msng-loading">Loading...</div></div></div>';
+  loadDMConvList();
+}
+
+function loadDMConvList() {
+  var el = $('dm-conv-list'); if (!el || !db) return;
+  db.ref(DB.dmMeta).orderByChild('participants/' + me.uid).equalTo(true).once('value', function(s) {
+    var convs = [];
+    Object.entries(s.val() || {}).forEach(function(kv) {
+      var key = kv[0], data = kv[1];
+      var parts    = Object.keys(data.participants || {});
+      var otherUID = parts.find(function(u) { return u !== me.uid; });
+      if (!otherUID) return;
+      convs.push({ key:key, other:allPlayers[otherUID], otherUID:otherUID, lastMsg:data.lastMsg||'', lastTs:data.lastTs||0 });
+    });
+    convs.sort(function(a,b) { return b.lastTs - a.lastTs; });
+    if (!convs.length) {
+      el.innerHTML = '<div class="msng-empty">No conversations yet.<br><button class="btn-xs" style="margin-top:.8rem" onclick="openMo(\'new-dm-mo\')">Start a conversation</button></div>'; return;
     }
-  });
-  typingOff=function(){ref.off('value',handler);};
-}
-var _unreadListening=false;
-function listenUnread(){
-  if(!myProfile||!db)return;
-  if(_unreadListening)return;  // already attached
-  _unreadListening=true;
-  db.ref('ef_dm_unread/'+myProfile.uid).on('value',function(s){
-    var total=0;Object.values(s.val()||{}).forEach(function(v){total+=v||0;});
-    unreadPM=total;updateBadge('pm-badge',total);
-  });
-}
-function loadPMList(){
-  if(!myProfile||!db)return;
-  db.ref('ef_dm_meta').orderByChild('participants/'+myProfile.uid).equalTo(true).on('value',function(s){
-    var convs=s.val()||{};
-    var list=$('pm-list');if(!list)return;
-    var arr=Object.entries(convs).sort(function(a,b){return(b[1].lastTs||0)-(a[1].lastTs||0);});
-    if(!arr.length){list.innerHTML='<div style="font-size:.68rem;color:var(--dim);text-align:center;padding:.9rem">No conversations yet</div>';return;}
-    list.innerHTML=arr.map(function(kv){
-      var key=kv[0],cv=kv[1];
-      var otherUID=key.split('_').find(function(u){return u!==myProfile.uid;});
-      var op=allPlayers[otherUID];if(!op)return'';
-      var c=clubColor(op.club||'?');
-      return'<div class="pli'+(pmUID===otherUID?' on':'')+'" onclick="openDMWith(\''+otherUID+'\',\''+esc(op.username)+'\')">'
-        +'<div class="cbadge" style="width:26px;height:26px;background:'+c+'22;border:1.5px solid '+c+'55;font-size:.52rem;color:'+c+'">'+esc(op.username).slice(0,2).toUpperCase()+'</div>'
-        +'<div style="flex:1;min-width:0"><div class="pli-name">'+esc(op.username)+'</div><div class="pli-last">'+esc(cv.lastMsg||'')+'</div></div>'
-        +'<span data-lastseen="'+(op.lastSeen||0)+'" style="width:7px;height:7px;border-radius:50%;background:'+lsColor(op.lastSeen||0)+';display:inline-block;flex-shrink:0"></span>'
-        +'</div>';
+    el.innerHTML = convs.map(function(c) {
+      var name     = c.other ? c.other.username : 'Unknown';
+      var club     = c.other ? getClub(c.other.league, c.other.club) : {};
+      var hasUnread = _dmUnreadGroups[c.key];
+      return '<div class="msng-conv-row" onclick="openDMThread(\'' + c.otherUID + '\',\'' + esc(name) + '\')">'
+        + '<div class="msng-av" style="background:' + (club.color||'#333') + '18;border:1.5px solid ' + (club.color||'#444') + '44">'
+        + (c.other && c.other.avatar && c.other.avatar.startsWith('http')
+          ? '<img src="' + c.other.avatar + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">'
+          : esc(name.charAt(0).toUpperCase()))
+        + (hasUnread ? '<span class="msng-av-dot"></span>' : '')
+        + '</div>'
+        + '<div class="msng-conv-info">'
+        + '<div class="msng-conv-name">' + esc(name) + '</div>'
+        + '<div class="msng-conv-last' + (hasUnread?' unread':'') + '">' + esc((c.lastMsg||'').slice(0,50)) + '</div>'
+        + '</div>'
+        + '<div class="msng-conv-meta">'
+        + '<div class="msng-conv-time">' + (c.lastTs ? fmtAgo(c.lastTs) : '') + '</div>'
+        + (hasUnread ? '<div class="msng-unread-dot"></div>' : '')
+        + '</div>'
+        + '</div>';
     }).join('');
   });
 }
-function openDMWith(uid,name){
-  if(!myProfile){showLanding();return;}
-  pmUID=uid;closeMo('new-dm-mo');go('pm');
-  document.querySelectorAll('.pli').forEach(function(el){el.classList.remove('on');if((el.getAttribute('onclick')||'').includes("'"+uid+"'"))el.classList.add('on');});
-  var op=allPlayers[uid];var c=op?clubColor(op.club||'?'):'#888';
-  var ph=$('pm-header');
-  if(ph)ph.innerHTML='<div class="cbadge" style="width:28px;height:28px;background:'+c+'22;border:1.5px solid '+c+'55;font-size:.58rem;color:'+c+'">'+name.slice(0,2).toUpperCase()+'</div>'
-    +'<div style="flex:1"><div style="font-weight:700;font-size:.85rem">'+esc(name)+'</div>'
-    +(op?'<div style="font-size:.63rem;color:var(--dim)"><span data-lastseen="'+(op.lastSeen||0)+'" data-agospan="'+(op.lastSeen||0)+'" style="color:'+lsColor(op.lastSeen||0)+'">'+fmtAgo(op.lastSeen||0)+'</span></div>':'')+'</div>'
-    +'<button class="bd" style="font-size:.65rem;padding:4px 9px" onclick="openReport(\''+uid+'\',\''+esc(name)+'\')">Report</button>';
-  var ir=$('pm-inp-row');if(ir)ir.style.display='flex';
-  if(pmOff){pmOff();pmOff=null;}
-  var key=dmKey(myProfile.uid,uid);
-  db.ref('ef_dm_unread/'+myProfile.uid+'/'+key).set(0);
-  // Mark last message as seen by recipient
-  db.ref('ef_dm/'+key).limitToLast(1).once('value').then(function(s){
-    var vals=Object.entries(s.val()||{});
-    if(!vals.length)return;
-    var msgKey=vals[0][0], msg=vals[0][1];
-    if(msg.from!==myProfile.uid){
-      db.ref('ef_dm/'+key+'/'+msgKey+'/seenBy/'+myProfile.uid).set(Date.now());
-    }
+
+// ── DM THREAD ─────────────────────────────────────────────────
+function openDMThread(uid, uname) {
+  activeDMUID = uid;
+  var dk = dmKey(me.uid, uid);
+  activeDMKey = dk;
+  var el = $('msng-content'); if (!el) return;
+  delete _dmUnreadGroups[dk];
+  updateFabBadge();
+  if (db) db.ref(DB.dmUnread + '/' + me.uid + '/' + dk).set(0);
+
+  el.innerHTML =
+    '<div class="msng-thread-wrap">'
+    + '<div class="msng-thread-header">'
+    + '<button class="msng-back-sm" onclick="activeDMUID=null;if(dmListOff){dmListOff();dmListOff=null;}renderDMList()">&#8592;</button>'
+    + '<div class="msng-thread-name">' + esc(uname) + '</div>'
+    + '<button class="msng-view-btn" onclick="openUserModal(\'' + uid + '\')">&#128100;</button>'
+    + '</div>'
+    + '<div id="msng-msgs" class="msng-msgs"></div>'
+    + '<div class="msng-inp-row">'
+    + '<input id="msng-inp" type="text" maxlength="400" placeholder="Message..." onkeydown="if(event.key===\'Enter\')sendDM()">'
+    + '<button class="msng-send" onclick="sendDM()">&#10148;</button>'
+    + '</div>'
+    + '</div>';
+
+  var meta = { lastTs: Date.now() };
+  meta['participants/' + me.uid] = true;
+  meta['participants/' + uid]    = true;
+  if (db) db.ref(DB.dmMeta + '/' + dk).update(meta);
+
+  if (dmListOff) { dmListOff(); dmListOff = null; }
+  if (!db) return;
+  var ref     = db.ref(DB.dm + '/' + dk).limitToLast(60);
+  var handler = ref.on('value', function(s) {
+    var arr = Object.values(s.val() || {}).sort(function(a,b) { return a.ts - b.ts; });
+    var box = $('msng-msgs'); if (!box) return;
+    var atBot = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+    box.innerHTML = arr.map(function(m) {
+      if (m.system) return '<div class="msng-sys">' + esc(m.text) + '</div>';
+      var mine = m.from === me.uid;
+      return '<div class="msng-msg ' + (mine?'mine':'other') + '">'
+        + '<div class="msng-bubble">' + esc(m.text) + '</div>'
+        + '<div class="msng-time">' + fmtTime(m.ts) + '</div>'
+        + '</div>';
+    }).join('');
+    if (atBot) box.scrollTop = box.scrollHeight;
   });
-  var ref=db.ref('ef_dm/'+key).limitToLast(100);
-  var msgs=$('pm-msgs');
-  var handler=ref.on('value',function(s){
-    var raw=s.val()||{};
-    var arr=Object.values(raw).sort(function(a,b){return a.ts-b.ts;});
-    if(!msgs)return;
-    var pmParts=[];
-    // Auto-mark latest incoming message as seen
-    var keys=Object.keys(raw);
-    if(keys.length){
-      var lastKey=keys[keys.length-1];
-      var lastMsg=raw[lastKey];
-      if(lastMsg.from!==myProfile.uid&&!(lastMsg.seenBy&&lastMsg.seenBy[myProfile.uid])){
-        db.ref('ef_dm/'+key+'/'+lastKey+'/seenBy/'+myProfile.uid).set(Date.now());
+  dmListOff = function() { ref.off('value', handler); };
+  setTimeout(function() { var i = $('msng-inp'); if (i) i.focus(); }, 300);
+}
+
+function sendDM() {
+  if (!myProfile || !activeDMUID || !db) return;
+  var inp = $('msng-inp'); if (!inp) return;
+  var text = inp.value.trim(); if (!text) return;
+  inp.value = '';
+  var dk = dmKey(me.uid, activeDMUID);
+  db.ref(DB.dm + '/' + dk).push({ from:me.uid, fromName:myProfile.username, text:text, ts:Date.now() });
+  db.ref(DB.dmMeta + '/' + dk).update({ lastMsg:text, lastTs:Date.now(), ['participants/'+me.uid]:true, ['participants/'+activeDMUID]:true });
+  db.ref(DB.dmUnread + '/' + activeDMUID + '/' + dk).transaction(function(v) { return (v||0)+1; });
+  sendNotif(activeDMUID, { title:myProfile.username, body:text, icon:'msg' });
+}
+
+// ── LEAGUE CHAT ───────────────────────────────────────────────
+function renderLeagueChat() {
+  var el = $('msng-content'); if (!el) return;
+  if (!myProfile) { el.innerHTML = '<div class="msng-empty">Login to join league chat</div>'; return; }
+  var lg = LGS[myProfile.league] || {};
+  el.innerHTML =
+    '<div class="msng-thread-wrap">'
+    + '<div class="msng-thread-header">'
+    + '<div class="msng-thread-name">' + lg.f + ' ' + esc(lg.n||'League') + '</div>'
+    + '<div class="msng-online-pill"><span class="online-dot-sm"></span><span id="online-count2">-</span></div>'
+    + '</div>'
+    + '<div id="msng-msgs" class="msng-msgs"></div>'
+    + '<div class="msng-inp-row">'
+    + '<input id="msng-inp" type="text" maxlength="400" placeholder="Message league..." onkeydown="if(event.key===\'Enter\')sendLeagueMsg()">'
+    + '<button class="msng-send" onclick="sendLeagueMsg()">&#10148;</button>'
+    + '</div>'
+    + '</div>';
+
+  if (leagueChatOff) { leagueChatOff(); leagueChatOff = null; }
+  var room    = 'league_' + myProfile.league;
+  var ref     = db.ref(DB.chat + '/' + room).limitToLast(80);
+  var handler = ref.on('value', function(s) {
+    var arr  = Object.values(s.val() || {}).sort(function(a,b) { return a.ts - b.ts; });
+    var box  = $('msng-msgs'); if (!box) return;
+    var atBot = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+    var lastUID = '', lastTS = 0, GROUP_GAP = 5*60*1000, html = '';
+    arr.forEach(function(m) {
+      if (m.system) { html += '<div class="msng-sys">' + esc(m.text||'') + '</div>'; lastUID=''; return; }
+      var mine     = myProfile && m.uid === myProfile.uid;
+      var newGroup = m.uid !== lastUID || (m.ts - lastTS) > GROUP_GAP;
+      lastUID = m.uid; lastTS = m.ts;
+      var club = getClub(m.league||myProfile.league, m.club||'');
+      if (newGroup && !mine) {
+        html += '<div class="msng-sender">'
+          + '<div class="msng-av-sm" style="background:' + (club.color||'#333') + '18;border:1px solid ' + (club.color||'#444') + '44">'
+          + esc((m.username||'?').charAt(0).toUpperCase()) + '</div>'
+          + '<span>' + esc(m.username||'') + '</span></div>';
       }
-    }
-    var lastUID2='',lastTS2=0,GROUP_GAP2=5*60*1000;
-    arr.forEach(function(m,idx){
-      var mine=m.from===myProfile.uid;
-      var side=mine?'mine':'other';
-      var seen=m.seenBy&&Object.keys(m.seenBy).some(function(uid){return uid!==myProfile.uid;});
-      var newGroup2=m.from!==lastUID2||(m.ts-lastTS2)>GROUP_GAP2;
-      lastUID2=m.from;lastTS2=m.ts;
-      var nextMsg2=arr[idx+1];
-      var isLast2=!nextMsg2||nextMsg2.from!==m.from||(nextMsg2.ts-m.ts)>GROUP_GAP2;
-      var shapeClass2=newGroup2&&isLast2?'':newGroup2?'first':isLast2?'last':'mid';
-      var ticks='';
-      if(mine&&!m.system&&isLast2){
-        if(seen) ticks='<span class="cbub-ticks" style="color:#00D4FF">&#10003;&#10003;</span>';
-        else if(m.sent) ticks='<span class="cbub-ticks" style="color:var(--dim)">&#10003;</span>';
-      }
-      var html2='';
-      if(newGroup2&&!mine){html2+='<div class="cmsg-group other"><div class="cmsg-header"><div class="cav" style="background:rgba(100,100,100,0.2);color:#aaa">'+esc(m.fromName||'?').slice(0,2).toUpperCase()+'</div><span class="cav-name">'+esc(m.fromName||'')+'</span></div><div class="cbub-wrap">';}
-      else if(newGroup2&&mine){html2+='<div class="cmsg-group mine"><div class="cbub-wrap">';}
-      html2+='<div class="cbub '+side+' '+shapeClass2+'">'+(m.system?'<em style="font-size:.76rem">'+esc(m.text)+'</em>':esc(m.text))+'</div>';
-      if(isLast2){html2+='<span class="cbub-time">'+fmtTime(m.ts)+ticks+'</span></div></div>';}
-      pmParts.push(html2);
+      html += '<div class="msng-msg ' + (mine?'mine':'other') + '">'
+        + '<div class="msng-bubble">' + esc(m.text||'') + '</div>'
+        + '<div class="msng-time">' + fmtTime(m.ts) + '</div>'
+        + '</div>';
     });
-    msgs.innerHTML=pmParts.join('');msgs.scrollTop=msgs.scrollHeight;
+    box.innerHTML = html;
+    if (atBot) box.scrollTop = box.scrollHeight;
   });
-  pmOff=function(){ref.off('value',handler);};
+  leagueChatOff = function() { ref.off('value', handler); };
+  setTimeout(function() { var i = $('msng-inp'); if (i) i.focus(); }, 300);
 }
-function sendPM(){
-  if(!myProfile||!pmUID)return;
-  var inp=$('pm-inp'),text=inp.value.trim();if(!text)return;inp.value='';
-  var key=dmKey(myProfile.uid,pmUID);
-  db.ref('ef_dm/'+key).push({from:myProfile.uid,fromName:myProfile.username,text:text,ts:Date.now(),sent:true});
-  db.ref('ef_dm_meta/'+key).update({lastMsg:text,lastTs:Date.now(),['participants/'+myProfile.uid]:true,['participants/'+pmUID]:true});
-  db.ref('ef_dm_unread/'+pmUID+'/'+key).transaction(function(v){return(v||0)+1;});
+
+function sendLeagueMsg() {
+  if (!myProfile || !db) return;
+  var inp = $('msng-inp'); if (!inp) return;
+  var text = inp.value.trim(); if (!text) return;
+  inp.value = '';
+  db.ref(DB.chat + '/league_' + myProfile.league).push({
+    uid:me.uid, username:myProfile.username, club:myProfile.club,
+    league:myProfile.league, text:text, ts:Date.now()
+  });
 }
+
+// ── MATCH ROOMS LIST ──────────────────────────────────────────
+function renderRoomsList() {
+  var el = $('msng-content'); if (!el) return;
+  if (!myProfile) { el.innerHTML = '<div class="msng-empty">Login to view match rooms</div>'; return; }
+  var uid   = myProfile.uid;
+  var rooms = Object.values(allMatches).filter(function(m) {
+    return !m.played && (m.homeId===uid || m.awayId===uid || m.refereeUID===uid);
+  });
+  if (!rooms.length) {
+    el.innerHTML = '<div class="msng-empty">No active match rooms.<br><span style="font-size:.7rem;color:var(--dim)">Rooms appear when fixtures are scheduled.</span></div>'; return;
+  }
+  el.innerHTML = '<div class="msng-list-wrap">' + rooms.map(function(m) {
+    var hp = allPlayers[m.homeId], ap = allPlayers[m.awayId]; if (!hp||!ap) return '';
+    var lg    = LGS[m.league]||{};
+    var isRef = m.refereeUID === uid;
+    var role  = isRef ? 'Referee' : m.homeId===uid ? 'Home' : 'Away';
+    var roleC = isRef ? 'var(--cyan)' : m.homeId===uid ? 'var(--green)' : 'var(--gold)';
+    return '<div class="msng-room-row" onclick="openRoomChat(\'' + m.id + '\')">'
+      + clubBadge(hp.club, m.league, 22)
+      + '<div class="msng-room-info">'
+      + '<div class="msng-room-name">' + esc(hp.username) + ' vs ' + esc(ap.username) + '</div>'
+      + '<div class="msng-room-meta">'
+      + '<span class="lg-badge" style="background:'+lg.bg+';color:'+lg.c+';border:1px solid '+lg.c+'44">'+esc(lg.short||'')+'</span>'
+      + '<span style="font-size:.6rem;color:'+roleC+';font-weight:700">'+role+'</span>'
+      + (m.matchTime ? '<span style="font-size:.6rem;color:var(--dim)">'+fmtFull(m.matchTime)+'</span>' : '')
+      + '</div>'
+      + (m.roomCode ? '<div style="font-size:.62rem;color:var(--dim);margin-top:2px">Code: <span style="color:var(--cyan);font-family:Orbitron,sans-serif">'+esc(m.roomCode)+'</span></div>' : '')
+      + '</div>'
+      + clubBadge(ap.club, m.league, 22)
+      + '</div>';
+  }).join('') + '</div>';
+}
+
+function openRoomChat(matchId) {
+  activeRoomId = matchId;
+  var m = allMatches[matchId]; if (!m) return;
+  var hp = allPlayers[m.homeId], ap = allPlayers[m.awayId]; if (!hp||!ap) return;
+  var el = $('msng-content'); if (!el) return;
+  el.innerHTML =
+    '<div class="msng-thread-wrap">'
+    + '<div class="msng-thread-header">'
+    + '<button class="msng-back-sm" onclick="activeRoomId=null;if(roomChatOff){roomChatOff();roomChatOff=null;}renderRoomsList()">&#8592;</button>'
+    + '<div style="flex:1">'
+    + '<div class="msng-thread-name" style="font-size:.78rem">' + esc(hp.username) + ' vs ' + esc(ap.username) + '</div>'
+    + (m.matchTime ? '<div style="font-size:.58rem;color:var(--dim)">' + fmtFull(m.matchTime) + '</div>' : '')
+    + '</div>'
+    + (m.roomCode ? '<div class="mcode" style="font-size:.6rem;padding:2px 6px;cursor:pointer" onclick="copyCode(\''+esc(m.roomCode)+'\')">'+esc(m.roomCode)+'</div>' : '')
+    + '</div>'
+    + '<div id="msng-msgs" class="msng-msgs"></div>'
+    + '<div class="msng-inp-row">'
+    + '<input id="msng-inp" type="text" maxlength="400" placeholder="Message room..." onkeydown="if(event.key===\'Enter\')sendRoomMsg()">'
+    + '<button class="msng-send" onclick="sendRoomMsg()">&#10148;</button>'
+    + '</div>'
+    + '</div>';
+
+  if (roomChatOff) { roomChatOff(); roomChatOff = null; }
+  var rk      = 'match_' + matchId;
+  var ref     = db.ref(DB.matchChat + '/' + rk).limitToLast(60);
+  var handler = ref.on('value', function(s) {
+    var arr  = Object.values(s.val() || {}).sort(function(a,b) { return a.ts - b.ts; });
+    var box  = $('msng-msgs'); if (!box) return;
+    var atBot = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+    box.innerHTML = arr.map(function(msg) {
+      if (msg.system) return '<div class="msng-sys">' + esc(msg.text||'') + '</div>';
+      var mine = myProfile && msg.uid === myProfile.uid;
+      return '<div class="msng-msg ' + (mine?'mine':'other') + '">'
+        + (!mine ? '<div style="font-size:.58rem;color:var(--dim);margin-bottom:2px">' + esc(msg.username||'') + '</div>' : '')
+        + '<div class="msng-bubble">' + esc(msg.text||'') + '</div>'
+        + '<div class="msng-time">' + fmtTime(msg.ts) + '</div>'
+        + '</div>';
+    }).join('');
+    if (atBot) box.scrollTop = box.scrollHeight;
+  });
+  roomChatOff = function() { ref.off('value', handler); };
+  setTimeout(function() { var i = $('msng-inp'); if (i) i.focus(); }, 300);
+}
+
+function sendRoomMsg() {
+  if (!myProfile || !activeRoomId || !db) return;
+  var inp = $('msng-inp'); if (!inp) return;
+  var text = inp.value.trim(); if (!text) return;
+  inp.value = '';
+  db.ref(DB.matchChat + '/match_' + activeRoomId).push({
+    uid:me.uid, username:myProfile.username, club:myProfile.club, text:text, ts:Date.now()
+  });
+}
+
+// ── UNREAD TRACKING ───────────────────────────────────────────
+function listenUnread() {
+  if (_unreadListening || !myProfile || !db) return;
+  _unreadListening = true;
+  db.ref(DB.dmUnread + '/' + me.uid).on('value', function(s) {
+    var data = s.val() || {};
+    _dmUnreadGroups = {};
+    Object.entries(data).forEach(function(kv) { if ((kv[1]||0) > 0) _dmUnreadGroups[kv[0]] = true; });
+    unreadPM = Object.keys(_dmUnreadGroups).length;
+    setBadge('pm-badge', unreadPM);
+    updateFabBadge();
+  });
+  // League unread
+  db.ref(DB.chat + '/league_' + myProfile.league).limitToLast(1).on('child_added', function(s) {
+    var m = s.val();
+    if (!m || !myProfile || m.uid === myProfile.uid) return;
+    if (activePage()==='chat' && chatTab==='league') return;
+    _dmUnreadGroups['_league'] = true;
+    updateFabBadge();
+  });
+}
+
+function listenGlobalDMs() {
+  if (_globalDMsListening || !myProfile || !db) return;
+  _globalDMsListening = true;
+  db.ref(DB.dmMeta).orderByChild('participants/' + me.uid).equalTo(true).on('child_changed', function() {
+    if (activePage()==='chat' && chatTab==='dms' && !activeDMUID) loadDMConvList();
+  });
+}
+
+// ── FAB (floating chat icon) ──────────────────────────────────
+function showFab() {
+  if (!myProfile) return; // only show when logged in
+  var f = $('chat-fab');
+  if (f) f.style.display = 'flex';
+  updateFabBadge();
+}
+function hideFab() { var f=$('chat-fab'); if(f) f.style.display='none'; }
+
+function updateFabBadge() {
+  var b = $('fab-badge'); if (!b) return;
+  var n = Object.keys(_dmUnreadGroups).length;
+  if (n > 0) {
+    b.textContent = n > 9 ? '9+' : n;
+    b.style.display = 'flex';
+  } else {
+    b.style.display = 'none';
+  }
+}
+
+function initFab() {
+  var fab = $('chat-fab'); if (!fab) return;
+  var dragging = false, startX, startY, origX, origY;
+
+  fab.addEventListener('touchstart', function(e) {
+    var t = e.touches[0];
+    startX=t.clientX; startY=t.clientY;
+    origX=fab.getBoundingClientRect().left; origY=fab.getBoundingClientRect().top;
+    dragging=false;
+  }, {passive:true});
+
+  fab.addEventListener('touchmove', function(e) {
+    var t=e.touches[0], dx=t.clientX-startX, dy=t.clientY-startY;
+    if (Math.abs(dx)>5||Math.abs(dy)>5) dragging=true;
+    if (!dragging) return;
+    var nx=Math.max(4,Math.min(window.innerWidth-fab.offsetWidth-4, origX+dx));
+    var ny=Math.max(60,Math.min(window.innerHeight-fab.offsetHeight-70, origY+dy));
+    fab.style.right='auto'; fab.style.left=nx+'px'; fab.style.top=ny+'px';
+    e.preventDefault();
+  }, {passive:false});
+
+  fab.addEventListener('touchend', function() {
+    if (!dragging) openMessenger('dms');
+    dragging=false;
+  });
+
+  // Desktop
+  fab.addEventListener('mousedown', function(e) {
+    startX=e.clientX; startY=e.clientY;
+    origX=fab.getBoundingClientRect().left; origY=fab.getBoundingClientRect().top;
+    dragging=false;
+    function mv(e2) {
+      var dx=e2.clientX-startX, dy=e2.clientY-startY;
+      if (Math.abs(dx)>5||Math.abs(dy)>5) dragging=true;
+      if (!dragging) return;
+      fab.style.right='auto';
+      fab.style.left=Math.max(4,Math.min(window.innerWidth-fab.offsetWidth-4,origX+dx))+'px';
+      fab.style.top=Math.max(60,Math.min(window.innerHeight-fab.offsetHeight-70,origY+dy))+'px';
+    }
+    function up() {
+      document.removeEventListener('mousemove',mv);
+      document.removeEventListener('mouseup',up);
+      if (!dragging) openMessenger('dms');
+      dragging=false;
+    }
+    document.addEventListener('mousemove',mv);
+    document.addEventListener('mouseup',up);
+    e.preventDefault();
+  });
+}
+
+// ── COMPAT ────────────────────────────────────────────────────
+function openDMWith(uid, uname) { openMessenger('dms'); setTimeout(function(){ openDMThread(uid,uname); },350); }
+function startDMWith(uid, uname){ openDMWith(uid,uname); }
+function sendPM()  { sendDM(); }
+function loadPMList(){ if(activePage()==='chat'&&chatTab==='dms') renderDMList(); }
+function loadChat(){ renderMessenger(); }
+function listenTyping(){}
+function onTyping(){}
+function sendChat(){}
+function switchRoom(){}
 function searchDmPlayer(){
-  var q=$('dm-search').value.trim().toLowerCase();
-  var res=$('dm-results');if(!res)return;
-  if(!q||!myProfile){res.innerHTML='';return;}
-  var matches=Object.values(allPlayers).filter(function(p){return p.uid!==myProfile.uid&&p.username.toLowerCase().includes(q);}).slice(0,8);
-  if(!matches.length){res.innerHTML='<div style="color:var(--dim);font-size:.76rem;padding:.45rem">No players found</div>';return;}
-  res.innerHTML=matches.map(function(p){
-    var c=clubColor(p.club||'?');
-    return'<div style="display:flex;align-items:center;gap:.65rem;padding:.55rem;background:var(--card);border-radius:9px;cursor:pointer;border:1px solid var(--border)" onclick="openDMWith(\''+p.uid+'\',\''+esc(p.username)+'\')">'
-      +'<div class="cbadge" style="width:26px;height:26px;background:'+c+'22;border:1.5px solid '+c+'55;font-size:.52rem;color:'+c+'">'+esc(p.username).slice(0,2).toUpperCase()+'</div>'
-      +'<div style="flex:1"><div style="font-weight:700;font-size:.8rem">'+esc(p.username)+'</div><div style="font-size:.6rem;color:var(--dim)">'+esc(p.club)+'</div></div>'
-      +'<span style="width:7px;height:7px;border-radius:50%;background:'+lsColor(p.lastSeen||0)+';display:inline-block"></span>'
+  var q=($('dm-search')&&$('dm-search').value||'').trim().toLowerCase();
+  var el=$('dm-results'); if(!el)return;
+  if(!q){el.innerHTML='';return;}
+  var res=Object.values(allPlayers).filter(function(p){return p.username&&p.username.toLowerCase().includes(q)&&p.uid!==(myProfile&&myProfile.uid);}).slice(0,8);
+  if(!res.length){el.innerHTML='<div style="padding:.7rem;color:var(--dim);font-size:.78rem">No players found.</div>';return;}
+  el.innerHTML=res.map(function(p){
+    return '<div class="dm-result-row" onclick="closeMo(\'new-dm-mo\');openDMThread(\''+p.uid+'\',\''+esc(p.username)+'\')">'
+      +clubBadge(p.club,p.league,28)
+      +'<div style="flex:1"><div style="font-weight:700;font-size:.84rem">'+esc(p.username)+'</div>'
+      +'<div style="font-size:.65rem;color:var(--dim)">'+esc(p.club)+' · '+esc((LGS[p.league]||{}).short||'')+'</div></div>'
       +'</div>';
   }).join('');
 }
-var _globalDMsListening=false;
-var _lastNotifMsg={};  // track last shown message per conversation key
-function listenGlobalDMs(){
-  if(!myProfile||!db)return;
-  if(_globalDMsListening)return;  // already attached — never attach twice
-  _globalDMsListening=true;
-  db.ref('ef_dm_unread/'+myProfile.uid).on('child_changed',function(s){
-    var key=s.key,val=s.val()||0;if(val===0)return;
-    db.ref('ef_dm/'+key).limitToLast(1).once('value').then(function(ms){
-      var arr=Object.values(ms.val()||{});if(!arr.length)return;
-      var msg=arr[arr.length-1];
-      if(msg.from===myProfile.uid)return;  // don't notify own messages
-      // Deduplicate: don't show same message twice
-      if(_lastNotifMsg[key]===msg.ts)return;
-      _lastNotifMsg[key]=msg.ts;
-      var sender=allPlayers[msg.from]||{username:msg.fromName||'Unknown',club:'?'};
-      showNotif(sender.username,sender.club,msg.text,function(){
-        go('pm');setTimeout(function(){openDMWith(msg.from,sender.username);},200);
-      });
-    });
+
+document.addEventListener('DOMContentLoaded', function(){
+  initFab();
+  // Refresh badge every time page becomes visible
+  document.addEventListener('visibilitychange', function(){
+    if (document.visibilityState === 'visible') updateFabBadge();
   });
-}
-function showNotif(senderName,senderClub,msgText,onClick){
-  var wrap=$('notif-wrap');if(!wrap)return;
-  var c=clubColor(senderClub||'?');
-  var card=document.createElement('div');card.className='notif-card';
-  card.innerHTML='<div class="cbadge" style="width:32px;height:32px;background:'+c+'22;border:1.5px solid '+c+'55;font-size:.62rem;color:'+c+'">'+esc(senderName||'?').slice(0,2).toUpperCase()+'</div>'
-    +'<div style="flex:1;min-width:0"><div style="font-size:.7rem;font-weight:700;color:#fff;margin-bottom:1px">'+esc(senderName)+'</div>'
-    +'<div style="font-size:.7rem;color:#aaa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(msgText.slice(0,55))+(msgText.length>55?'...':'')+'</div></div>'
-    +'<button style="background:none;border:none;color:var(--dim);cursor:pointer;font-size:.88rem;line-height:1;flex-shrink:0" onclick="event.stopPropagation();this.parentNode.remove()">x</button>';
-  card.onclick=function(e){if(e.target.tagName==='BUTTON')return;onClick&&onClick();card.classList.add('out');setTimeout(function(){card.remove();},300);};
-  wrap.appendChild(card);
-  setTimeout(function(){if(card.parentNode){card.classList.add('out');setTimeout(function(){card.remove();},300);}},5000);
-}
-
-// ============================================================
-// PROFILE & USER MODAL
-// ============================================================
-function renderProfile(){
-  var el=$('profile-content');if(!el)return;
-  if(!myProfile){el.innerHTML='<div style="text-align:center;padding:2.5rem;color:var(--dim)">Please login to view your profile.</div>';return;}
-  var p=myProfile,lg=LGS[p.league]||{};
-  var ms=Object.values(allMatches).filter(function(m){return m.played&&(m.homeId===p.uid||m.awayId===p.uid);});
-  var w=ms.filter(function(m){return(m.homeId===p.uid&&m.hg>m.ag)||(m.awayId===p.uid&&m.ag>m.hg);}).length;
-  var d=ms.filter(function(m){return m.hg===m.ag;}).length,l=ms.length-w-d;
-  var pen=allPenalties[p.uid]?Object.values(allPenalties[p.uid]).reduce(function(s,x){return s+(x.pts||0);},0):0;
-  var pts=Math.max(0,w*3+d-pen);
-  var tbl=computeStd(p.league),rank=tbl.findIndex(function(r){return r.uid===p.uid;})+1;
-  // Cover photo
-  var cover=p.coverPhoto?'<div style="height:110px;border-radius:12px 12px 0 0;background:url('+p.coverPhoto+') center/cover no-repeat;margin:-1.3rem -1.3rem .7rem;position:relative"><div style="position:absolute;inset:0;background:linear-gradient(to bottom,transparent 40%,rgba(0,0,0,0.7));border-radius:12px 12px 0 0"></div></div>':'<div style="height:70px;border-radius:12px 12px 0 0;background:linear-gradient(135deg,'+lg.c+'22,transparent);margin:-1.3rem -1.3rem .7rem"></div>';
-  var html='<div class="card" style="padding:1.3rem;margin-bottom:.9rem;overflow:hidden">'+cover
-    +'<div style="display:flex;align-items:center;gap:1.1rem;flex-wrap:wrap">'
-    +clubBadge(p.club,p.league,52)
-    +'<div style="flex:1"><div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:1.2rem">'+esc(p.username)+'</div>'
-    +'<div style="color:#00D4FF;font-weight:700;margin-top:1px">'+esc(p.club)+'</div>'
-    +'<div style="font-size:.7rem;color:'+lg.c+';margin-top:1px">'+esc(lg.n||'')+'</div>'
-    +'<div style="font-size:.63rem;color:var(--dim);margin-top:1px">'+esc(p.country||'')+'</div>'
-    +'<div style="font-size:.63rem;color:var(--dim);margin-top:1px">Last seen: '+fmtAgo(p.lastSeen||0)+'</div></div>'
-    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:.55rem">'
-    +'<div style="text-align:center;background:rgba(0,0,0,0.35);border-radius:8px;padding:7px 11px"><div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:.95rem;color:#FFE600">'+pts+'</div><div style="font-size:.55rem;color:var(--dim)">POINTS</div></div>'
-    +'<div style="text-align:center;background:rgba(0,0,0,0.35);border-radius:8px;padding:7px 11px"><div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:.95rem;color:#00D4FF">#'+(rank||'--')+'</div><div style="font-size:.55rem;color:var(--dim)">RANK</div></div>'
-    +'<div style="text-align:center;background:rgba(0,0,0,0.35);border-radius:8px;padding:7px 11px"><div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:.95rem;color:#00FF85">'+w+'</div><div style="font-size:.55rem;color:var(--dim)">WON</div></div>'
-    +'<div style="text-align:center;background:rgba(0,0,0,0.35);border-radius:8px;padding:7px 11px"><div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:.95rem;color:#FF2882">'+l+'</div><div style="font-size:.55rem;color:var(--dim)">LOST</div></div>'
-    +'</div></div>'
-    +'<div style="display:flex;gap:.45rem;margin-bottom:1rem;flex-wrap:wrap">'
-    +'<button class="bs" style="font-size:.72rem;padding:5px 11px" onclick="openMo(\'avatar-mo\')">Edit Avatar</button>'
-    +'</div>'
-    +'<div style="font-family:Orbitron,sans-serif;font-size:.68rem;color:#00D4FF;letter-spacing:2px;margin-bottom:.65rem">MATCH HISTORY</div>';
-  if(!ms.length)html+='<div class="card" style="padding:1.1rem;text-align:center;color:var(--dim)">No matches played yet.</div>';
-  else ms.slice().sort(function(a,b){return(b.playedAt||0)-(a.playedAt||0);}).forEach(function(m){
-    var ih=m.homeId===p.uid,opp=allPlayers[ih?m.awayId:m.homeId];
-    var mg=ih?m.hg:m.ag,og=ih?m.ag:m.hg;
-    var res=mg>og?'W':mg===og?'D':'L',rc=res==='W'?'#00FF85':res==='D'?'#FFE600':'#FF2882';
-    html+='<div class="card" style="padding:.75rem .9rem;margin-bottom:.45rem;display:flex;align-items:center;gap:.75rem">'
-      +'<div style="background:'+rc+'22;color:'+rc+';font-family:Orbitron,sans-serif;font-weight:900;width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:.78rem">'+res+'</div>'
-      +'<div style="flex:1"><div style="font-size:.8rem;font-weight:600">'+esc(p.club)+' vs '+esc(opp?opp.club:'?')+'</div>'
-      +'<div style="font-size:.63rem;color:var(--dim)">'+(opp?esc(opp.username):'?')+' - '+fmtDate(m.playedAt)+'</div></div>'
-      +'<div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:.88rem;color:#fff;letter-spacing:2px">'+mg+' - '+og+'</div>'
-      +'</div>';
-  });
-  el.innerHTML=html;
-}
-function openEditBio(){
-  if(!myProfile)return;
-  var inp=$('bio-inp');if(inp)inp.value=myProfile.bio||'';
-  openMo('edit-bio-mo');
-}
-function openUserModal(uid){
-  var p=allPlayers[uid];if(!p)return;
-  var lg=LGS[p.league]||{};
-  var ms=Object.values(allMatches).filter(function(m){return m.played&&(m.homeId===uid||m.awayId===uid);});
-  var w=ms.filter(function(m){return(m.homeId===uid&&m.hg>m.ag)||(m.awayId===uid&&m.ag>m.hg);}).length;
-  var d=ms.filter(function(m){return m.hg===m.ag;}).length,l=ms.length-w-d;
-  var pen=allPenalties[uid]?Object.values(allPenalties[uid]).reduce(function(s,x){return s+(x.pts||0);},0):0;
-  var pts=Math.max(0,w*3+d-pen);
-  var tbl=computeStd(p.league),rank=tbl.findIndex(function(r){return r.uid===uid;})+1;
-  var last=ms.sort(function(a,b){return(b.playedAt||0)-(a.playedAt||0);}).slice(0,5);
-  var html='<div style="display:flex;align-items:center;gap:.9rem;margin-bottom:1.1rem;flex-wrap:wrap">'
-    +clubBadge(p.club,p.league,52)
-    +'<div style="flex:1"><div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:1.1rem">'+esc(p.username)+'</div>'
-    +'<div style="color:#00D4FF;font-weight:700;font-size:.82rem;margin-top:1px">'+esc(p.club)+'</div>'
-    +'<div style="font-size:.68rem;color:'+lg.c+';margin-top:1px">'+esc(lg.n||'')+'</div>'
-    +'<div style="font-size:.63rem;color:var(--dim);margin-top:1px">'+esc(p.country||'')+' - <span style="color:'+lsColor(p.lastSeen||0)+'">'+fmtAgo(p.lastSeen||0)+'</span></div></div></div>'
-    +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.45rem;margin-bottom:.9rem">'
-    +[['#'+rank,'Rank','#00d4ff'],[pts+'pts','Points','#FFE600'],[w+'-'+d+'-'+l,'W-D-L','#00FF85'],[pen>0?'-'+pen+'pts':'Clean','Discipline',pen>0?'#FF2882':'#00FF85']].map(function(s){
-      return'<div style="text-align:center;background:rgba(0,0,0,0.35);border-radius:8px;padding:6px 4px"><div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:.82rem;color:'+s[2]+'">'+s[0]+'</div><div style="font-size:.52rem;color:var(--dim);text-transform:uppercase;letter-spacing:.5px">'+s[1]+'</div></div>';
-    }).join('')+'</div>';
-  if(last.length){
-    html+='<div style="font-family:Orbitron,sans-serif;font-size:.6rem;color:#00FF85;letter-spacing:1.5px;margin-bottom:.45rem">LAST RESULTS</div>';
-    html+=last.map(function(m){
-      var isH=m.homeId===uid,opp=allPlayers[isH?m.awayId:m.homeId];
-      var mg=isH?m.hg:m.ag,og=isH?m.ag:m.hg;
-      var res=mg>og?'W':mg===og?'D':'L',rc=res==='W'?'#00FF85':res==='D'?'#FFE600':'#FF2882';
-      return'<div style="display:flex;align-items:center;gap:.55rem;padding:.32rem .55rem;background:rgba(0,0,0,0.35);border-radius:7px;margin-bottom:2px">'
-        +'<div style="background:'+rc+'22;color:'+rc+';font-family:Orbitron,sans-serif;font-weight:900;width:20px;height:20px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:.7rem">'+res+'</div>'
-        +'<div style="flex:1;font-size:.7rem">vs '+esc(opp?opp.username:'?')+'</div>'
-        +'<div style="font-family:Orbitron,sans-serif;font-size:.72rem;color:#fff;letter-spacing:1px">'+mg+'-'+og+'</div></div>';
-    }).join('');
-  }
-  html+='<div style="display:flex;gap:.45rem;flex-wrap:wrap;margin-top:.8rem">'
-    +(myProfile&&uid!==myProfile.uid?'<button class="bs" style="font-size:.72rem;padding:5px 10px" onclick="closeMo(\'user-mo\');openDMWith(\''+uid+'\',\''+esc(p.username)+'\')">Message</button>':'')
-    +(myProfile&&uid!==myProfile.uid?'<button class="bd" style="font-size:.72rem;padding:5px 10px" onclick="closeMo(\'user-mo\');openReport(\''+uid+'\',\''+esc(p.username)+'\')">Report</button>':'')
-    +'</div>';
-  var el=$('user-mo-content');if(el)el.innerHTML=html;
-  openMo('user-mo');
-}
-
-// ============================================================
-// REPORTS
-// ============================================================
-function openReport(uid,name){
-  $('rep-uid').value=uid;$('rep-uname').value=name;
-  $('rep-who').textContent=name;$('rep-reason').value='';$('rep-details').value='';$('rep-err').textContent='';
-  openMo('report-mo');
-}
-function submitReport(){
-  if(!myProfile){closeMo('report-mo');showLanding();return;}
-  var uid=$('rep-uid').value,name=$('rep-uname').value;
-  var reason=$('rep-reason').value,details=$('rep-details').value.trim();
-  var err=$('rep-err');err.textContent='';
-  if(!reason){err.textContent='Select a reason.';return;}
-  var btn=$('rep-submit-btn');btn.textContent='Submitting...';btn.disabled=true;
-  db.ref('ef_reports').push({reportedUID:uid,reportedName:name,reporterUID:myProfile.uid,reporterName:myProfile.username,reason:reason,details:details,ts:Date.now(),status:'pending'})
-    .then(function(){btn.textContent='Submit Report';btn.disabled=false;closeMo('report-mo');toast('Report submitted. Admin will review.');})
-    .catch(function(){err.textContent='Failed. Try again.';btn.textContent='Submit Report';btn.disabled=false;});
-}
-
-// ============================================================
-// AVATAR
-// ============================================================
-var newAvatarData=null;
-window.addEventListener('DOMContentLoaded',function(){
-  var ep=$('emoji-picker');if(!ep)return;
-  var emojis=['⚽','🏆','🔥','⚡','💥','🎮','🕹️','👑','🦅','🐉','🦁','🐺','🌟','💎','🛡️','🗡️','🚀','🎯','🤖','🦊','🐯','🦈','🏅','⭐','🌙','☄️'];
-  ep.innerHTML=emojis.map(function(e){return'<button onclick="selectEmoji(\''+e+'\')" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:8px;width:36px;height:36px;font-size:1.1rem;cursor:pointer">'+e+'</button>';}).join('');
 });
-function selectEmoji(e){newAvatarData=e;toast('Selected: '+e);}
-function previewAvatar(input){
-  var file=input.files[0];if(!file)return;
-  if(file.size>300000){$('avatar-err').textContent='Image too large (max 300KB).';return;}
-  var reader=new FileReader();
-  reader.onload=function(ev){
-    newAvatarData=ev.target.result;
-    var prev=$('avatar-prev');prev.src=newAvatarData;prev.style.display='block';
-    var ph=$('avatar-ph');if(ph)ph.style.display='none';
-  };
-  reader.readAsDataURL(file);
-}
-function saveAvatar(){
-  if(!myProfile){toast('Login first','error');return;}
-  if(!newAvatarData){$('avatar-err').textContent='Select an emoji or upload an image.';return;}
-  var btn=$('avatar-save-btn');btn.textContent='Saving...';btn.disabled=true;
-  db.ref('ef_players/'+me.uid+'/avatar').set(newAvatarData)
-    .then(function(){btn.textContent='Save Avatar';btn.disabled=false;closeMo('avatar-mo');toast('Avatar updated!');newAvatarData=null;})
-    .catch(function(){btn.textContent='Save Avatar';btn.disabled=false;$('avatar-err').textContent='Failed. Try again.';});
-}

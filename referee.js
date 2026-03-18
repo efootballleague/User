@@ -88,14 +88,19 @@ function saveResultLive(mid, hg, ag, ssUrl, btn, err) {
   var isHome = m.homeId === uid;
 
   db.ref(DB.matches + '/' + mid).update({
-    pendingResult: true,
-    pendingHg:     hg,
-    pendingAg:     ag,
-    pendingSS:     ssUrl,
-    pendingBy:     uid,
-    pendingAt:     Date.now(),
-    awayVerifying: !isHome, // if home submitted, away must verify
-    refStatus:     'pending'
+    // FIX: Apply result IMMEDIATELY so standings update right away
+    played:        true,
+    hg:            hg,
+    ag:            ag,
+    playedAt:      Date.now(),
+    // Still keep verification flags so dispute is possible
+    pendingResult: false,
+    awayVerifying: true,
+    awayVerifyDeadline: Date.now() + (48 * 60 * 60 * 1000),
+    screenshot:    ssUrl,
+    submittedBy:   uid,
+    submittedAt:   Date.now(),
+    refStatus:     'live'
   }).then(function() {
     btn.textContent = '📨 Submit to Referee'; btn.disabled = false;
     closeMo('score-mo');

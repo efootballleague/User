@@ -219,30 +219,91 @@ function revokePenalty(uid, key) {
 // ── SEASON ────────────────────────────────────────────────────
 function renderAdminSeason() {
   var el = $('ap-season'); if (!el) return;
-  el.innerHTML = adminSeasonControls()
-    + '<div style="background:rgba(255,0,110,0.05);border:1px solid rgba(255,0,110,0.15);border-radius:12px;padding:.9rem;margin-top:.8rem">'
-    + '<div style="font-family:Orbitron,sans-serif;font-size:.62rem;color:var(--pink);letter-spacing:1.5px;margin-bottom:.6rem">DANGER ZONE</div>'
-    + '<button class="btn-danger" style="font-size:.74rem;padding:7px 14px" onclick="seasonReset()">Reset All Match Data</button>'
-    + '<div style="font-size:.63rem;color:var(--dim);margin-top:.4rem">Clears all results. Player accounts stay.</div>'
-    + '</div>'
-    + '<div style="margin-top:.9rem"><button class="btn-primary" onclick="openMo(\'broadcast-mo\')">Send Broadcast</button></div>';
+  var leagues = ['epl','laliga','seriea','ligue1'];
+  var html = '<div style="padding:.5rem 0">'
+    + '<div style="font-family:Orbitron,sans-serif;font-size:.65rem;color:var(--cyan);letter-spacing:1.5px;margin-bottom:.8rem">SEASON CONTROLS</div>';
+
+  leagues.forEach(function(lid) {
+    var lg = LGS[lid] || {};
+    var players = Object.values(allPlayers).filter(function(p){ return p.league === lid; }).length;
+    var played  = Object.values(allMatches).filter(function(m){ return m.league === lid && m.played; }).length;
+    var total   = Object.values(allMatches).filter(function(m){ return m.league === lid; }).length;
+    html += '<div style="background:var(--card);border:1px solid var(--border);border-radius:11px;padding:.85rem;margin-bottom:.55rem">'
+      + '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.4rem;margin-bottom:.55rem">'
+      + '<div style="font-weight:700">' + lg.f + ' ' + esc(lg.n||'') + '</div>'
+      + '<span style="font-size:.65rem;color:var(--dim)">' + players + ' players &middot; ' + played + '/' + total + ' played</span>'
+      + '</div>'
+      + '<div style="display:flex;gap:.4rem;flex-wrap:wrap">'
+      + '<button class="btn-xs" onclick="adminEndSeason(\'' + lid + '\')">End Season &rarr; UCL</button>'
+      + '<button class="btn-xs" onclick="autoScheduleForLeague(\'' + lid + '\')">Auto-Schedule</button>'
+      + '</div>'
+      + '</div>';
+  });
+
+  html += '<div style="background:var(--card);border:1px solid var(--border);border-radius:11px;padding:.85rem;margin-bottom:.55rem">'
+    + '<div style="font-family:Orbitron,sans-serif;font-size:.62rem;color:var(--cyan);letter-spacing:1px;margin-bottom:.55rem">SEASON MESSAGE</div>'
+    + '<div class="form-group"><label class="lbl">Shown on home page</label>'
+    + '<input class="inp" id="season-msg-inp" placeholder="e.g. Season 3 is live!" maxlength="100"></div>'
+    + '<button class="btn-primary" style="width:auto;padding:.5rem 1rem" onclick="saveSeasonMsg()">Save</button>'
+    + '</div>';
+
+  html += '<div style="background:var(--card);border:1px solid var(--border);border-radius:11px;padding:.85rem">'
+    + '<div style="font-family:Orbitron,sans-serif;font-size:.62rem;color:var(--cyan);letter-spacing:1px;margin-bottom:.55rem">BROADCAST</div>'
+    + '<button class="btn-primary" style="width:auto;padding:.5rem 1rem" id="admin-broadcast-btn">Broadcast Message</button>'
+    + '</div>';
+
+  html += '</div>';
+  el.innerHTML = html;
+}
+function autoScheduleForLeague(lid) {
+  if (!me || me.email !== ADMIN_EMAIL || !db) return;
+  var players = Object.values(allPlayers).filter(function(p){ return p.league === lid; });
+  if (players.length < 2) { toast('Need at least 2 players to schedule.', 'error'); return; }
+  
+  // Generate all fixtures (round-robin, home and away)
+  var fixtures = [];
+  for (var i = 0; i < players.length; i++) {
+    for (var j = 0; j < players.length; j++) {
+      if (i === j) continue;
+      // Check if fixture already exists
+      var exists = Object.values(allMatches).some(function(m) {
+        return m.league === lid && m.homeId === players[i].uid && m.awayId === players[j].uid;
+      });
+      if (!exists) fixtures.push({ home: players[i], away: players[j] });
+    }
+  }
+  if (!fixtures.length) { toast('All fixtures already exist for ' + (LGS[lid]||{}).n, 'error'); return; }
+
+  // Schedule starting next week, 2 matches per day, no overlaps
+  var startDate = new Date();
+  startDate.setDate(startDate.getDate() + 7);
+  startDate.setHours(18, 0, 0, 0);
+  var slotMs = 3 * 60 * 60 * 1000; // 3hr slots
+  var perDay  = 2;
+  var dayMs   = 24 * 60 * 60 * 1000;
+
+  var updates = {};
+  fixtures.forEach(function(fx, idx) {
+    var dayOffset = Math.floor(idx / perDay);
+    var slotOffset = idx % perDay;
+    var matchTime  = startDate.getTime() + dayOffset * dayMs + slotOffset * slotMs;
+    var key = db.ref(DB.matches).push().key;
+    updates[DB.matches + '/' + key] = {
+      id: key, league: lid,
+      homeId: fx.home.uid, homeName: fx.home.username, homeClub: fx.home.club,
+      awayId: fx.away.uid, awayName: fx.away.username, awayClub: fx.away.club,
+      played: false, matchTime: matchTime,
+      autoScheduledTime: matchTime,
+      createdAt: Date.now(), createdBy: 'admin'
+    };
+  });
+  db.ref().update(updates).then(function() {
+    toast(fixtures.length + ' fixtures scheduled for ' + (LGS[lid]||{}).n + '!');
+    renderAdminSeason();
+  });
 }
 
-// ── RESTRICT PLAYER ───────────────────────────────────────────
-function openRestrictModal(uid, name) {
-  var el = $('restrict-modal-content'); if (!el) return;
-  var p  = allPlayers[uid] || {};
-  var rs = p.restrictions || {};
-  el.innerHTML = '<div style="font-weight:700;color:var(--cyan);margin-bottom:.7rem">' + esc(name) + '</div>'
-    + ['no_submit', 'no_dispute', 'no_chat'].map(function (type) {
-      var active = rs[type] && (!rs[type].until || Date.now() < rs[type].until);
-      return '<div style="display:flex;align-items:center;justify-content:space-between;padding:.4rem 0;border-bottom:1px solid var(--border)">'
-        + '<div><div style="font-size:.78rem;font-weight:600">' + esc(type.replace('_', ' ')) + '</div>'
-        + '<div style="font-size:.62rem;color:var(--dim)">' + (active ? 'Active' : 'Not restricted') + '</div></div>'
-        + (active
-          ? '<button class="btn-xs" onclick="removeRestriction(\'' + uid + '\',\'' + type + '\');openRestrictModal(\'' + uid + '\',\'' + esc(name) + '\')">Remove</button>'
-          : '<button class="btn-xs gold" onclick="applyRestriction(\'' + uid + '\',\'' + type + '\',7);toast(\'' + type + ' restricted for 7 days\');openRestrictModal(\'' + uid + '\',\'' + esc(name) + '\')">7 days</button>')
-        + '</div>';
-    }).join('');
-  openMo('restrict-mo');
-}
+// Attach broadcast btn via event delegation
+document.addEventListener('click', function(e) {
+  if (e.target && e.target.id === 'admin-broadcast-btn') openMo('broadcast-mo');
+});

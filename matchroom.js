@@ -77,21 +77,13 @@ function renderMatchRooms() {
 }
 
 function openRoomChat(matchId) {
-  // Open messenger on match rooms tab then open the room
+  // Go to chat page, switch to rooms tab, open specific room
   openMessenger('rooms');
   setTimeout(function () {
-    if (typeof openRoomChat === 'function') {
-      // Find and click the room in the list
-      var el = $('msng-content');
-      if (el) {
-        // renderRoomsList will be shown, then we open specific room
-        setTimeout(function () {
-          var btn = el.querySelector('[onclick*="' + matchId + '"]');
-          if (btn) btn.click();
-        }, 300);
-      }
+    if (typeof openRoomThread === 'function') {
+      openRoomThread(matchId);
     }
-  }, 400);
+  }, 350);
 }
 
 // ── POSTPONE REQUEST ──────────────────────────────────────────
@@ -203,3 +195,109 @@ function saveMatchTime() {
 // ── AUTO SCHEDULE ─────────────────────────────────────────────
 // Already in pages.js — this just re-exports for cross-file safety
 function scheduleAllMatches() { autoScheduleLeague(); }
+
+
+// ============================================================
+// MATCH PREP — Time first, code only after time is set
+// ============================================================
+
+function openPrepModal(mid) {
+  var m = allMatches[mid]; if (!m || !myProfile) return;
+  var isHome = m.homeId === myProfile.uid;
+  if (!isHome) return;
+
+  // If no time set yet — show time picker first
+  if (!m.matchTime) {
+    openSetTimeModal(mid);
+    return;
+  }
+
+  // Time is set — allow code drop
+  $('prep-mid').value  = mid;
+  $('prep-code').value = m.roomCode || '';
+  $('prep-note').value = m.note || '';
+  $('prep-err').textContent = '';
+  openMo('prep-mo');
+}
+
+// Override saveMatchTime to enforce 24hr change limit
+var _origSaveMatchTime = saveMatchTime;
+saveMatchTime = function() {
+  var mid = $('set-time-mid').value;
+  var val = $('set-time-inp').value;
+  var err = $('set-time-err');
+  err.textContent = '';
+  if (!val) { err.textContent = 'Select a date and time.'; return; }
+  
+  var m = allMatches[mid]; if (!m) return;
+  var newTime = new Date(val).getTime();
+  
+  // If match already has a time set by auto-schedule, check 24hr limit
+  if (m.autoScheduledTime && me && me.email !== ADMIN_EMAIL) {
+    var diff = Math.abs(newTime - m.autoScheduledTime);
+    if (diff > 24 * 60 * 60 * 1000) {
+      err.textContent = 'You can only change the time by up to 24 hours from the scheduled time.';
+      return;
+    }
+  }
+  
+  if (!db) return;
+  db.ref(DB.matches + '/' + mid).update({
+    matchTime:    newTime,
+    timeSetBy:    myProfile ? myProfile.uid : null,
+    timeSetAt:    Date.now()
+  }).then(function() {
+    closeMo('set-time-mo');
+    toast('Match time updated!');
+    renderMatchPrep();
+    renderSchedTimeline();
+    // Notify both players of the time
+    if (m && myProfile) {
+      var otherId = m.homeId === myProfile.uid ? m.awayId : m.homeId;
+      sendNotif(otherId, {
+        title: 'Match Time Set',
+        body:  myProfile.username + ' set your match time to ' + new Date(newTime).toLocaleString('en-GB', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}),
+        type:  'match'
+      });
+    }
+  }).catch(function() { err.textContent = 'Failed. Try again.'; });
+};
+
+// Override submitPrep to also notify away team with banner
+var _origSubmitPrep = submitPrep;
+submitPrep = function() {
+  var mid  = $('prep-mid').value;
+  var code = $('prep-code').value.trim().toUpperCase();
+  var note = $('prep-note').value.trim();
+  var err  = $('prep-err');
+  err.textContent = '';
+  if (!code) { err.textContent = 'Enter the room code.'; return; }
+  if (!myProfile || !db) return;
+
+  var m = allMatches[mid]; if (!m) return;
+
+  var btn = document.querySelector('#prep-mo .btn-primary');
+  if (btn) { btn.textContent = 'Sending...'; btn.disabled = true; }
+
+  db.ref(DB.matches + '/' + mid).update({
+    roomCode:      code,
+    note:          note,
+    codeDroppedBy: myProfile.uid,
+    codeDroppedAt: Date.now(),
+    _codeNotified: false  // reset so away team gets notified
+  }).then(function() {
+    closeMo('prep-mo');
+    toast('Room code sent to away team!');
+    if (btn) { btn.textContent = 'Send to Away Team'; btn.disabled = false; }
+    renderMatchRooms();
+    // Notify away team
+    sendNotif(m.awayId, {
+      title: '🏟️ Room Code Ready!',
+      body:  myProfile.username + ' dropped the room code: ' + code + '. Minimum play time: 15 minutes.',
+      type:  'match'
+    });
+  }).catch(function() {
+    err.textContent = 'Failed. Try again.';
+    if (btn) { btn.textContent = 'Send to Away Team'; btn.disabled = false; }
+  });
+};

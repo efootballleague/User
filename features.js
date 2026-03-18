@@ -528,3 +528,398 @@ function renderH2H(uid1, uid2) {
     + '<div style="text-align:center"><div style="font-family:Orbitron,sans-serif;font-size:1.2rem;font-weight:900;color:var(--pink)">' + w2 + '</div><div style="font-size:.65rem;color:var(--dim)">' + esc((p2 || {}).username || '') + '</div></div>'
     + '</div>';
 }
+
+// ============================================================
+// POLLS — Admin on top (blue), Player polls for league mates
+// ============================================================
+
+// Override renderPolls with full version
+renderPolls = function() {
+  var pg = $('page-polls'); if (!pg) return;
+  var isAdmin = me && me.email === ADMIN_EMAIL;
+  var uid = myProfile ? myProfile.uid : null;
+  var myLeague = myProfile ? myProfile.league : null;
+
+  // Separate admin polls and player polls
+  var adminPolls  = [];
+  var playerPolls = [];
+  Object.entries(allPolls || {}).forEach(function(kv) {
+    var key = kv[0], poll = kv[1];
+    // Show poll if: admin poll (everyone sees) OR same league OR I created it
+    var canSee = (poll.isAdminPoll) ||
+                 (uid && poll.createdBy === uid) ||
+                 (myLeague && poll.league === myLeague) ||
+                 isAdmin;
+    if (!canSee) return;
+    if (poll.isAdminPoll) adminPolls.push([key, poll]);
+    else playerPolls.push([key, poll]);
+  });
+
+  adminPolls.sort(function(a,b) { return (b[1].ts||0)-(a[1].ts||0); });
+  playerPolls.sort(function(a,b) { return (b[1].ts||0)-(a[1].ts||0); });
+
+  var html = '<div class="section-header"><div class="section-title c-cyan">Polls</div><div class="section-line"></div>'
+    + (myProfile ? '<button class="btn-xs" onclick="openMo(\'create-poll-mo\')">+ Create</button>' : '')
+    + '</div>';
+
+  function renderPoll(key, poll, isAdminPoll) {
+    var total   = Object.values(poll.votes || {}).length;
+    var myVote  = uid && poll.votes ? poll.votes[uid] : null;
+    var isOwner = uid && poll.createdBy === uid;
+    var isVet   = uid && computeBadges(uid).includes('veteran');
+    var canDelete = isAdmin || isOwner;
+    var canRequestRemove = isVet && !isOwner && !isAdmin;
+
+    var cardStyle = isAdminPoll
+      ? 'border:1.5px solid rgba(0,212,255,0.5);background:rgba(0,212,255,0.06);'
+      : 'border:1px solid var(--border);';
+
+    var out = '<div class="card" style="padding:.9rem;margin-bottom:.6rem;' + cardStyle + '">';
+
+    if (isAdminPoll) {
+      out += '<div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.5rem">'
+        + '<span style="font-size:.58rem;font-weight:700;background:rgba(0,212,255,0.15);border:1px solid rgba(0,212,255,0.4);color:var(--cyan);border-radius:6px;padding:2px 7px">ADMIN POLL</span>'
+        + '</div>';
+    }
+
+    out += '<div style="font-weight:700;font-size:.88rem;margin-bottom:.4rem">' + esc(poll.question || '') + '</div>';
+    out += '<div style="font-size:.63rem;color:var(--dim);margin-bottom:.7rem">'
+      + total + ' vote' + (total !== 1 ? 's' : '') + ' · '
+      + (poll.active ? '<span style="color:var(--green)">Open</span>' : '<span style="color:var(--dim)">Closed</span>')
+      + (poll.creatorName ? ' · by ' + esc(poll.creatorName) : '')
+      + '</div>';
+
+    (poll.options || []).forEach(function(opt, i) {
+      var count  = Object.values(poll.votes || {}).filter(function(v){return v===i;}).length;
+      var pct    = total > 0 ? Math.round(count/total*100) : 0;
+      var isMine = myVote !== null && myVote === i;
+      var canVote = poll.active && uid && myVote === null;
+      var barColor = isMine ? 'var(--cyan)' : 'rgba(0,212,255,0.3)';
+
+      out += '<div style="margin-bottom:.55rem">'
+        + '<div style="display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:3px">'
+        + '<span' + (isMine ? ' style="color:var(--cyan);font-weight:700"' : '') + '>' + esc(opt) + (isMine ? ' ✓' : '') + '</span>'
+        + '<span style="color:var(--dim)">' + count + ' (' + pct + '%)</span>'
+        + '</div>'
+        + '<div style="height:8px;background:rgba(255,255,255,0.06);border-radius:4px;overflow:hidden;cursor:' + (canVote?'pointer':'default') + '"'
+        + (canVote ? ' onclick="castVote(\'' + key + '\',' + i + ')"' : '') + '>'
+        + '<div style="height:100%;width:' + pct + '%;background:' + barColor + ';border-radius:4px;transition:width .4s"></div>'
+        + '</div>'
+        + (canVote ? '<div style="font-size:.58rem;color:var(--dim);margin-top:2px">Tap bar to vote</div>' : '')
+        + '</div>';
+    });
+
+    if (!uid) {
+      out += '<div style="font-size:.72rem;color:var(--dim);margin-top:.4rem">Login to vote</div>';
+    } else if (myVote !== null) {
+      out += '<div style="font-size:.68rem;color:var(--green);margin-top:.4rem">✓ You voted: ' + esc((poll.options||[])[myVote]||'') + '</div>';
+    }
+
+    // Action buttons
+    var btns = '';
+    if (isAdmin) {
+      btns += '<button class="btn-xs" onclick="' + (poll.active ? 'closePoll' : 'reopenPoll') + '(\'' + key + '\')">' + (poll.active ? 'Close' : 'Reopen') + '</button>';
+      btns += '<button class="btn-xs" style="color:var(--pink);border-color:rgba(255,40,130,0.3)" onclick="deletePoll(\'' + key + '\')">Delete</button>';
+    } else if (canDelete) {
+      btns += '<button class="btn-xs" style="color:var(--pink);border-color:rgba(255,40,130,0.3)" onclick="deletePoll(\'' + key + '\')">Delete</button>';
+    } else if (canRequestRemove) {
+      btns += '<button class="btn-xs" onclick="requestPollRemoval(\'' + key + '\')">Request Removal</button>';
+    }
+    if (btns) out += '<div style="display:flex;gap:.4rem;margin-top:.6rem;border-top:1px solid var(--border);padding-top:.5rem">' + btns + '</div>';
+
+    out += '</div>';
+    return out;
+  }
+
+  if (!adminPolls.length && !playerPolls.length) {
+    html += '<div class="card empty">No polls yet.</div>';
+  } else {
+    adminPolls.forEach(function(kv) { html += renderPoll(kv[0], kv[1], true); });
+    if (playerPolls.length) {
+      if (adminPolls.length) html += '<div style="font-family:Orbitron,sans-serif;font-size:.6rem;color:var(--dim);letter-spacing:1.5px;margin:.8rem 0 .5rem">COMMUNITY POLLS</div>';
+      playerPolls.forEach(function(kv) { html += renderPoll(kv[0], kv[1], false); });
+    }
+  }
+  pg.innerHTML = html;
+};
+
+// Override createPoll with league + admin support
+createPoll = function() {
+  if (!myProfile || !db) return;
+  var q    = $('poll-question').value.trim();
+  var opts = [$('poll-opt1').value.trim(),$('poll-opt2').value.trim(),$('poll-opt3').value.trim(),$('poll-opt4').value.trim()].filter(Boolean);
+  var err  = $('poll-err'); err.textContent = '';
+  if (!q)           { err.textContent = 'Enter a question.'; return; }
+  if (opts.length < 2){ err.textContent = 'Need at least 2 options.'; return; }
+  var isAdmin = me && me.email === ADMIN_EMAIL;
+  db.ref(DB.polls).push({
+    question:    q,
+    options:     opts,
+    votes:       {},
+    active:      true,
+    ts:          Date.now(),
+    createdBy:   myProfile.uid,
+    creatorName: myProfile.username,
+    isAdminPoll: isAdmin,
+    league:      isAdmin ? 'all' : myProfile.league
+  }).then(function() {
+    closeMo('create-poll-mo');
+    toast('Poll created!');
+    renderPolls();
+    // Reset form
+    ['poll-question','poll-opt1','poll-opt2','poll-opt3','poll-opt4'].forEach(function(id){ var e=$(id); if(e)e.value=''; });
+  });
+};
+
+function requestPollRemoval(key) {
+  if (!myProfile || !db) return;
+  var poll = allPolls[key]; if (!poll) return;
+  db.ref(DB.reports).push({
+    type: 'poll_removal',
+    pollKey: key,
+    pollQuestion: poll.question,
+    requestedBy: myProfile.uid,
+    requestedByName: myProfile.username,
+    ts: Date.now(),
+    status: 'open'
+  }).then(function() { toast('Removal request sent to admin.'); });
+}
+
+// ============================================================
+// NOTIFICATIONS PAGE
+// ============================================================
+
+function renderNotifications() {
+  var pg = $('page-notifications'); if (!pg) return;
+  if (!myProfile || !db) {
+    pg.innerHTML = '<div class="card empty">Login to view notifications.</div>';
+    return;
+  }
+
+  var showAll = pg.getAttribute('data-show-all') === 'true';
+
+  pg.innerHTML = '<div class="section-header">'
+    + '<div class="section-title c-cyan">Notifications</div>'
+    + '<div class="section-line"></div>'
+    + '<button class="btn-xs" onclick="toggleNotifFilter()">'
+    + (showAll ? 'Unread' : 'All') + '</button>'
+    + '</div>'
+    + '<div id="notif-list"><div style="text-align:center;padding:1.5rem;color:var(--dim)">Loading...</div></div>';
+
+  var ref = db.ref(DB.notifs + '/' + me.uid).orderByChild('ts').limitToLast(50);
+  ref.once('value', function(s) {
+    var all = [];
+    s.forEach(function(child) {
+      all.unshift({ key: child.key, data: child.val() });
+    });
+    var list = showAll ? all : all.filter(function(n){ return !n.data.read; });
+    var el = $('notif-list'); if (!el) return;
+    if (!list.length) {
+      el.innerHTML = '<div class="card empty">' + (showAll ? 'No notifications.' : 'All caught up! 🎉') + '</div>';
+      return;
+    }
+    el.innerHTML = list.map(function(n) {
+      var d = n.data;
+      var iconMap = { match:'⚽', result:'📊', dm:'💬', referee:'🟢', dispute:'⚠️', ucl:'🏆', poll:'📊', system:'📢' };
+      var icon = iconMap[d.type] || '🔔';
+      return '<div style="display:flex;align-items:flex-start;gap:.7rem;padding:.75rem .9rem;background:var(--card);'
+        + 'border:1px solid ' + (d.read ? 'var(--border)' : 'rgba(0,212,255,0.25)') + ';'
+        + 'border-radius:11px;margin-bottom:.4rem;' + (d.read ? 'opacity:.7' : '') + '">'
+        + '<div style="font-size:1.2rem;flex-shrink:0;margin-top:2px">' + icon + '</div>'
+        + '<div style="flex:1;min-width:0">'
+        + '<div style="font-weight:700;font-size:.82rem' + (d.read ? '' : ';color:var(--cyan)') + '">' + esc(d.title||'') + '</div>'
+        + '<div style="font-size:.74rem;color:var(--dim);margin-top:2px">' + esc(d.body||'') + '</div>'
+        + '<div style="font-size:.6rem;color:var(--dim);margin-top:3px">' + fmtAgo(d.ts) + '</div>'
+        + '</div>'
+        + (!d.read ? '<div style="width:8px;height:8px;border-radius:50%;background:var(--cyan);flex-shrink:0;margin-top:4px"></div>' : '')
+        + '</div>';
+    }).join('');
+    // Mark all as read
+    if (!showAll) {
+      list.forEach(function(n) {
+        if (!n.data.read) db.ref(DB.notifs + '/' + me.uid + '/' + n.key + '/read').set(true);
+      });
+    }
+    setBadge('notif-badge', 0);
+  });
+}
+
+function toggleNotifFilter() {
+  var pg = $('page-notifications'); if (!pg) return;
+  var current = pg.getAttribute('data-show-all') === 'true';
+  pg.setAttribute('data-show-all', !current);
+  renderNotifications();
+}
+
+function listenNotifBadge() {
+  if (!myProfile || !db) return;
+  db.ref(DB.notifs + '/' + me.uid).orderByChild('read').equalTo(false).on('value', function(s) {
+    var count = Object.keys(s.val() || {}).length;
+    setBadge('notif-badge', count);
+    // Also update drawer badge
+    var db2 = document.getElementById('drawer-notif-badge');
+    if (db2) {
+      if (count > 0) { db2.textContent = count > 9 ? '9+' : count; db2.classList.remove('hidden'); }
+      else { db2.classList.add('hidden'); }
+    }
+  });
+}
+
+// ============================================================
+// SEASON AUTO-END + UCL AUTO-QUALIFY
+// ============================================================
+
+function checkSeasonEnd() {
+  if (!db || !allMatches) return;
+  // Get all leagues
+  var leagues = ['epl','laliga','seriea','ligue1'];
+  leagues.forEach(function(lid) {
+    var leaguePlayers = Object.values(allPlayers).filter(function(p){ return p.league === lid; });
+    if (!leaguePlayers.length) return;
+    var totalPossible = leaguePlayers.length * (leaguePlayers.length - 1); // each plays each other home+away
+    var played = Object.values(allMatches).filter(function(m){ return m.league === lid && m.played; }).length;
+    if (played >= totalPossible && totalPossible > 0) {
+      // All matches played — season done for this league
+      db.ref('ef_season_status/' + lid + '/ended').once('value', function(s) {
+        if (!s.val()) {
+          db.ref('ef_season_status/' + lid).set({ ended: true, endedAt: Date.now() });
+          autoQualifyUCL(lid);
+        }
+      });
+    }
+  });
+}
+
+function autoQualifyUCL(lid) {
+  var table = computeStd(lid);
+  var top4  = table.slice(0, 4);
+  var updates = {};
+  top4.forEach(function(r, i) {
+    updates['ef_ucl_qualifiers/' + r.uid] = {
+      uid:      r.uid,
+      username: r.name,
+      club:     r.club,
+      league:   lid,
+      position: i + 1,
+      pts:      r.pts,
+      qualifiedAt: Date.now()
+    };
+    // Notify player
+    sendNotif(r.uid, {
+      title: '🏆 UCL Qualification!',
+      body:  'You finished #' + (i+1) + ' in ' + (LGS[lid]||{}).n + ' and qualified for the Champions League!',
+      type:  'ucl'
+    });
+  });
+  db.ref().update(updates).then(function() {
+    // Set 1-week deadline for admin to set entry fee
+    db.ref('ef_ucl_settings/qualifyDeadline').set(Date.now() + (7 * 24 * 60 * 60 * 1000));
+    toast('🏆 ' + (LGS[lid]||{}).n + ' season ended! Top 4 qualified for UCL.');
+  });
+}
+
+function adminEndSeason(lid) {
+  if (!me || me.email !== ADMIN_EMAIL) return;
+  if (!confirm('End the ' + (LGS[lid]||{n:lid}).n + ' season? Top 4 will qualify for UCL.')) return;
+  db.ref('ef_season_status/' + lid).set({ ended: true, endedAt: Date.now(), endedBy: 'admin' });
+  autoQualifyUCL(lid);
+}
+
+// ============================================================
+// ROOM CODE BANNER — instant notification when home drops code
+// ============================================================
+
+function listenRoomCodes() {
+  if (!myProfile || !db) return;
+  var uid = myProfile.uid;
+  // Listen for matches where I'm away team and roomCode changes
+  db.ref(DB.matches).orderByChild('awayId').equalTo(uid).on('child_changed', function(s) {
+    var m = s.val(); if (!m) return;
+    if (m.roomCode && !m._codeNotified) {
+      var hp = allPlayers[m.homeId];
+      showRoomCodeBanner(m, hp);
+      // Mark as notified
+      db.ref(DB.matches + '/' + m.id + '/_codeNotified').set(true);
+    }
+  });
+}
+
+var _roomCodeBannerTimer = null;
+function showRoomCodeBanner(match, homePlayer) {
+  var wrap = $('notif-wrap'); if (!wrap) return;
+  var hp   = homePlayer || {};
+  var div  = document.createElement('div');
+  div.className = 'notif-banner';
+  div.style.cssText = 'border-color:rgba(0,255,133,0.4);background:rgba(0,255,133,0.08)';
+  div.innerHTML = '<div class="notif-icon">🏟️</div>'
+    + '<div class="notif-body">'
+    + '<div class="notif-title">Room Code Ready!</div>'
+    + '<div class="notif-msg">' + esc(hp.username||'Home team') + ' dropped the code: <strong style="color:var(--green);font-family:Orbitron,sans-serif;font-size:.9rem;letter-spacing:2px">' + esc(match.roomCode) + '</strong></div>'
+    + '<div style="margin-top:.35rem"><button class="btn-xs" style="color:var(--green);border-color:rgba(0,255,133,0.3)" onclick="copyCode(\'' + esc(match.roomCode) + '\')">Copy Code</button></div>'
+    + '</div>'
+    + '<button class="notif-close" onclick="this.parentNode.remove()">✕</button>';
+  wrap.appendChild(div);
+  // Auto-dismiss after 2 minutes
+  setTimeout(function() { if (div.parentNode) div.remove(); }, 120000);
+}
+
+// ============================================================
+// RED DOT SYSTEM
+// ============================================================
+
+function listenRedDots() {
+  if (!myProfile || !db) return;
+  var uid = myProfile.uid;
+  var isAdmin = me && me.email === ADMIN_EMAIL;
+
+  // Admin red dot — unresolved reports
+  if (isAdmin) {
+    db.ref(DB.reports).orderByChild('status').equalTo('open').on('value', function(s) {
+      var count = Object.keys(s.val() || {}).length;
+      setBadge('admin-red-dot', count);
+      // Update drawer admin button dot
+      var btn = $('drawer-admin-btn');
+      if (btn) {
+        var dot = btn.querySelector('.admin-dot') || document.createElement('span');
+        dot.className = 'admin-dot drawer-badge';
+        if (count > 0) { dot.textContent = count; dot.classList.remove('hidden'); if (!btn.querySelector('.admin-dot')) btn.appendChild(dot); }
+        else { dot.classList.add('hidden'); }
+      }
+    });
+  }
+
+  // Referee duties red dot
+  db.ref(DB.matches).orderByChild('refereeUID').equalTo(uid).on('value', function(s) {
+    var duties = Object.values(s.val() || {}).filter(function(m) {
+      return m.awayVerifying && (m.refStatus === 'live' || m.refStatus === 'disputed');
+    }).length;
+    setBadge('ref-badge', duties);
+  });
+
+  // DM unread
+  db.ref(DB.dmUnread + '/' + uid).on('value', function(s) {
+    var total = 0;
+    Object.values(s.val() || {}).forEach(function(v) { total += (v || 0); });
+    setBadge('pm-badge', total);
+    var fab = $('fab-badge');
+    if (fab) { fab.style.display = total > 0 ? 'flex' : 'none'; fab.textContent = total > 9 ? '9+' : total; }
+  });
+
+  // Notification unread
+  listenNotifBadge();
+}
+
+// ============================================================
+// MATCH PREP — Time first, code after
+// ============================================================
+
+// Show 15-min notice in match prep
+function render15MinNotice() {
+  var el = $('prep-15min-notice');
+  if (!el) return;
+  el.innerHTML = '<div style="background:rgba(255,230,0,0.08);border:1px solid rgba(255,230,0,0.25);border-radius:10px;padding:.7rem .9rem;display:flex;align-items:center;gap:.6rem;margin-bottom:.8rem">'
+    + '<span style="font-size:1.1rem">⏱️</span>'
+    + '<div style="font-size:.76rem;color:var(--gold)"><strong>Minimum match duration: 15 minutes.</strong> Both players must play the full game. Early exits = automatic forfeit.</div>'
+    + '</div>';
+}
+

@@ -307,6 +307,24 @@ function gsConfirm() {
     btn.textContent = '✓ Join!'; btn.disabled = false;
     closeMo('google-setup-mo');
     toast('Welcome to eFootball Universe! 🎉');
+    // FIX: explicitly enter app — don't wait for onAuthStateChanged re-fire
+    myProfile = {
+      uid: _gsUser.uid,
+      username: $('gs-name').value.trim(),
+      email: _gsUser.email || '',
+      country: $('gs-country').value,
+      league: _gsLeague,
+      club: _gsClub,
+      avatar: _gsUser.photoURL || '',
+      bio: '', joinedAt: Date.now(), lastSeen: Date.now(), banned: false
+    };
+    enterApp();
+    setOnline();
+    listenUnread();
+    listenGlobalDMs();
+    initRefereeSystem();
+    listenMatchRooms();
+    initSwap();
   })
   .catch(function (e) {
     err.textContent = 'Failed to save profile. Try again.';

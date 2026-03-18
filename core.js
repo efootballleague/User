@@ -578,6 +578,13 @@ function startListeners(authTimeout, onResolved) {
         listenMatchRooms();
         initSwap();
         initPushNotifications();
+        // New listeners
+        if (typeof listenRedDots === 'function')  listenRedDots();
+        if (typeof listenRoomCodes === 'function') listenRoomCodes();
+        if (typeof listenNotifBadge === 'function') listenNotifBadge();
+        if (typeof listenBroadcast === 'function') listenBroadcast();
+        // Show referee drawer btn only when needed
+        checkRefereeDuties();
 
       }, function () {
         // DB read error — still enter app as guest
@@ -674,4 +681,24 @@ function launchEfootball() {
   } else {
     openMo('efootball-links-mo');
   }
+}
+
+// ── REFEREE DRAWER VISIBILITY ────────────────────────────────
+function checkRefereeDuties() {
+  if (!myProfile || !db) return;
+  db.ref(DB.matches).orderByChild('refereeUID').equalTo(myProfile.uid).on('value', function(s) {
+    var duties = Object.values(s.val() || {}).filter(function(m) {
+      return !m.played || m.awayVerifying;
+    }).length;
+    var btn = document.getElementById('drawer-ref-btn');
+    if (btn) btn.style.display = duties > 0 ? 'flex' : 'none';
+    setBadge('ref-badge', duties);
+  });
+}
+
+// ── NOTIFICATIONS PAGE STUB (defined in features.js) ─────────
+function renderNotifications() {
+  var pg = document.getElementById('page-notifications');
+  if (!pg) return;
+  pg.innerHTML = '<div class="card empty" style="margin-top:1rem">Loading...</div>';
 }

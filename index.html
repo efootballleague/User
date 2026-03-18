@@ -319,6 +319,65 @@ select.inp option{background:#0e0018;color:var(--text)}
 .swap-row{display:flex;align-items:center;gap:.6rem;padding:.6rem .5rem;cursor:pointer;border-radius:8px;border:1.5px solid transparent;transition:.2s;margin-bottom:.3rem}
 .swap-row:hover{background:rgba(0,212,255,0.06);border-color:rgba(0,212,255,0.2)}
 
+
+/* ── LAYOUT FIXES ─────────────────────────────────────── */
+/* Fix oversized text in cards */
+.mcard-top, .fx-top { font-size: .82rem; }
+.fx-card { padding: .75rem .8rem; }
+.mcard   { padding: .75rem .8rem; }
+
+/* Fix tight spacing on mobile */
+.page { padding: .75rem .8rem 1rem; }
+#app  { padding-top: 56px; }
+
+/* Fix button overflow */
+.mcard-btns { gap: .35rem; }
+.mcard-btns .btn-sm { font-size: .68rem; padding: .35rem .65rem; white-space: nowrap; }
+.fx-actions { gap: .3rem; flex-wrap: wrap; }
+.fx-actions .btn-xs, .fx-actions .btn-sm { font-size: .65rem; }
+
+/* Fix match prep section headers */
+#page-matchprep .section-header { margin: .8rem 0 .4rem; }
+#page-matchprep .section-title  { font-size: .68rem; }
+
+/* Fix standings table on small screens */
+.standings-table { font-size: .72rem; }
+.standings-table th { font-size: .52rem; padding: .45rem .3rem; }
+.standings-table td { padding: .45rem .3rem; }
+
+/* Fix modal on small screens */
+.modal-box { padding: 1.2rem 1.1rem calc(1.2rem + var(--safe-bottom)); }
+.modal-title { font-size: .82rem; margin-bottom: .8rem; }
+
+/* Fix button widths */
+.btn-primary { font-size: .8rem; padding: .65rem; }
+.btn-sm      { font-size: .7rem; }
+
+/* Notifications page */
+#page-notifications { padding: .75rem .8rem; }
+
+/* Poll bars tap target */
+.poll-vote-bar { min-height: 20px; }
+
+/* Room code */
+.mcode { font-size: .75rem; letter-spacing: 1.5px; padding: 3px 8px; }
+
+/* 15min notice */
+#prep-15min-notice { margin-bottom: .65rem; }
+
+/* Admin panel better spacing */
+.admin-card { padding: .75rem .8rem; font-size: .8rem; }
+.admin-tabs { gap: .3rem; margin-bottom: .7rem; }
+.atab       { font-size: .72rem; padding: .4rem .75rem; }
+
+/* Home page stats */
+.stat-val { font-size: 1rem; }
+.stat-lbl { font-size: .56rem; }
+.stats-grid { gap: .4rem; margin: .8rem 0; }
+
+/* Section headers less margin */
+.section-header { margin: .9rem 0 .55rem; }
+
 </style>
 </head>
 <body>
@@ -398,7 +457,8 @@ select.inp option{background:#0e0018;color:var(--text)}
   <button class="drawer-btn" onclick="closeDrawer();goPage('leaderboard')"><span class="drawer-icon">📈</span> Leaderboard</button>
   <button class="drawer-btn" onclick="closeDrawer();goPage('polls')"><span class="drawer-icon">📊</span> Polls<span id="polls-badge" class="drawer-badge hidden"></span></button>
   <button class="drawer-btn" onclick="closeDrawer();openMessenger('dms')"><span class="drawer-icon">💬</span> Messages<span id="pm-badge" class="drawer-badge hidden"></span></button>
-  <button class="drawer-btn" onclick="closeDrawer();goPage('referee')"><span class="drawer-icon">🟢</span> Referee Panel<span id="ref-badge" class="drawer-badge hidden"></span></button>
+  <button class="drawer-btn" onclick="closeDrawer();goPage('notifications')"><span class="drawer-icon">🔔</span> Notifications<span id="notif-badge" class="drawer-badge hidden"></span></button>
+  <button class="drawer-btn" id="drawer-ref-btn" style="display:none" onclick="closeDrawer();goPage('referee')"><span class="drawer-icon">🟢</span> Referee Panel<span id="ref-badge" class="drawer-badge hidden"></span></button>
   <button class="drawer-btn" onclick="closeDrawer();goPage('ucl')"><span class="drawer-icon">🏆</span> UCL</button>
   <div class="drawer-divider"></div>
   <button class="drawer-btn danger" id="drawer-admin-btn" onclick="closeDrawer();goPage('admin')" style="display:none"><span class="drawer-icon">🛡</span> Admin Panel</button>
@@ -476,6 +536,7 @@ select.inp option{background:#0e0018;color:var(--text)}
   <!-- MATCH PREP -->
   <div class="page" id="page-matchprep">
     <div id="my-swap-section"></div>
+    <div id="prep-15min-notice"></div>
     <div class="page-header"><div class="section-title c-gold">Match Prep</div><button class="btn-sm btn-outline" onclick="autoScheduleLeague()">Auto-Schedule</button></div>
     <div class="section-header"><div class="section-title c-cyan" style="font-size:.68rem">MATCH ROOMS</div><div class="section-line"></div></div>
     <div id="match-rooms-wrap"><div id="match-rooms-list"><div class="card empty">Loading...</div></div><div id="match-room-panel" class="hidden"></div></div>
@@ -502,6 +563,8 @@ select.inp option{background:#0e0018;color:var(--text)}
   <div class="page" id="page-pm" style="display:none"></div>
   <!-- PROFILE -->
   <div class="page" id="page-profile"><div id="profile-content"><div class="card empty" style="margin-top:1rem">Profile coming in Batch 2</div></div></div>
+  <!-- NOTIFICATIONS -->
+  <div class="page" id="page-notifications"></div>
   <!-- ADMIN -->
   <div class="page" id="page-admin"><div class="card empty" style="margin-top:1rem">Admin Panel coming in Batch 3</div></div>
 </div>
@@ -649,6 +712,7 @@ select.inp option{background:#0e0018;color:var(--text)}
     if (name === 'chat') renderMessenger();
     if (name === 'predict') renderPredictions();
     if (name === 'referee') renderRefPanel();
+    if (name === 'notifications') renderNotifications();
     // Show/hide FAB
     var fab = document.getElementById('chat-fab');
     if (fab) fab.style.display = (name === 'chat') ? 'none' : (myProfile ? 'flex' : 'none');
@@ -681,7 +745,11 @@ select.inp option{background:#0e0018;color:var(--text)}
     if(sp)sp.textContent=ps; if(sm)sm.textContent=played; if(sf)sf.textContent=ms.length;
   }
 
-  try { initApp(); } catch(e) {
+  try { 
+    initApp(); 
+    // Hook into auth to start extra listeners
+    var _origStartListeners = startListeners;
+  } catch(e) {
     console.error('Init error:',e);
     hideLoader();
     var h=document.getElementById('page-home');
